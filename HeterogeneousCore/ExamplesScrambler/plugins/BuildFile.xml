@@ -1,0 +1,5 @@
+<library name="HeterogeneousCoreExamplesScrambler" file="Scrambler.cc ScramblerKernel.cu">
+  <use name="cuda"/>
+  <use name="FWCore/Framework"/>
+  <flags EDM_PLUGIN="1"/>
+</library>

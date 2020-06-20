@@ -1,0 +1,3 @@
+<bin name="cudaHelloWorld" file="cudaHelloWorld.cu">
+  <use name="cuda"/>
+</bin>
