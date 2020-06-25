@@ -99,9 +99,9 @@ namespace DataFormats_Math {
     edm::Wrapper<std::vector<math::RhoEtaPhiVector> > wvv2;
     edm::Wrapper<std::vector<math::RhoEtaPhiVectorD> > wvvd2;
     edm::Wrapper<std::vector<math::RhoEtaPhiVectorF> > wvvf2;
-    //  edm::Wrapper<std::vector<math::RThetaPhiVector> > wvv3;
-    //     edm::Wrapper<std::vector<math::RThetaPhiVectorD> > wvvd3;
-    //     edm::Wrapper<std::vector<math::RThetaPhiVectorF> > wvvf3;
+    edm::Wrapper<std::vector<math::RThetaPhiVector> > wvv3;
+    edm::Wrapper<std::vector<math::RThetaPhiVectorD> > wvvd3;
+    edm::Wrapper<std::vector<math::RThetaPhiVectorF> > wvvf3;
     edm::Wrapper<std::vector<math::XYZPoint> > wvp1;
     edm::Wrapper<std::vector<math::XYZPointD> > wvpd1;
     edm::Wrapper<std::vector<math::XYZPointF> > wvpf1;
