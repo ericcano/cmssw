@@ -146,7 +146,7 @@ namespace edm {
         //throw cms::Exception("Incomplete configuration")
         //    << "Valid site-local-config not found at " << m_url;
         // Return PoolFileCatalog.xml for now
-        static std::vector<std::string> const tmp{"file:PoolFileCatalog.xml"};
+        static std::vector<std::string> const tmp{"file:PoolFileCatalog.xml?protocol=dummy"};
         return tmp;
       }
 
