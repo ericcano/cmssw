@@ -55,11 +55,11 @@ namespace cudavectors {
     }
     __syncthreads();
     convert (sInput[threadIdx.x], sOutput[threadIdx.x]);
-      if (!(threadIdx.x || blockIdx.x)) {
-        printf("threadIdx.x=%d, blockIdx.x=%d ", threadIdx.x, blockIdx.x);
-        printf("In:rho=%f, eta=%f, phi=%f ", sInput[0].rho, sInput[0].eta,sInput[0].phi);
-        printf("Out:x=%f, y=%f, z=%f\n", sOutput[0].x, sOutput[0].y,sOutput[0].z);
-      }
+    //if (!(threadIdx.x || blockIdx.x)) {
+    //  printf("threadIdx.x=%d, blockIdx.x=%d ", threadIdx.x, blockIdx.x);
+    //  printf("In:rho=%f, eta=%f, phi=%f ", sInput[0].rho, sInput[0].eta,sInput[0].phi);
+    //  printf("Out:x=%f, y=%f, z=%f\n", sOutput[0].x, sOutput[0].y,sOutput[0].z);
+    //}
 
     __syncthreads();
     // Collaboratively copy the output.
