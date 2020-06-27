@@ -35,7 +35,9 @@ namespace cudavectors {
 
     //size_t thisBlockSize = std::min(size - blockStart, blockDim.x); // <- did not compile oO
     size_t thisBlockSize = size - blockStart;
-    if (thisBlockSize > blockDim.x) thisBlockSize = blockDim.x;
+    if (thisBlockSize > blockDim.x) 
+      thisBlockSize = blockDim.x;
+
     {
       // Limited scope for early release of registers variables.
 
