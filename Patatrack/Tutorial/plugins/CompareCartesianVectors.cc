@@ -54,7 +54,8 @@ void CompareCartesianVectors::analyze(const edm::Event& event, const edm::EventS
         consistent = false;
       }
       std::cout << std::setprecision(9) << "(" << first[i].x() << ", " << first[i].y() << ", " << first[i].z()
-                << ")  vs  (" << second[i].x() << ", " << second[i].y() << ", " << second[i].z() << ")" << std::endl;
+                << ")  vs  (" << second[i].x() << ", " << second[i].y() << ", " << second[i].z() << ")"
+                << " at " << i << std::endl;
     }
   }
   if (consistent) {

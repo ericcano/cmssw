@@ -16,11 +16,11 @@ process.source = cms.Source("PoolSource",
   fileNames = cms.untracked.vstring("file:cylindricalVectors.root"),
 )
 
-process.convertToCartesianVectors = cms.EDProducer('ConvertToCartesianVectorsCUDA',
+process.ConvertToCartesianVectorsCUDA = cms.EDProducer('ConvertToCartesianVectorsCUDA',
   input = cms.InputTag('generateCylindricalVectors')
 )
 
-process.path = cms.Path(process.convertToCartesianVectors)
+process.path = cms.Path(process.ConvertToCartesianVectorsCUDA)
 
 process.maxEvents = cms.untracked.PSet(
   input = cms.untracked.int32( -1 )

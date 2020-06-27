@@ -15,6 +15,8 @@ namespace cudavectors {
     float z;
   };
 
+  constexpr static size_t threadsPerBlock = 64;
+
   void convertWrapper(CylindricalVector const* cylindrical, CartesianVector* cartesian, size_t size);
 
 }  // namespace cudavectors
