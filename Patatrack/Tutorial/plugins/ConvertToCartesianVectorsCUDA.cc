@@ -11,7 +11,6 @@
 #include "FWCore/Framework/interface/stream/EDProducer.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Utilities/interface/StreamID.h"
-#include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
 
 #include "cudavectors.h"
 
@@ -41,21 +40,18 @@ void ConvertToCartesianVectorsCUDA::produce(edm::Event& event, const edm::EventS
   auto const& input = event.get(input_);
   auto elements = input.size();
   auto product = std::make_unique<CartesianVectors>(elements);
-
-  // allocate memory on the GPU for the cylindrical and cartesian vectors
-  // fill here ...
-
-  // copy the input data to the GPU
-  // fill here ...
-
-  // convert the vectors from cylindrical to cartesian coordinates, on the GPU
-  // fill here ...
-
-  // copy the result from the GPU
-  // fill here ...
-
-  // free the GPU memory
-  // fill here ...
+  // A very brutal implementation based on the fact that math::XYZVectorF is, in the end,
+  // a pod in memory (no vtable), like cudavectors::CartesianVector, and likewise in cylindrical
+  static_assert(sizeof(CylindricalVectors::value_type) == sizeof(cudavectors::CylindricalVector),
+          "Size mismatch between CylindricalVectors::value_type and CylindricalVector");
+  static_assert(sizeof(CartesianVectors::value_type) == sizeof(cudavectors::CartesianVector),
+          "Size mismatch between CylindricalVectors::value_type and CylindricalVector");
+  cudavectors::convertWrapper(
+    reinterpret_cast<const cudavectors::CylindricalVector*>(input.data()),
+    reinterpret_cast<cudavectors::CartesianVector*>(product->data()),
+    elements);
+  //std::cout << "CUDA converted from: rho=" << input[0].rho() << " eta=" << input[0].eta() << " phi=" << input[0].phi() << std::endl;
+  //std::cout << "CUDA converted to: x=" << (*product)[0].x() << " y=" << (*product)[0].y() << " z=" << (*product)[0].z() << std::endl;
 
   event.put(output_, std::move(product));
 }

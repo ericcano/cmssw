@@ -30,6 +30,7 @@ PrintCartesianVectors::PrintCartesianVectors(const edm::ParameterSet& config)
     : input_(consumes<CartesianVectors>(config.getParameter<edm::InputTag>("input"))) {}
 
 void PrintCartesianVectors::analyze(const edm::Event& event, const edm::EventSetup& setup) {
+  std::cout << "evt=" << event.id() << " size=" << event.get(input_).size() << std::endl;
   for (auto const& v : event.get(input_)) {
     std::cout << std::fixed << "x: " << std::setw(6) << std::setprecision(2) << v.x() << ", y: " << std::setw(6)
               << std::setprecision(2) << v.y() << ", z: " << std::setw(8) << std::setprecision(2) << v.z() << std::endl;
