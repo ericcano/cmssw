@@ -97,7 +97,7 @@ namespace cudavectors {
 
     // convert the vectors from cylindrical to cartesian coordinates, on the GPU
     //std::cout << "Kernel launch size=" << size << " blocks=" << size/threadsPerBlock+1 << " threadsPerBlock=" << threadsPerBlock << std::endl;
-    convertKernel<<<size/threadsPerBlock+1, threadsPerBlock>>>(deviceInput, deviceOutput, size);
+    convertKernel<<<(size + threadsPerBlock -1)/threadsPerBlock), threadsPerBlock>>>(deviceInput, deviceOutput, size);
 
     // copy the result from the GPU
     cudaCheck(cudaMemcpy(cartesian, deviceOutput,
