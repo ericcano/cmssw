@@ -6,9 +6,6 @@
 // CUDA include files
 #include <cuda_runtime.h>
 
-// CMSSW include files
-#include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
-#include "HeterogeneousCore/CUDAUtilities/interface/device_unique_ptr.h"
 #include "cudavectors.h"
 
 namespace cudavectors {
@@ -83,30 +80,10 @@ namespace cudavectors {
   }
 
   void convertWrapper(CylindricalVector const* cylindrical, CartesianVector* cartesian, size_t size) {
-    // allocate memory on the GPU for the cylindrical and cartesian vectors
-    //auto deviceInput = cms::cuda::device::make_device_unique<CylindricalVector[]>(size, nullptr);
-    //auto deviceOutput = cms::cuda::device::make_device_unique<CartesianVector[]>(size, nullptr);
-    CylindricalVector * deviceInput;
-    CartesianVector * deviceOutput;
-    cudaCheck(cudaMalloc(&deviceInput, sizeof(CylindricalVector)*size));
-    cudaCheck(cudaMalloc(&deviceOutput, sizeof(CartesianVector)*size));
-
-    // copy the input data to the GPU
-    cudaCheck(cudaMemcpy(deviceInput, cylindrical,
-      sizeof(CylindricalVector) * size, cudaMemcpyHostToDevice));
-
     // convert the vectors from cylindrical to cartesian coordinates, on the GPU
     //std::cout << "Kernel launch size=" << size << " blocks=" << size/threadsPerBlock+1 << " threadsPerBlock=" << threadsPerBlock << std::endl;
-    convertKernel<<<(size + threadsPerBlock -1)/threadsPerBlock), threadsPerBlock>>>(deviceInput, deviceOutput, size);
-
-    // copy the result from the GPU
-    cudaCheck(cudaMemcpy(cartesian, deviceOutput,
-      sizeof(CartesianVector) * size, cudaMemcpyDeviceToHost));
-
-    // free the GPU memory;
-    cudaCheck(cudaFree(deviceInput));
-    cudaCheck(cudaFree(deviceOutput));
-    cudaCheck(cudaGetLastError());
+    convertKernel<<<(size + threadsPerBlock -1)/threadsPerBlock, threadsPerBlock>>>(
+            cylindrical, cartesian, size);
   }
 
 }  // namespace cudavectors
