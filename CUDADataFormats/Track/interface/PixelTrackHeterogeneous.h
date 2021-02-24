@@ -28,7 +28,6 @@ public:
   constexpr Quality &quality(int32_t i) { return (Quality &)(quality_(i)); }
   constexpr Quality const *qualityData() const { return (Quality const *)(quality_.data()); }
   constexpr Quality *qualityData() { return (Quality *)(quality_.data()); }
-  constexpr eigenSoA::ScalarSoA<uint8_t, S> *qualityPtr() { return &quality_; }
 
   // this is chi2/ndof as not necessarely all hits are used in the fit
   eigenSoA::ScalarSoA<float, S> chi2;
