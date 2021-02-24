@@ -7,7 +7,7 @@
 #include "CUDADataFormats/Common/interface/HeterogeneousSoA.h"
 
 namespace pixelTrack {
-  enum Quality : uint8_t { bad = 0, dup, loose, strict, tight, highPurity };
+  enum class Quality : uint8_t { bad = 0, dup, loose, strict, tight, highPurity };
 }
 
 template <int32_t S>
@@ -67,7 +67,6 @@ namespace pixelTrack {
   using TrackSoA = TrackSoAT<maxNumber()>;
   using TrajectoryState = TrajectoryStateSoA<maxNumber()>;
   using HitContainer = TrackSoA::HitContainer;
-  using Quality = pixelTrack::Quality;
 
 }  // namespace pixelTrack
 

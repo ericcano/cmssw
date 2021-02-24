@@ -107,7 +107,7 @@ __global__ void kernel_checkOverflows(HitContainer const *foundNtuplets,
 }
 
 __global__ void kernel_fishboneCleaner(GPUCACell const *cells, uint32_t const *__restrict__ nCells, Quality *quality) {
-  constexpr auto bad = pixelTrack::bad;
+  constexpr auto bad = pixelTrack::Quality::bad;
 
   auto first = threadIdx.x + blockIdx.x * blockDim.x;
   for (int idx = first, nt = (*nCells); idx < nt; idx += gridDim.x * blockDim.x) {
@@ -125,7 +125,7 @@ __global__ void kernel_earlyDuplicateRemover(GPUCACell const *cells,
                                              HitContainer *foundNtuplets,
                                              Quality *quality) {
   // constexpr auto bad = trackQuality::bad;
-  constexpr auto dup = pixelTrack::dup;
+  constexpr auto dup = pixelTrack::Quality::dup;
   // constexpr auto loose = trackQuality::loose;
 
   assert(nCells);
@@ -157,9 +157,9 @@ __global__ void kernel_fastDuplicateRemover(GPUCACell const *__restrict__ cells,
                                             uint32_t const *__restrict__ nCells,
                                             HitContainer const *__restrict__ foundNtuplets,
                                             TkSoA *__restrict__ tracks) {
-  constexpr auto bad = pixelTrack::bad;
-  constexpr auto dup = pixelTrack::dup;
-  constexpr auto loose = pixelTrack::loose;
+  constexpr auto bad = pixelTrack::Quality::bad;
+  constexpr auto dup = pixelTrack::Quality::dup;
+  constexpr auto loose = pixelTrack::Quality::loose;
 
   assert(nCells);
 
@@ -315,9 +315,9 @@ __global__ void kernel_countMultiplicity(HitContainer const *__restrict__ foundN
     auto nhits = foundNtuplets->size(it);
     if (nhits < 3)
       continue;
-    if (quality[it] == pixelTrack::dup)
+    if (quality[it] == pixelTrack::Quality::dup)
       continue;
-    assert(quality[it] == pixelTrack::bad);
+    assert(quality[it] == pixelTrack::Quality::bad);
     if (nhits > 5)
       printf("wrong mult %d %d\n", it, nhits);
     assert(nhits < 8);
@@ -333,9 +333,9 @@ __global__ void kernel_fillMultiplicity(HitContainer const *__restrict__ foundNt
     auto nhits = foundNtuplets->size(it);
     if (nhits < 3)
       continue;
-    if (quality[it] == pixelTrack::dup)
+    if (quality[it] == pixelTrack::Quality::dup)
       continue;
-    assert(quality[it] == pixelTrack::bad);
+    assert(quality[it] == pixelTrack::Quality::bad);
     if (nhits > 5)
       printf("wrong mult %d %d\n", it, nhits);
     assert(nhits < 8);
@@ -354,10 +354,10 @@ __global__ void kernel_classifyTracks(HitContainer const *__restrict__ tuples,
       break;  // guard
 
     // if duplicate: not even fit
-    if (quality[it] == pixelTrack::dup)
+    if (quality[it] == pixelTrack::Quality::dup)
       continue;
 
-    assert(quality[it] == pixelTrack::bad);
+    assert(quality[it] == pixelTrack::Quality::bad);
 
     // mark doublets as bad
     if (nhits < 3)
@@ -407,7 +407,7 @@ __global__ void kernel_classifyTracks(HitContainer const *__restrict__ tuples,
                 (std::abs(tracks->zip(it)) < region.maxZip);
 
     if (isOk)
-      quality[it] = pixelTrack::loose;
+      quality[it] = pixelTrack::Quality::loose;
   }
 }
 
@@ -418,7 +418,7 @@ __global__ void kernel_doStatsForTracks(HitContainer const *__restrict__ tuples,
   for (int idx = first, ntot = tuples->nbins(); idx < ntot; idx += gridDim.x * blockDim.x) {
     if (tuples->size(idx) == 0)
       break;  //guard
-    if (quality[idx] != pixelTrack::loose)
+    if (quality[idx] != pixelTrack::Quality::loose)
       continue;
     atomicAdd(&(counters->nGoodTracks), 1);
   }
@@ -431,7 +431,7 @@ __global__ void kernel_countHitInTracks(HitContainer const *__restrict__ tuples,
   for (int idx = first, ntot = tuples->nbins(); idx < ntot; idx += gridDim.x * blockDim.x) {
     if (tuples->size(idx) == 0)
       break;  // guard
-    if (quality[idx] != pixelTrack::loose)
+    if (quality[idx] != pixelTrack::Quality::loose)
       continue;
     for (auto h = tuples->begin(idx); h != tuples->end(idx); ++h)
       hitToTuple->countDirect(*h);
@@ -445,7 +445,7 @@ __global__ void kernel_fillHitInTracks(HitContainer const *__restrict__ tuples,
   for (int idx = first, ntot = tuples->nbins(); idx < ntot; idx += gridDim.x * blockDim.x) {
     if (tuples->size(idx) == 0)
       break;  // guard
-    if (quality[idx] != pixelTrack::loose)
+    if (quality[idx] != pixelTrack::Quality::loose)
       continue;
     for (auto h = tuples->begin(idx); h != tuples->end(idx); ++h)
       hitToTuple->fillDirect(*h, idx);
@@ -487,8 +487,8 @@ __global__ void kernel_tripletCleaner(TrackingRecHit2DSOAView const *__restrict_
                                       TkSoA const *__restrict__ ptracks,
                                       Quality *__restrict__ quality,
                                       CAHitNtupletGeneratorKernelsGPU::HitToTuple const *__restrict__ phitToTuple) {
-  constexpr auto bad = pixelTrack::bad;
-  constexpr auto dup = pixelTrack::dup;
+  constexpr auto bad = pixelTrack::Quality::bad;
+  constexpr auto dup = pixelTrack::Quality::dup;
   // constexpr auto loose = trackQuality::loose;
 
   auto &hitToTuple = *phitToTuple;

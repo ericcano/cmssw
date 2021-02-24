@@ -103,7 +103,7 @@ void SeedProducerFromSoA::produce(edm::StreamID streamID, edm::Event& iEvent, co
       break;  // this is a guard: maybe we need to move to nTracks...
 
     auto q = quality[it];
-    if (q != pixelTrack::loose)
+    if (q != pixelTrack::Quality::loose)
       continue;  // FIXME
     if (nHits < minNumberOfHits_)
       continue;

@@ -147,7 +147,7 @@ void PixelTrackProducerFromSoA::produce(edm::StreamID streamID,
       break;  // this is a guard: maybe we need to move to nTracks...
     indToEdm.push_back(-1);
     auto q = quality[it];
-    if (q != pixelTrack::loose)
+    if (q != pixelTrack::Quality::loose)
       continue;  // FIXME
     if (nHits < minNumberOfHits_)
       continue;

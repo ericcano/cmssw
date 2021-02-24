@@ -35,7 +35,7 @@ public:
 
   using HitContainer = pixelTrack::HitContainer;
   using Quality = pixelTrack::Quality;
-  static constexpr auto bad = pixelTrack::bad;
+  static constexpr auto bad = pixelTrack::Quality::bad;
 
   GPUCACell() = default;
 
