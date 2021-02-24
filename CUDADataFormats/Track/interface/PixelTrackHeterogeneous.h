@@ -21,11 +21,14 @@ public:
 
   // Always check quality is at least loose!
   // CUDA does not support enums  in __lgc ...
-  eigenSoA::ScalarSoA<uint8_t, S> m_quality;
-  constexpr Quality quality(int32_t i) const { return (Quality)(m_quality(i)); }
-  constexpr Quality &quality(int32_t i) { return (Quality &)(m_quality(i)); }
-  constexpr Quality const *qualityData() const { return (Quality const *)(m_quality.data()); }
-  constexpr Quality *qualityData() { return (Quality *)(m_quality.data()); }
+  private: 
+  eigenSoA::ScalarSoA<uint8_t, S> quality_;
+  public:
+  constexpr Quality quality(int32_t i) const { return (Quality)(quality_(i)); }
+  constexpr Quality &quality(int32_t i) { return (Quality &)(quality_(i)); }
+  constexpr Quality const *qualityData() const { return (Quality const *)(quality_.data()); }
+  constexpr Quality *qualityData() { return (Quality *)(quality_.data()); }
+  constexpr eigenSoA::ScalarSoA<uint8_t, S> *qualityPtr() { return &quality_; }
 
   // this is chi2/ndof as not necessarely all hits are used in the fit
   eigenSoA::ScalarSoA<float, S> chi2;

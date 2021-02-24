@@ -18,7 +18,7 @@ template <>
 void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *tracks_d, cudaStream_t cudaStream) {
   // these are pointer on GPU!
   auto *tuples_d = &tracks_d->hitIndices;
-  auto *quality_d = (Quality *)(&tracks_d->m_quality);
+  auto *quality_d = (Quality *)tracks_d->qualityPtr();
 
   // zero tuples
   cms::cuda::launchZero(tuples_d, cudaStream);
@@ -221,7 +221,7 @@ template <>
 void CAHitNtupletGeneratorKernelsGPU::classifyTuples(HitsOnCPU const &hh, TkSoA *tracks_d, cudaStream_t cudaStream) {
   // these are pointer on GPU!
   auto const *tuples_d = &tracks_d->hitIndices;
-  auto *quality_d = (Quality *)(&tracks_d->m_quality);
+  auto *quality_d = (Quality *)tracks_d->qualityPtr();
 
   auto blockSize = 64;
 
