@@ -142,8 +142,8 @@ namespace gpuPixelDoublets {
       // all cuts: true if fails
       constexpr float z0cut = 12.f;      // cm
       constexpr float hardPtCut = 0.5f;  // GeV
-      constexpr float minRadius =
-          hardPtCut * 87.78f;  // cm (1 GeV track has 1 GeV/c / (e * 3.8T) ~ 87 cm radius in a 3.8T field)
+      // cm (1 GeV track has 1 GeV/c / (e * 3.8T) ~ 87 cm radius in a 3.8T field)
+      constexpr float minRadius = hardPtCut * 87.78f;
       constexpr float minRadius2T4 = 4.f * minRadius * minRadius;
       auto ptcut = [&](int j, int16_t idphi) {
         auto r2t4 = minRadius2T4;
