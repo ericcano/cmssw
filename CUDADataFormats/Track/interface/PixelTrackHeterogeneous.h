@@ -52,9 +52,6 @@ public:
 
   HitContainer hitIndices;
   HitContainer detIndices;
-
-  // total number of tracks (including those not fitted)
-  uint32_t m_nTracks;
 };
 
 namespace pixelTrack {
