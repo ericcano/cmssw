@@ -52,8 +52,9 @@ namespace BrokenLine {
     //if(Layer==1) XXI_0=0.06/16.;
     // else XXI_0=0.06/16.;
     //XX_0*=1;
-    constexpr double geometry_factor =
-        0.7;  //!< number between 1/3 (uniform material) and 1 (thin scatterer) to be manually tuned
+    
+    //! number between 1/3 (uniform material) and 1 (thin scatterer) to be manually tuned
+    constexpr double geometry_factor = 0.7;  
     constexpr double fact = geometry_factor * Rfit::sqr(13.6 / 1000.);
     return fact / (pt2 * (1. + Rfit::sqr(slope))) * (std::abs(length) * XXI_0) *
            Rfit::sqr(1. + 0.038 * log(std::abs(length) * XXI_0));
