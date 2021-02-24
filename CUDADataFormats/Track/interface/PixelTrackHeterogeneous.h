@@ -6,7 +6,7 @@
 
 #include "CUDADataFormats/Common/interface/HeterogeneousSoA.h"
 
-namespace trackQuality {
+namespace pixelTrack {
   enum Quality : uint8_t { bad = 0, dup, loose, strict, tight, highPurity };
 }
 
@@ -15,7 +15,7 @@ class TrackSoAT {
 public:
   static constexpr int32_t stride() { return S; }
 
-  using Quality = trackQuality::Quality;
+  using Quality = pixelTrack::Quality;
   using hindex_type = uint32_t;
   using HitContainer = cms::cuda::OneToManyAssoc<hindex_type, S, 5 * S>;
 
@@ -70,7 +70,7 @@ namespace pixelTrack {
   using TrackSoA = TrackSoAT<maxNumber()>;
   using TrajectoryState = TrajectoryStateSoA<maxNumber()>;
   using HitContainer = TrackSoA::HitContainer;
-  using Quality = trackQuality::Quality;
+  using Quality = pixelTrack::Quality;
 
 }  // namespace pixelTrack
 

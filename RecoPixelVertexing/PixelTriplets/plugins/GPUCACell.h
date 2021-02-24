@@ -34,8 +34,8 @@ public:
   using TmpTuple = cms::cuda::VecArray<uint32_t, 6>;
 
   using HitContainer = pixelTrack::HitContainer;
-  using Quality = trackQuality::Quality;
-  static constexpr auto bad = trackQuality::bad;
+  using Quality = pixelTrack::Quality;
+  static constexpr auto bad = pixelTrack::bad;
 
   GPUCACell() = default;
 
