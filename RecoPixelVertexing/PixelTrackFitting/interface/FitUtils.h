@@ -7,7 +7,7 @@
 
 namespace Rfit {
 
-  constexpr double d = 1.e-4;  //!< used in numerical derivative (J2 in Circle_fit())
+  constexpr double epsilon = 1.e-4;  //!< used in numerical derivative (J2 in Circle_fit())
 
   using VectorXd = Eigen::VectorXd;
   using MatrixXd = Eigen::MatrixXd;

@@ -715,7 +715,7 @@ namespace Rfit {
       for (u_int a = 0; a < 6; ++a) {
         const u_int i = nu[a][0], j = nu[a][1];
         Matrix3d Delta = Matrix3d::Zero();
-        Delta(i, j) = Delta(j, i) = abs(A(i, j) * d);
+        Delta(i, j) = Delta(j, i) = abs(A(i, j) * epsilon);
         J2.col(a) = min_eigen3D_fast(A + Delta);
         const int sign = (J2.col(a)(2) > 0) ? 1 : -1;
         J2.col(a) = (J2.col(a) * sign - v) / Delta(i, j);
