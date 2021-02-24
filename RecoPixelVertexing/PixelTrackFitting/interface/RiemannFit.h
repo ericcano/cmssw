@@ -31,11 +31,11 @@ namespace Rfit {
   __host__ __device__ inline void computeRadLenUniformMaterial(const VNd1& length_values, VNd2& rad_lengths) {
     // Radiation length of the pixel detector in the uniform assumption, with
     // 0.06 rad_len at 16 cm
-    constexpr double XX_0_inv = 0.06 / 16.;
+    constexpr double xx_0_inv = 0.06 / 16.;
     u_int n = length_values.rows();
-    rad_lengths(0) = length_values(0) * XX_0_inv;
+    rad_lengths(0) = length_values(0) * xx_0_inv;
     for (u_int j = 1; j < n; ++j) {
-      rad_lengths(j) = std::abs(length_values(j) - length_values(j - 1)) * XX_0_inv;
+      rad_lengths(j) = std::abs(length_values(j) - length_values(j - 1)) * xx_0_inv;
     }
   }
 
