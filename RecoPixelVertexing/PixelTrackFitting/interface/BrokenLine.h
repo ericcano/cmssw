@@ -35,11 +35,16 @@ namespace brokenline {
     \param length length of the track in the material.
     \param B magnetic field in Gev/cm/c.
     \param R radius of curvature (needed to evaluate p).
-    \param Layer denotes which of the four layers of the detector is the endpoint of the multiple scattered track. For example, if Layer=3, then the particle has just gone through the material between the second and the third layer.
+    \param Layer denotes which of the four layers of the detector is the endpoint of the 
+   *             multiple scattered track. For example, if Layer=3, then the particle has 
+   *             just gone through the material between the second and the third layer.
     
-    \todo add another Layer variable to identify also the start point of the track, so if there are missing hits or multiple hits, the part of the detector that the particle has traversed can be exactly identified.
+    \todo add another Layer variable to identify also the start point of the track, 
+   *      so if there are missing hits or multiple hits, the part of the detector that 
+   *      the particle has traversed can be exactly identified.
     
-    \warning the formula used here assumes beta=1, and so neglects the dependence of theta_0 on the mass of the particle at fixed momentum.
+    \warning the formula used here assumes beta=1, and so neglects the dependence 
+   *         of theta_0 on the mass of the particle at fixed momentum.
     
     \return the variance of the planar angle ((theta_0)^2 /3).
   */
@@ -77,7 +82,10 @@ namespace brokenline {
   }
 
   /*!
-    \brief Changes the Karimäki parameters (and consequently their covariance matrix) under a translation of the coordinate system, such that the old origin has coordinates (x0,y0) in the new coordinate system. The formulas are taken from Karimäki V., 1990, Effective circle fitting for particle trajectories, Nucl. Instr. and Meth. A305 (1991) 187.
+    \brief Changes the Karimäki parameters (and consequently their covariance matrix) under a 
+   *       translation of the coordinate system, such that the old origin has coordinates (x0,y0) 
+   *       in the new coordinate system. The formulas are taken from Karimäki V., 1990, Effective 
+   *       circle fitting for particle trajectories, Nucl. Instr. and Meth. A305 (1991) 187.
     
     \param circle circle fit in the old coordinate system.
     \param x0 x coordinate of the translation vector.
@@ -167,9 +175,12 @@ namespace brokenline {
   }
 
   /*!
-    \brief Computes the n-by-n band matrix obtained minimizing the Broken Line's cost function w.r.t u. This is the whole matrix in the case of the line fit and the main n-by-n block in the case of the circle fit.
+    \brief Computes the n-by-n band matrix obtained minimizing the Broken Line's cost function w.r.t u. 
+   *       This is the whole matrix in the case of the line fit and the main n-by-n block in the case 
+   *       of the circle fit.
     
-    \param w weights of the first part of the cost function, the one with the measurements and not the angles (\sum_{i=1}^n w*(y_i-u_i)^2).
+    \param w weights of the first part of the cost function, the one with the measurements 
+   *         and not the angles (\sum_{i=1}^n w*(y_i-u_i)^2).
     \param S total distance traveled by the particle from the pre-fitted closest approach.
     \param VarBeta kink angles' variance.
     
@@ -242,7 +253,8 @@ namespace brokenline {
   }
 
   /*!
-    \brief Performs the Broken Line fit in the curved track case (that is, the fit parameters are the interceptions u and the curvature correction \Delta\kappa).
+    \brief Performs the Broken Line fit in the curved track case (that is, the fit 
+   *       parameters are the interceptions u and the curvature correction \Delta\kappa).
     
     \param hits hits coordinates.
     \param hits_cov hits covariance matrix.
@@ -254,9 +266,15 @@ namespace brokenline {
     -cov covariance matrix of the fitted parameter; \n
     -chi2 value of the cost function in the minimum.
     
-    \details The function implements the steps 2 and 3 of the Broken Line fit with the curvature correction.\n
-    The step 2 is the least square fit, done by imposing the minimum constraint on the cost function and solving the consequent linear system. It determines the fitted parameters u and \Delta\kappa and their covariance matrix.
-    The step 3 is the correction of the fast pre-fitted parameters for the innermost part of the track. It is first done in a comfortable coordinate system (the one in which the first hit is the origin) and then the parameters and their covariance matrix are transformed to the original coordinate system.
+    \details The function implements the steps 2 and 3 of the Broken Line fit 
+   *         with the curvature correction.\n
+   * The step 2 is the least square fit, done by imposing the minimum constraint on 
+   * the cost function and solving the consequent linear system. It determines the 
+   * fitted parameters u and \Delta\kappa and their covariance matrix.
+   * The step 3 is the correction of the fast pre-fitted parameters for the innermost 
+   * part of the track. It is first done in a comfortable coordinate system (the one 
+   * in which the first hit is the origin) and then the parameters and their 
+   * covariance matrix are transformed to the original coordinate system.
   */
   template <typename M3xN, typename M6xN, typename V4, int N>
   __host__ __device__ inline void BL_Circle_fit(const M3xN& hits,
@@ -399,10 +417,16 @@ namespace brokenline {
     -cov covariance matrix of the fitted parameter; \n
     -chi2 value of the cost function in the minimum.
     
-    \details The function implements the steps 2 and 3 of the Broken Line fit without the curvature correction.\n
-    The step 2 is the least square fit, done by imposing the minimum constraint on the cost function and solving the consequent linear system. It determines the fitted parameters u and their covariance matrix.
-    The step 3 is the correction of the fast pre-fitted parameters for the innermost part of the track. It is first done in a comfortable coordinate system (the one in which the first hit is the origin) and then the parameters and their covariance matrix are transformed to the original coordinate system.
-  */
+    \details The function implements the steps 2 and 3 of the Broken Line fit without 
+   *        the curvature correction.\n
+   * The step 2 is the least square fit, done by imposing the minimum constraint 
+   * on the cost function and solving the consequent linear system. It determines 
+   * the fitted parameters u and their covariance matrix.
+   * The step 3 is the correction of the fast pre-fitted parameters for the innermost 
+   * part of the track. It is first done in a comfortable coordinate system (the one 
+   * in which the first hit is the origin) and then the parameters and their covariance 
+   * matrix are transformed to the original coordinate system.
+   */
   template <typename V4, typename M6xN, int N>
   __host__ __device__ inline void BL_Line_fit(const M6xN& hits_ge,
                                               const V4& fast_fit,
