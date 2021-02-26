@@ -24,11 +24,11 @@ namespace brokenline {
   struct PreparedBrokenLineData {
     int q;                      //!< particle charge
     Rfit::Matrix2xNd<N> radii;  //!< xy data in the system in which the pre-fitted center is the origin
-    Rfit::VectorNd<N> s;        //!< total distance traveled in the transverse plane
+    Rfit::VectorNd<N> sTransverse; //!< total distance traveled in the transverse plane
                                 //   starting from the pre-fitted closest approach
-    Rfit::VectorNd<N> S;        //!< total distance traveled (three-dimensional)
-    Rfit::VectorNd<N> Z;        //!< orthogonal coordinate to the pre-fitted line in the sz plane
-    Rfit::VectorNd<N> VarBeta;  //!< kink angles in the SZ plane
+    Rfit::VectorNd<N> sTotal;   //!< total distance traveled (three-dimensional)
+    Rfit::VectorNd<N> zInSZplane;  //!< orthogonal coordinate to the pre-fitted line in the sz plane
+    Rfit::VectorNd<N> varBeta;  //!< kink angles in the SZ plane
   };
 
   /*!
@@ -157,25 +157,25 @@ namespace brokenline {
     e = -fast_fit(2) * fast_fit.head(2) / fast_fit.head(2).norm();
     for (i = 0; i < n; i++) {
       d = results.radii.block(0, i, 2, 1);
-      results.s(i) = results.q * fast_fit(2) * atan2(Rfit::cross2D(d, e), d.dot(e));  // calculates the arc length
+      results.sTransverse(i) = results.q * fast_fit(2) * atan2(Rfit::cross2D(d, e), d.dot(e));  // calculates the arc length
     }
     Rfit::VectorNd<N> z = hits.block(2, 0, 1, n).transpose();
 
     //calculate S and Z
     Rfit::Matrix2xNd<N> pointsSZ = Rfit::Matrix2xNd<N>::Zero();
     for (i = 0; i < n; i++) {
-      pointsSZ(0, i) = results.s(i);
+      pointsSZ(0, i) = results.sTransverse(i);
       pointsSZ(1, i) = z(i);
       pointsSZ.block(0, i, 2, 1) = R * pointsSZ.block(0, i, 2, 1);
     }
-    results.S = pointsSZ.block(0, 0, 1, n).transpose();
-    results.Z = pointsSZ.block(1, 0, 1, n).transpose();
+    results.sTotal = pointsSZ.block(0, 0, 1, n).transpose();
+    results.zInSZplane = pointsSZ.block(1, 0, 1, n).transpose();
 
     //calculate VarBeta
-    results.VarBeta(0) = results.VarBeta(n - 1) = 0;
+    results.varBeta(0) = results.varBeta(n - 1) = 0;
     for (i = 1; i < n - 1; i++) {
-      results.VarBeta(i) = multScatt(results.S(i + 1) - results.S(i), B, fast_fit(2), i + 2, slope) +
-                           multScatt(results.S(i) - results.S(i - 1), B, fast_fit(2), i + 1, slope);
+      results.varBeta(i) = multScatt(results.sTotal(i + 1) - results.sTotal(i), B, fast_fit(2), i + 2, slope) +
+                           multScatt(results.sTotal(i) - results.sTotal(i - 1), B, fast_fit(2), i + 1, slope);
     }
   }
 
@@ -293,10 +293,10 @@ namespace brokenline {
 
     circle_results.q = data.q;
     auto& radii = data.radii;
-    const auto& s = data.s;
-    const auto& S = data.S;
-    auto& Z = data.Z;
-    auto& VarBeta = data.VarBeta;
+    const auto& s = data.sTransverse;
+    const auto& S = data.sTotal;
+    auto& Z = data.zInSZplane;
+    auto& VarBeta = data.varBeta;
     const double slope = -circle_results.q / fast_fit(3);
     VarBeta *= 1. + Rfit::sqr(slope);  // the kink angles are projected!
 
@@ -442,9 +442,9 @@ namespace brokenline {
     u_int i;
 
     const auto& radii = data.radii;
-    const auto& S = data.S;
-    const auto& Z = data.Z;
-    const auto& VarBeta = data.VarBeta;
+    const auto& S = data.sTotal;
+    const auto& Z = data.zInSZplane;
+    const auto& VarBeta = data.varBeta;
 
     const double slope = -data.q / fast_fit(3);
     Rfit::Matrix2d R = rotationMatrix(slope);
