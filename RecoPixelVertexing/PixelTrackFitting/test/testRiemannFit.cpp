@@ -102,7 +102,7 @@ void testFit() {
   // FAST_FIT_CPU
 #ifdef USE_BL
   Vector4d fast_fit_results;
-  BrokenLine::BL_Fast_fit(hits, fast_fit_results);
+  brokenline::BL_Fast_fit(hits, fast_fit_results);
 #else
   Vector4d fast_fit_results;
   Rfit::Fast_fit(hits, fast_fit_results);
@@ -112,14 +112,14 @@ void testFit() {
   // CIRCLE_FIT CPU
 
 #ifdef USE_BL
-  BrokenLine::PreparedBrokenLineData<N> data;
-  BrokenLine::karimaki_circle_fit circle_fit_results;
+  brokenline::PreparedBrokenLineData<N> data;
+  brokenline::karimaki_circle_fit circle_fit_results;
   Rfit::Matrix3d Jacob;
 
-  BrokenLine::prepareBrokenLineData(hits, fast_fit_results, B, data);
+  brokenline::prepareBrokenLineData(hits, fast_fit_results, B, data);
   Rfit::line_fit line_fit_results;
-  BrokenLine::BL_Line_fit(hits_ge, fast_fit_results, B, data, line_fit_results);
-  BrokenLine::BL_Circle_fit(hits, hits_ge, fast_fit_results, B, data, circle_fit_results);
+  brokenline::BL_Line_fit(hits_ge, fast_fit_results, B, data, line_fit_results);
+  brokenline::BL_Circle_fit(hits, hits_ge, fast_fit_results, B, data, circle_fit_results);
   Jacob << 1., 0, 0, 0, 1., 0, 0, 0,
       -B / std::copysign(Rfit::sqr(circle_fit_results.par(2)), circle_fit_results.par(2));
   circle_fit_results.par(2) = B / std::abs(circle_fit_results.par(2));

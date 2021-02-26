@@ -5,7 +5,7 @@
 
 #include "RecoPixelVertexing/PixelTrackFitting/interface/FitUtils.h"
 
-namespace BrokenLine {
+namespace brokenline {
 
   //!< Karimäki's parameters: (phi, d, k=1/R)
   /*!< covariance matrix: \n

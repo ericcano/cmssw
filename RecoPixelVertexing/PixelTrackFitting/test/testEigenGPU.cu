@@ -55,7 +55,7 @@ __global__ void kernelFastFit(double* __restrict__ phits, double* __restrict__ p
   Rfit::Map3xNd<N> hits(phits + i, 3, N);
   Rfit::Map4d result(presults + i, 4);
 #ifdef USE_BL
-  BrokenLine::BL_Fast_fit(hits, result);
+  brokenline::BL_Fast_fit(hits, result);
 #else
   Rfit::Fast_fit(hits, result);
 #endif
@@ -75,15 +75,15 @@ __global__ void kernelBrokenLineFit(double* __restrict__ phits,
   Rfit::Map4d fast_fit_input(pfast_fit_input + i, 4);
   Rfit::Map6xNf<N> hits_ge(phits_ge + i, 6, N);
 
-  BrokenLine::PreparedBrokenLineData<N> data;
+  brokenline::PreparedBrokenLineData<N> data;
   Rfit::Matrix3d Jacob;
 
   auto& line_fit_results = line_fit[i];
   auto& circle_fit_results = circle_fit[i];
 
-  BrokenLine::prepareBrokenLineData(hits, fast_fit_input, B, data);
-  BrokenLine::BL_Line_fit(hits_ge, fast_fit_input, B, data, line_fit_results);
-  BrokenLine::BL_Circle_fit(hits, hits_ge, fast_fit_input, B, data, circle_fit_results);
+  brokenline::prepareBrokenLineData(hits, fast_fit_input, B, data);
+  brokenline::BL_Line_fit(hits_ge, fast_fit_input, B, data, line_fit_results);
+  brokenline::BL_Circle_fit(hits, hits_ge, fast_fit_input, B, data, circle_fit_results);
   Jacob << 1., 0, 0, 0, 1., 0, 0, 0,
       -B / std::copysign(Rfit::sqr(circle_fit_results.par(2)), circle_fit_results.par(2));
   circle_fit_results.par(2) = B / std::abs(circle_fit_results.par(2));
@@ -236,7 +236,7 @@ void testFit() {
   // FAST_FIT_CPU
 #ifdef USE_BL
   Vector4d fast_fit_results;
-  BrokenLine::BL_Fast_fit(hits, fast_fit_results);
+  brokenline::BL_Fast_fit(hits, fast_fit_results);
 #else
   Vector4d fast_fit_results;
   Rfit::Fast_fit(hits, fast_fit_results);
@@ -271,13 +271,13 @@ void testFit() {
 
 #ifdef USE_BL
   // CIRCLE AND LINE FIT CPU
-  BrokenLine::PreparedBrokenLineData<N> data;
-  BrokenLine::karimaki_circle_fit circle_fit_results;
+  brokenline::PreparedBrokenLineData<N> data;
+  brokenline::karimaki_circle_fit circle_fit_results;
   Rfit::line_fit line_fit_results;
   Rfit::Matrix3d Jacob;
-  BrokenLine::prepareBrokenLineData(hits, fast_fit_results, B, data);
-  BrokenLine::BL_Line_fit(hits_ge, fast_fit_results, B, data, line_fit_results);
-  BrokenLine::BL_Circle_fit(hits, hits_ge, fast_fit_results, B, data, circle_fit_results);
+  brokenline::prepareBrokenLineData(hits, fast_fit_results, B, data);
+  brokenline::BL_Line_fit(hits_ge, fast_fit_results, B, data, line_fit_results);
+  brokenline::BL_Circle_fit(hits, hits_ge, fast_fit_results, B, data, circle_fit_results);
   Jacob << 1., 0, 0, 0, 1., 0, 0, 0,
       -B / std::copysign(Rfit::sqr(circle_fit_results.par(2)), circle_fit_results.par(2));
   circle_fit_results.par(2) = B / std::abs(circle_fit_results.par(2));

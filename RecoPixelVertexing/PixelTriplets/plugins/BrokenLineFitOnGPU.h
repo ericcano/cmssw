@@ -105,7 +105,7 @@ __global__ void kernelBLFastFit(Tuples const *__restrict__ foundNtuplets,
       hits.col(i) << hhp->xGlobal(hit), hhp->yGlobal(hit), hhp->zGlobal(hit);
       hits_ge.col(i) << ge[0], ge[1], ge[2], ge[3], ge[4], ge[5];
     }
-    BrokenLine::BL_Fast_fit(hits, fast_fit);
+    brokenline::BL_Fast_fit(hits, fast_fit);
 
     // no NaN here....
     assert(fast_fit(0) == fast_fit(0));
@@ -146,15 +146,15 @@ __global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ t
     Rfit::Map4d fast_fit(pfast_fit + local_idx);
     Rfit::Map6xNf<N> hits_ge(phits_ge + local_idx);
 
-    BrokenLine::PreparedBrokenLineData<N> data;
+    brokenline::PreparedBrokenLineData<N> data;
     Rfit::Matrix3d Jacob;
 
-    BrokenLine::karimaki_circle_fit circle;
+    brokenline::karimaki_circle_fit circle;
     Rfit::line_fit line;
 
-    BrokenLine::prepareBrokenLineData(hits, fast_fit, B, data);
-    BrokenLine::BL_Line_fit(hits_ge, fast_fit, B, data, line);
-    BrokenLine::BL_Circle_fit(hits, hits_ge, fast_fit, B, data, circle);
+    brokenline::prepareBrokenLineData(hits, fast_fit, B, data);
+    brokenline::BL_Line_fit(hits_ge, fast_fit, B, data, line);
+    brokenline::BL_Circle_fit(hits, hits_ge, fast_fit, B, data, circle);
 
     results->stateAtBS.copyFromCircle(circle.par, circle.cov, line.par, line.cov, 1.f / float(B), tkid);
     results->pt(tkid) = float(B) / float(std::abs(circle.par(2)));
