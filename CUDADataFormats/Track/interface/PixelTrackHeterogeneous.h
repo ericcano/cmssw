@@ -11,7 +11,7 @@ namespace pixelTrack {
 }
 
 template <int32_t S>
-class TrackSoAT {
+class TrackSoAHeterogeneousT {
 public:
   static constexpr int32_t stride() { return S; }
 
@@ -63,7 +63,7 @@ namespace pixelTrack {
   constexpr uint32_t maxNumber() { return 32 * 1024; }
 #endif
 
-  using TrackSoA = TrackSoAT<maxNumber()>;
+  using TrackSoA = TrackSoAHeterogeneousT<maxNumber()>;
   using TrajectoryState = TrajectoryStateSoA<maxNumber()>;
   using HitContainer = TrackSoA::HitContainer;
 
