@@ -3,7 +3,7 @@
 
 #include "CUDADataFormats/Vertex/interface/ZVertexSoA.h"
 #include "CUDADataFormats/Common/interface/HeterogeneousSoA.h"
-#include "CUDADataFormats/Track/interface/PixelTrackHeterogeneous.h"
+#include "CUDADataFormats/Track/interface/PixelTrackHeterogeneous_t.h"
 
 using ZVertexHeterogeneous = HeterogeneousSoA<ZVertexSoA>;
 #ifndef __CUDACC__

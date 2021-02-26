@@ -1,4 +1,4 @@
-#include "CUDADataFormats/Track/interface/TrajectoryStateSoA.h"
+#include "CUDADataFormats/Track/interface/TrajectoryStateSoA_t.h"
 
 using Vector5d = Eigen::Matrix<double, 5, 1>;
 using Matrix5d = Eigen::Matrix<double, 5, 5>;

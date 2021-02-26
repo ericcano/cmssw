@@ -1,7 +1,7 @@
 #ifndef RecoPixelVertexing_PixelTrackFitting_plugins_HelixFitOnGPU_h
 #define RecoPixelVertexing_PixelTrackFitting_plugins_HelixFitOnGPU_h
 
-#include "CUDADataFormats/Track/interface/PixelTrackHeterogeneous.h"
+#include "CUDADataFormats/Track/interface/PixelTrackHeterogeneous_t.h"
 #include "CUDADataFormats/TrackingRecHit/interface/TrackingRecHit2DHeterogeneous.h"
 #include "RecoPixelVertexing/PixelTrackFitting/interface/FitResult.h"
 
