@@ -5,7 +5,7 @@
 #include "HeterogeneousCore/CUDAUtilities/interface/eigenSoA.h"
 
 template <int32_t S>
-struct TrajectoryStateSoA {
+struct TrajectoryStateSoAT {
   using Vector5f = Eigen::Matrix<float, 5, 1>;
   using Vector15f = Eigen::Matrix<float, 15, 1>;
 

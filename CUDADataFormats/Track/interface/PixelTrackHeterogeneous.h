@@ -36,7 +36,7 @@ public:
 
   // State at the Beam spot
   // phi,tip,1/pt,cotan(theta),zip
-  TrajectoryStateSoA<S> stateAtBS;
+  TrajectoryStateSoAT<S> stateAtBS;
   eigenSoA::ScalarSoA<float, S> eta;
   eigenSoA::ScalarSoA<float, S> pt;
   constexpr float charge(int32_t i) const { return std::copysign(1.f, stateAtBS.state(i)(2)); }
@@ -64,7 +64,7 @@ namespace pixelTrack {
 #endif
 
   using TrackSoA = TrackSoAHeterogeneousT<maxNumber()>;
-  using TrajectoryState = TrajectoryStateSoA<maxNumber()>;
+  using TrajectoryState = TrajectoryStateSoAT<maxNumber()>;
   using HitContainer = TrackSoA::HitContainer;
 
 }  // namespace pixelTrack

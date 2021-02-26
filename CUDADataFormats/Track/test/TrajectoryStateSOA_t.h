@@ -17,7 +17,7 @@ __host__ __device__ Matrix5d loadCov(Vector5d const& e) {
   return cov;
 }
 
-using TS = TrajectoryStateSoA<128>;
+using TS = TrajectoryStateSoAT<128>;
 
 __global__ void testTSSoA(TS* pts, int n) {
   assert(n <= 128);
