@@ -48,7 +48,7 @@ namespace brokenline {
     
     \return the variance of the planar angle ((theta_0)^2 /3).
   */
-  __host__ __device__ inline double MultScatt(
+  __host__ __device__ inline double multScatt(
       const double& length, const double B, const double R, int Layer, double slope) {
     // limit R to 20GeV...
     auto pt2 = std::min(20., B * R);
@@ -169,8 +169,8 @@ namespace brokenline {
     //calculate VarBeta
     results.VarBeta(0) = results.VarBeta(n - 1) = 0;
     for (i = 1; i < n - 1; i++) {
-      results.VarBeta(i) = MultScatt(results.S(i + 1) - results.S(i), B, fast_fit(2), i + 2, slope) +
-                           MultScatt(results.S(i) - results.S(i - 1), B, fast_fit(2), i + 1, slope);
+      results.VarBeta(i) = multScatt(results.S(i + 1) - results.S(i), B, fast_fit(2), i + 2, slope) +
+                           multScatt(results.S(i) - results.S(i - 1), B, fast_fit(2), i + 1, slope);
     }
   }
 
@@ -384,7 +384,7 @@ namespace brokenline {
     //...Translate in the system in which the first corrected hit is the origin, adding the m.s. correction...
 
     TranslateKarimaki(circle_results, 0.5 * (e - d)(0), 0.5 * (e - d)(1), jacobian);
-    circle_results.cov(0, 0) += (1 + Rfit::sqr(slope)) * MultScatt(S(1) - S(0), B, fast_fit(2), 2, slope);
+    circle_results.cov(0, 0) += (1 + Rfit::sqr(slope)) * multScatt(S(1) - S(0), B, fast_fit(2), 2, slope);
 
     //...And translate back to the original system
 
@@ -482,7 +482,7 @@ namespace brokenline {
     line_results.par << (u(1) - u(0)) / (S(1) - S(0)), u(0);
     auto idiff = 1. / (S(1) - S(0));
     line_results.cov << (I(0, 0) - 2 * I(0, 1) + I(1, 1)) * Rfit::sqr(idiff) +
-                            MultScatt(S(1) - S(0), B, fast_fit(2), 2, slope),
+                            multScatt(S(1) - S(0), B, fast_fit(2), 2, slope),
         (I(0, 1) - I(0, 0)) * idiff, (I(0, 1) - I(0, 0)) * idiff, I(0, 0);
 
     // translate to the original SZ system
