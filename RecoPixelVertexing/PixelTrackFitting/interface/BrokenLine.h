@@ -74,7 +74,7 @@ namespace brokenline {
     
     \return 2D rotation matrix.
   */
-  __host__ __device__ inline Rfit::Matrix2d RotationMatrix(double slope) {
+  __host__ __device__ inline Rfit::Matrix2d rotationMatrix(double slope) {
     Rfit::Matrix2d Rot;
     Rot(0, 0) = 1. / sqrt(1. + Rfit::sqr(slope));
     Rot(0, 1) = slope * Rot(0, 0);
@@ -147,7 +147,7 @@ namespace brokenline {
 
     const double slope = -results.q / fast_fit(3);
 
-    Rfit::Matrix2d R = RotationMatrix(slope);
+    Rfit::Matrix2d R = rotationMatrix(slope);
 
     // calculate radii and s
     results.radii = hits.block(0, 0, 2, n) - fast_fit.head(2) * Rfit::MatrixXd::Constant(1, n, 1);
@@ -310,7 +310,7 @@ namespace brokenline {
       V(0, 1) = V(1, 0) = hits_ge.col(i)[1];  // cov_xy
       V(1, 1) = hits_ge.col(i)[2];            // y errors
       //Slope=-radii(0,i)/radii(1,i);
-      RR = RotationMatrix(-radii(0, i) / radii(1, i));
+      RR = rotationMatrix(-radii(0, i) / radii(1, i));
       w(i) = 1. / ((RR * V * RR.transpose())(1, 1));  // compute the orthogonal weight point by point
     }
 
@@ -444,7 +444,7 @@ namespace brokenline {
     const auto& VarBeta = data.VarBeta;
 
     const double slope = -data.q / fast_fit(3);
-    Rfit::Matrix2d R = RotationMatrix(slope);
+    Rfit::Matrix2d R = rotationMatrix(slope);
 
     Rfit::Matrix3d V = Rfit::Matrix3d::Zero();                 // covariance matrix XYZ
     Rfit::Matrix2x3d JacobXYZtosZ = Rfit::Matrix2x3d::Zero();  // jacobian for computation of the error on s (xyz -> sz)
