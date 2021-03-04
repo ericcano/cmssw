@@ -11,7 +11,9 @@ namespace brokenline {
   /*!< covariance matrix: \n
     |cov(phi,phi)|cov( d ,phi)|cov( k ,phi)| \n
     |cov(phi, d )|cov( d , d )|cov( k , d )| \n
-    |cov(phi, k )|cov( d , k )|cov( k , k )|
+    |cov(phi, k )|cov( d , k )|cov( k , k )| \n
+    as defined in Karimäki V., 1990, Effective circle fitting for particle trajectories, 
+    Nucl. Instr. and Meth. A305 (1991) 187.
   */
   using karimaki_circle_fit = Rfit::circle_fit;
 
