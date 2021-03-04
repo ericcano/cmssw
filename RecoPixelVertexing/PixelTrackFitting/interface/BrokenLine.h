@@ -35,7 +35,7 @@ namespace brokenline {
     \brief Computes the Coulomb multiple scattering variance of the planar angle.
     
     \param length length of the track in the material.
-    \param B magnetic field in Gev/cm/c.
+    \param bField magnetic field in Gev/cm/c.
     \param R radius of curvature (needed to evaluate p).
     \param Layer denotes which of the four layers of the detector is the endpoint of the 
    *             multiple scattered track. For example, if Layer=3, then the particle has 
@@ -51,9 +51,9 @@ namespace brokenline {
     \return the variance of the planar angle ((theta_0)^2 /3).
   */
   __host__ __device__ inline double multScatt(
-      const double& length, const double B, const double R, int Layer, double slope) {
+      const double& length, const double bField, const double R, int Layer, double slope) {
     // limit R to 20GeV...
-    auto pt2 = std::min(20., B * R);
+    auto pt2 = std::min(20., bField * R);
     pt2 *= pt2;
     constexpr double XXI_0 = 0.06 / 16.;  //!< inverse of radiation length of the material in cm
     //if(Layer==1) XXI_0=0.06/16.;
