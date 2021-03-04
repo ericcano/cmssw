@@ -36,8 +36,8 @@ namespace brokenline {
     
     \param length length of the track in the material.
     \param bField magnetic field in Gev/cm/c.
-    \param R radius of curvature (needed to evaluate p).
-    \param Layer denotes which of the four layers of the detector is the endpoint of the 
+    \param radius radius of curvature (needed to evaluate p).
+    \param layer denotes which of the four layers of the detector is the endpoint of the 
    *             multiple scattered track. For example, if Layer=3, then the particle has 
    *             just gone through the material between the second and the third layer.
     
@@ -51,11 +51,11 @@ namespace brokenline {
     \return the variance of the planar angle ((theta_0)^2 /3).
   */
   __host__ __device__ inline double multScatt(
-      const double& length, const double bField, const double R, int Layer, double slope) {
+      const double& length, const double bField, const double radius, int layer, double slope) {
     // limit R to 20GeV...
-    auto pt2 = std::min(20., bField * R);
+    auto pt2 = std::min(20., bField * radius);
     pt2 *= pt2;
-    constexpr double XXI_0 = 0.06 / 16.;  //!< inverse of radiation length of the material in cm
+    constexpr double inv_X0 = 0.06 / 16.;  //!< inverse of radiation length of the material in cm
     //if(Layer==1) XXI_0=0.06/16.;
     // else XXI_0=0.06/16.;
     //XX_0*=1;
@@ -63,8 +63,8 @@ namespace brokenline {
     //! number between 1/3 (uniform material) and 1 (thin scatterer) to be manually tuned
     constexpr double geometry_factor = 0.7;  
     constexpr double fact = geometry_factor * Rfit::sqr(13.6 / 1000.);
-    return fact / (pt2 * (1. + Rfit::sqr(slope))) * (std::abs(length) * XXI_0) *
-           Rfit::sqr(1. + 0.038 * log(std::abs(length) * XXI_0));
+    return fact / (pt2 * (1. + Rfit::sqr(slope))) * (std::abs(length) * inv_X0) *
+           Rfit::sqr(1. + 0.038 * log(std::abs(length) * inv_X0));
   }
 
   /*!
