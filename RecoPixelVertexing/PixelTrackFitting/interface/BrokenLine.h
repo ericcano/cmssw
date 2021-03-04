@@ -89,34 +89,34 @@ namespace brokenline {
    *       in the new coordinate system. The formulas are taken from Karimäki V., 1990, Effective 
    *       circle fitting for particle trajectories, Nucl. Instr. and Meth. A305 (1991) 187.
     
-    \param circle circle fit in the old coordinate system.
+    \param circle circle fit in the old coordinate system. circle.par(0) is phi, circle.par(1) is d and circle.par(3) is rho. 
     \param x0 x coordinate of the translation vector.
     \param y0 y coordinate of the translation vector.
     \param jacobian passed by reference in order to save stack.
   */
-  __host__ __device__ inline void TranslateKarimaki(karimaki_circle_fit& circle,
+  __host__ __device__ inline void translateKarimaki(karimaki_circle_fit& circle,
                                                     double x0,
                                                     double y0,
                                                     Rfit::Matrix3d& jacobian) {
-    double A, U, BB, C, DO, DP, uu, xi, v, mu, lambda, zeta;
-    DP = x0 * cos(circle.par(0)) + y0 * sin(circle.par(0));
-    DO = x0 * sin(circle.par(0)) - y0 * cos(circle.par(0)) + circle.par(1);
-    uu = 1 + circle.par(2) * circle.par(1);
-    C = -circle.par(2) * y0 + uu * cos(circle.par(0));
-    BB = circle.par(2) * x0 + uu * sin(circle.par(0));
-    A = 2. * DO + circle.par(2) * (Rfit::sqr(DO) + Rfit::sqr(DP));
-    U = sqrt(1. + circle.par(2) * A);
-    xi = 1. / (Rfit::sqr(BB) + Rfit::sqr(C));
-    v = 1. + circle.par(2) * DO;
-    lambda = (0.5 * A) / (U * Rfit::sqr(1. + U));
-    mu = 1. / (U * (1. + U)) + circle.par(2) * lambda;
-    zeta = Rfit::sqr(DO) + Rfit::sqr(DP);
+    double tempA, tempU, tempB, tempC, deltaOrth, deltaPara, tempSmallU, xi, tempV, mu, lambda, zeta;
+    deltaPara = x0 * cos(circle.par(0)) + y0 * sin(circle.par(0));
+    deltaOrth = x0 * sin(circle.par(0)) - y0 * cos(circle.par(0)) + circle.par(1);
+    tempSmallU = 1 + circle.par(2) * circle.par(1);
+    tempC = -circle.par(2) * y0 + tempSmallU * cos(circle.par(0));
+    tempB = circle.par(2) * x0 + tempSmallU * sin(circle.par(0));
+    tempA = 2. * deltaOrth + circle.par(2) * (Rfit::sqr(deltaOrth) + Rfit::sqr(deltaPara));
+    tempU = sqrt(1. + circle.par(2) * tempA);
+    xi = 1. / (Rfit::sqr(tempB) + Rfit::sqr(tempC));
+    tempV = 1. + circle.par(2) * deltaOrth;
+    lambda = (0.5 * tempA) / (tempU * Rfit::sqr(1. + tempU));
+    mu = 1. / (tempU * (1. + tempU)) + circle.par(2) * lambda;
+    zeta = Rfit::sqr(deltaOrth) + Rfit::sqr(deltaPara);
 
-    jacobian << xi * uu * v, -xi * Rfit::sqr(circle.par(2)) * DP, xi * DP, 2. * mu * uu * DP, 2. * mu * v,
-        mu * zeta - lambda * A, 0, 0, 1.;
+    jacobian << xi * tempSmallU * tempV, -xi * Rfit::sqr(circle.par(2)) * deltaOrth, xi * deltaPara, 2. * mu * tempSmallU * deltaPara, 2. * mu * tempV,
+        mu * zeta - lambda * tempA, 0, 0, 1.;
 
-    circle.par(0) = atan2(BB, C);
-    circle.par(1) = A / (1 + U);
+    circle.par(0) = atan2(tempB, tempC);
+    circle.par(1) = tempA / (1 + tempU);
     // circle.par(2)=circle.par(2);
 
     circle.cov = jacobian * circle.cov * jacobian.transpose();
@@ -385,12 +385,12 @@ namespace brokenline {
 
     //...Translate in the system in which the first corrected hit is the origin, adding the m.s. correction...
 
-    TranslateKarimaki(circle_results, 0.5 * (e - d)(0), 0.5 * (e - d)(1), jacobian);
+    translateKarimaki(circle_results, 0.5 * (e - d)(0), 0.5 * (e - d)(1), jacobian);
     circle_results.cov(0, 0) += (1 + Rfit::sqr(slope)) * multScatt(S(1) - S(0), B, fast_fit(2), 2, slope);
 
     //...And translate back to the original system
 
-    TranslateKarimaki(circle_results, d(0), d(1), jacobian);
+    translateKarimaki(circle_results, d(0), d(1), jacobian);
 
     // compute chi2
     circle_results.chi2 = 0;
