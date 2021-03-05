@@ -75,12 +75,12 @@ namespace brokenline {
     \return 2D rotation matrix.
   */
   __host__ __device__ inline Rfit::Matrix2d rotationMatrix(double slope) {
-    Rfit::Matrix2d Rot;
-    Rot(0, 0) = 1. / sqrt(1. + Rfit::sqr(slope));
-    Rot(0, 1) = slope * Rot(0, 0);
-    Rot(1, 0) = -Rot(0, 1);
-    Rot(1, 1) = Rot(0, 0);
-    return Rot;
+    Rfit::Matrix2d rot;
+    rot(0, 0) = 1. / sqrt(1. + Rfit::sqr(slope));
+    rot(0, 1) = slope * rot(0, 0);
+    rot(1, 0) = -rot(0, 1);
+    rot(1, 1) = rot(0, 0);
+    return rot;
   }
 
   /*!
