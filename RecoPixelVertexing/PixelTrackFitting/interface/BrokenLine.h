@@ -89,7 +89,7 @@ namespace brokenline {
    *       in the new coordinate system. The formulas are taken from Karimäki V., 1990, Effective 
    *       circle fitting for particle trajectories, Nucl. Instr. and Meth. A305 (1991) 187.
     
-    \param circle circle fit in the old coordinate system. circle.par(0) is phi, circle.par(1) is d and circle.par(3) is rho. 
+    \param circle circle fit in the old coordinate system. circle.par(0) is phi, circle.par(1) is d and circle.par(2) is rho. 
     \param x0 x coordinate of the translation vector.
     \param y0 y coordinate of the translation vector.
     \param jacobian passed by reference in order to save stack.
@@ -115,8 +115,11 @@ namespace brokenline {
     jacobian << xi * tempSmallU * tempV, -xi * Rfit::sqr(circle.par(2)) * deltaOrth, xi * deltaPara, 2. * mu * tempSmallU * deltaPara, 2. * mu * tempV,
         mu * zeta - lambda * tempA, 0, 0, 1.;
 
+    // phi after translation
     circle.par(0) = atan2(tempB, tempC);
+    // d after translation
     circle.par(1) = tempA / (1 + tempU);
+    // rho after translation. It is invariant, so noop
     // circle.par(2)=circle.par(2);
 
     circle.cov = jacobian * circle.cov * jacobian.transpose();
