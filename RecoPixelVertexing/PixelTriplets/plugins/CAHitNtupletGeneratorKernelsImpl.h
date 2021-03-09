@@ -220,8 +220,6 @@ __global__ void kernel_connect(cms::cuda::AtomicPairCounter *apc1,
   for (int idx = firstCellIndex, nt = (*nCells); idx < nt; idx += gridDim.y * blockDim.y) {
     auto cellIndex = idx;
     auto &thisCell = cells[idx];
-    //if (thisCell.theDoubletId < 0 || thisCell.theUsed>1)
-    //  continue;
     auto innerHitId = thisCell.get_inner_hit_id();
     int numberOfPossibleNeighbors = isOuterHitOfCell[innerHitId].size();
     auto vi = isOuterHitOfCell[innerHitId].data();
@@ -238,12 +236,8 @@ __global__ void kernel_connect(cms::cuda::AtomicPairCounter *apc1,
     for (int j = first; j < numberOfPossibleNeighbors; j += stride) {
       auto otherCell = __ldg(vi + j);
       auto &oc = cells[otherCell];
-      // if (cells[otherCell].theDoubletId < 0 ||
-      //    cells[otherCell].theUsed>1 )
-      //  continue;
       auto r1 = oc.get_inner_r(hh);
       auto z1 = oc.get_inner_z(hh);
-      // auto isBarrel = oc.get_outer_detIndex(hh) < last_barrel_detIndex;
       bool aligned = GPUCACell::areAlignedRZ(
           r1,
           z1,
