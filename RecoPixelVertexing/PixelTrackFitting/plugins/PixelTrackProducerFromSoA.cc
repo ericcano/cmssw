@@ -148,7 +148,7 @@ void PixelTrackProducerFromSoA::produce(edm::StreamID streamID,
     indToEdm.push_back(-1);
     auto q = quality[it];
     if (q != pixelTrack::Quality::loose)
-      continue;  // FIXME
+      continue;
     if (nHits < minNumberOfHits_)
       continue;
     indToEdm.back() = nt;
@@ -189,7 +189,7 @@ void PixelTrackProducerFromSoA::produce(edm::StreamID streamID,
     AlgebraicSymMatrix55 mo = ROOT::Math::Similarity(jl2c.jacobian(), m);
 
     int ndof = 2 * hits.size() - 5;
-    chi2 = chi2 * ndof;  // FIXME
+    chi2 = chi2 * ndof;
     GlobalPoint vv = gp.position();
     math::XYZPoint pos(vv.x(), vv.y(), vv.z());
     GlobalVector pp = gp.momentum();
