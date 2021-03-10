@@ -178,7 +178,6 @@ namespace gpuPixelDoublets {
       auto kl = PhiBinner::bin(int16_t(mep - iphicut));
       auto kh = PhiBinner::bin(int16_t(mep + iphicut));
       auto incr = [](auto& k) { return k = (k + 1) % PhiBinner::nbins(); };
-      // bool piWrap = std::abs(kh-kl) > PhiBinner::nbins()/2;
 
 #ifdef GPU_DEBUG
       int tot = 0;
