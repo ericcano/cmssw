@@ -27,8 +27,7 @@ namespace gpuPixelDoublets {
     constexpr auto maxCellsPerHit = GPUCACell::maxCellsPerHit;
 
     auto const& hh = *hhp;
-    // auto layer = [&](uint16_t id) { return hh.cpeParams().layer(id); };
-
+    
     // x run faster...
     auto firstY = threadIdx.y + blockIdx.y * blockDim.y;
     auto firstX = threadIdx.x;
@@ -57,7 +56,6 @@ namespace gpuPixelDoublets {
           continue;
         cc[sg] = vc[ic];
         d[sg] = ci.get_inner_detIndex(hh);
-        //      l[sg] = layer(d[sg]);
         x[sg] = ci.get_inner_x(hh) - xo;
         y[sg] = ci.get_inner_y(hh) - yo;
         z[sg] = ci.get_inner_z(hh) - zo;
