@@ -76,7 +76,7 @@ __global__ void kernel_checkOverflows(HitContainer const *foundNtuplets,
 #endif
 
   if (0 == first) {
-    if (apc->get().m >= CAConstants::maxNumberOfQuadruplets())
+    if (apc->get().m >= CAConstants::maxNumberOfQuadruplets)
       printf("Tuples overflow\n");
     if (*nCells >= maxNumberOfDoublets)
       printf("Cells overflow\n");

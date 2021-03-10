@@ -9,25 +9,25 @@
 
 namespace Rfit {
   // in case of memory issue can be made smaller
-  constexpr uint32_t maxNumberOfConcurrentFits() { return CAConstants::maxNumberOfTuples(); }
-  constexpr uint32_t stride() { return maxNumberOfConcurrentFits(); }
+  constexpr uint32_t maxNumberOfConcurrentFits = CAConstants::maxNumberOfTuples;
+  constexpr uint32_t stride = maxNumberOfConcurrentFits;
   using Matrix3x4d = Eigen::Matrix<double, 3, 4>;
-  using Map3x4d = Eigen::Map<Matrix3x4d, 0, Eigen::Stride<3 * stride(), stride()> >;
+  using Map3x4d = Eigen::Map<Matrix3x4d, 0, Eigen::Stride<3 * stride, stride> >;
   using Matrix6x4f = Eigen::Matrix<float, 6, 4>;
-  using Map6x4f = Eigen::Map<Matrix6x4f, 0, Eigen::Stride<6 * stride(), stride()> >;
+  using Map6x4f = Eigen::Map<Matrix6x4f, 0, Eigen::Stride<6 * stride, stride> >;
 
   // hits
   template <int N>
   using Matrix3xNd = Eigen::Matrix<double, 3, N>;
   template <int N>
-  using Map3xNd = Eigen::Map<Matrix3xNd<N>, 0, Eigen::Stride<3 * stride(), stride()> >;
+  using Map3xNd = Eigen::Map<Matrix3xNd<N>, 0, Eigen::Stride<3 * stride, stride> >;
   // errors
   template <int N>
   using Matrix6xNf = Eigen::Matrix<float, 6, N>;
   template <int N>
-  using Map6xNf = Eigen::Map<Matrix6xNf<N>, 0, Eigen::Stride<6 * stride(), stride()> >;
+  using Map6xNf = Eigen::Map<Matrix6xNf<N>, 0, Eigen::Stride<6 * stride, stride> >;
   // fast fit
-  using Map4d = Eigen::Map<Vector4d, 0, Eigen::InnerStride<stride()> >;
+  using Map4d = Eigen::Map<Vector4d, 0, Eigen::InnerStride<stride> >;
 
 }  // namespace Rfit
 
@@ -54,7 +54,7 @@ public:
   void deallocateOnGPU();
 
 private:
-  static constexpr uint32_t maxNumberOfConcurrentFits_ = Rfit::maxNumberOfConcurrentFits();
+  static constexpr uint32_t maxNumberOfConcurrentFits_ = Rfit::maxNumberOfConcurrentFits;
 
   // fowarded
   Tuples const *tuples_d = nullptr;

@@ -61,7 +61,7 @@ namespace gpuPixelDoublets {
     // nPairsMax to be optimized later (originally was 64).
     // If it should be much bigger, consider using a block-wide parallel prefix scan,
     // e.g. see  https://nvlabs.github.io/cub/classcub_1_1_warp_scan.html
-    const int nPairsMax = CAConstants::maxNumberOfLayerPairs();
+    const int nPairsMax = CAConstants::maxNumberOfLayerPairs;
     assert(nPairs <= nPairsMax);
     __shared__ uint32_t innerLayerCumulativeSize[nPairsMax];
     __shared__ uint32_t ntot;

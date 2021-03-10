@@ -21,7 +21,7 @@ class GPUCACell {
 public:
   using ptrAsInt = unsigned long long;
 
-  static constexpr int maxCellsPerHit = CAConstants::maxCellsPerHit();
+  static constexpr auto maxCellsPerHit = CAConstants::maxCellsPerHit;
   using OuterHitOfCell = CAConstants::OuterHitOfCell;
   using CellNeighbors = CAConstants::CellNeighbors;
   using CellTracks = CAConstants::CellTracks;
@@ -221,10 +221,10 @@ public:
   }
 
   __device__ inline bool hole0(Hits const& hh, GPUCACell const& innerCell) const {
-    constexpr uint32_t max_ladder_bpx0 = 12;
-    constexpr uint32_t first_ladder_bpx0 = 0;
-    constexpr float module_length = 6.7f;
-    constexpr float module_tolerance = 0.4f;  // projection to cylinder is inaccurate on BPIX1
+    using CAConstants::max_ladder_bpx0;
+    using CAConstants::first_ladder_bpx0;
+    using CAConstants::module_length_bpx0;
+    using CAConstants::module_tolerance_bpx0;
     int p = innerCell.get_inner_iphi(hh);
     if (p < 0)
       p += std::numeric_limits<unsigned short>::max();
@@ -238,20 +238,16 @@ public:
     auto zo = get_outer_z(hh);
     auto z0 = zi + (r0 - ri) * (zo - zi) / (ro - ri);
     auto z_in_ladder = std::abs(z0 - hh.averageGeometry().ladderZ[il]);
-    auto z_in_module = z_in_ladder - module_length * int(z_in_ladder / module_length);
-    auto gap = z_in_module < module_tolerance || z_in_module > (module_length - module_tolerance);
+    auto z_in_module = z_in_ladder - module_length_bpx0 * int(z_in_ladder / module_length_bpx0);
+    auto gap = z_in_module < module_tolerance_bpx0 || z_in_module > (module_length_bpx0 - module_tolerance_bpx0);
     return gap;
   }
 
   __device__ inline bool hole4(Hits const& hh, GPUCACell const& innerCell) const {
-    constexpr uint32_t max_ladder_bpx4 = 64;
-    constexpr uint32_t first_ladder_bpx4 = 84;
-    // constexpr float radius_even_ladder = 15.815f;
-    // constexpr float radius_odd_ladder = 16.146f;
-    constexpr float module_length = 6.7f;
-    constexpr float module_tolerance = 0.2f;
-    // constexpr float barrel_z_length = 26.f;
-    // constexpr float forward_z_begin = 32.f;
+    using CAConstants::max_ladder_bpx4;
+    using CAConstants::first_ladder_bpx4;
+    using CAConstants::module_length_bpx4;
+    using CAConstants::module_tolerance_bpx4;
     int p = get_outer_iphi(hh);
     if (p < 0)
       p += std::numeric_limits<unsigned short>::max();
@@ -265,8 +261,8 @@ public:
     auto zo = get_outer_z(hh);
     auto z4 = zo + (r4 - ro) * (zo - zi) / (ro - ri);
     auto z_in_ladder = std::abs(z4 - hh.averageGeometry().ladderZ[il]);
-    auto z_in_module = z_in_ladder - module_length * int(z_in_ladder / module_length);
-    auto gap = z_in_module < module_tolerance || z_in_module > (module_length - module_tolerance);
+    auto z_in_module = z_in_ladder - module_length_bpx4 * int(z_in_ladder / module_length_bpx4);
+    auto gap = z_in_module < module_tolerance_bpx4 || z_in_module > (module_length_bpx4 - module_tolerance_bpx4);
     auto holeP = z4 > hh.averageGeometry().ladderMaxZ[il] && z4 < hh.averageGeometry().endCapZ[0];
     auto holeN = z4 < hh.averageGeometry().ladderMinZ[il] && z4 > hh.averageGeometry().endCapZ[1];
     return gap || holeP || holeN;

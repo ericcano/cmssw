@@ -8,7 +8,7 @@
 namespace gpuPixelDoublets {
 
   constexpr int nPairs = 13 + 2 + 4;
-  static_assert(nPairs <= CAConstants::maxNumberOfLayerPairs());
+  static_assert(nPairs <= CAConstants::maxNumberOfLayerPairs);
 
   // start constants
   // clang-format off
@@ -75,8 +75,8 @@ namespace gpuPixelDoublets {
       isOuterHitOfCell[i].reset();
 
     if (0 == first) {
-      cellNeighbors->construct(CAConstants::maxNumOfActiveDoublets(), cellNeighborsContainer);
-      cellTracks->construct(CAConstants::maxNumOfActiveDoublets(), cellTracksContainer);
+      cellNeighbors->construct(CAConstants::maxNumOfActiveDoublets, cellNeighborsContainer);
+      cellTracks->construct(CAConstants::maxNumOfActiveDoublets, cellTracksContainer);
       auto i = cellNeighbors->extend();
       assert(0 == i);
       (*cellNeighbors)[0].reset();
