@@ -53,10 +53,12 @@ public:
 private:
   void produce(edm::StreamID streamID, edm::Event &iEvent, const edm::EventSetup &iSetup) const override;
 
+  // Event Data tokens
   const edm::EDGetTokenT<reco::BeamSpot> tBeamSpot_;
   const edm::EDGetTokenT<PixelTrackHeterogeneous> tokenTrack_;
   const edm::EDGetTokenT<SiPixelRecHitCollectionNew> cpuHits_;
   const edm::EDGetTokenT<HMSstorage> hmsToken_;
+  // Event Setup tokens
   const edm::ESGetToken<MagneticField, IdealMagneticFieldRecord> idealMagneticFieldToken_;
   const edm::ESGetToken<TrackerTopology, TrackerTopologyRcd> ttTopoToken_;
 
@@ -107,17 +109,13 @@ void PixelTrackProducerFromSoA::produce(edm::StreamID streamID,
   // std::cout << "beamspot " << bsh.x0() << ' ' << bsh.y0() << ' ' << bsh.z0() << std::endl;
   GlobalPoint bs(bsh.x0(), bsh.y0(), bsh.z0());
 
-  edm::Handle<SiPixelRecHitCollectionNew> gh;
-  iEvent.getByToken(cpuHits_, gh);
-  auto const &rechits = *gh;
+  auto const &rechits = iEvent.get(cpuHits_);
   std::vector<TrackingRecHit const *> hitmap;
   auto const &rcs = rechits.data();
   auto nhits = rcs.size();
   hitmap.resize(nhits, nullptr);
 
-  edm::Handle<HMSstorage> hhms;
-  iEvent.getByToken(hmsToken_, hhms);
-  auto const *hitsModuleStart = (*hhms).get();
+  auto const *hitsModuleStart = iEvent.get(hmsToken_).get();
   auto fc = hitsModuleStart;
 
   for (auto const &h : rcs) {
