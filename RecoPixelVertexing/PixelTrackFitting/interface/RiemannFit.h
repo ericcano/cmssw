@@ -7,8 +7,8 @@ namespace Rfit {
 
   /*!  Compute the Radiation length in the uniform hypothesis
  *
- * The Pixel detector, barrel and forward, is considered as an omogeneous
- * cilinder of material, whose radiation lengths has been derived from the TDR
+ * The Pixel detector, barrel and forward, is considered as an homogeneous
+ * cylinder of material, whose radiation lengths has been derived from the TDR
  * plot that shows that 16cm correspond to 0.06 radiation lengths. Therefore
  * one radiation length corresponds to 16cm/0.06 =~ 267 cm. All radiation
  * lengths are computed using this unique number, in both regions, barrel and
@@ -16,12 +16,12 @@ namespace Rfit {
  *
  * NB: no angle corrections nor projections are computed inside this routine.
  * It is therefore the responsibility of the caller to supply the proper
- * lengths in input. These lenghts are the path travelled by the particle along
+ * lengths in input. These lengths are the path traveled by the particle along
  * its trajectory, namely the so called S of the helix in 3D space.
  *
  * \param length_values vector of incremental distances that will be translated
  * into radiation length equivalent. Each radiation length i is computed
- * incrementally with respect to the previous length i-1. The first lenght has
+ * incrementally with respect to the previous length i-1. The first length has
  * no reference point (i.e. it has the dca).
  *
  * \return incremental radiation lengths that correspond to each segment.
