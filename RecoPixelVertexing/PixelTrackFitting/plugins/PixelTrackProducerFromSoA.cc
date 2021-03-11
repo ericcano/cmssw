@@ -53,10 +53,12 @@ public:
 private:
   void produce(edm::StreamID streamID, edm::Event &iEvent, const edm::EventSetup &iSetup) const override;
 
-  edm::EDGetTokenT<reco::BeamSpot> tBeamSpot_;
-  edm::EDGetTokenT<PixelTrackHeterogeneous> tokenTrack_;
-  edm::EDGetTokenT<SiPixelRecHitCollectionNew> cpuHits_;
-  edm::EDGetTokenT<HMSstorage> hmsToken_;
+  const edm::EDGetTokenT<reco::BeamSpot> tBeamSpot_;
+  const edm::EDGetTokenT<PixelTrackHeterogeneous> tokenTrack_;
+  const edm::EDGetTokenT<SiPixelRecHitCollectionNew> cpuHits_;
+  const edm::EDGetTokenT<HMSstorage> hmsToken_;
+  const edm::ESGetToken<MagneticField, IdealMagneticFieldRecord> idealMagneticFieldToken_;
+  const edm::ESGetToken<TrackerTopology, TrackerTopologyRcd> ttTopoToken_;
 
   int32_t const minNumberOfHits_;
 };
@@ -66,6 +68,8 @@ PixelTrackProducerFromSoA::PixelTrackProducerFromSoA(const edm::ParameterSet &iC
       tokenTrack_(consumes<PixelTrackHeterogeneous>(iConfig.getParameter<edm::InputTag>("trackSrc"))),
       cpuHits_(consumes<SiPixelRecHitCollectionNew>(iConfig.getParameter<edm::InputTag>("pixelRecHitLegacySrc"))),
       hmsToken_(consumes<HMSstorage>(iConfig.getParameter<edm::InputTag>("pixelRecHitLegacySrc"))),
+      idealMagneticFieldToken_(esConsumes()),
+      ttTopoToken_(esConsumes()),
       minNumberOfHits_(iConfig.getParameter<int>("minNumberOfHits")) {
   produces<reco::TrackCollection>();
   produces<TrackingRecHitCollection>();
@@ -91,12 +95,11 @@ void PixelTrackProducerFromSoA::produce(edm::StreamID streamID,
   auto indToEdmP = std::make_unique<IndToEdm>();
   auto &indToEdm = *indToEdmP;
 
-  edm::ESHandle<MagneticField> fieldESH;
-  iSetup.get<IdealMagneticFieldRecord>().get(fieldESH);
-
+  auto const & idealField = iSetup.getData(idealMagneticFieldToken_);
+  
   pixeltrackfitting::TracksWithRecHits tracks;
-  edm::ESHandle<TrackerTopology> httopo;
-  iSetup.get<TrackerTopologyRcd>().get(httopo);
+  
+  auto const & httopo = iSetup.getData(ttTopoToken_);
 
   edm::Handle<reco::BeamSpot> bsHandle;
   iEvent.getByToken(tBeamSpot_, bsHandle);
@@ -183,8 +186,8 @@ void PixelTrackProducerFromSoA::produce(edm::StreamID streamID,
     GlobalTrajectoryParameters gp(impPointPlane.toGlobal(lpar.position()),
                                   impPointPlane.toGlobal(lpar.momentum()),
                                   lpar.charge(),
-                                  fieldESH.product());
-    JacobianLocalToCurvilinear jl2c(impPointPlane, lpar, *fieldESH.product());
+                                  &idealField);
+    JacobianLocalToCurvilinear jl2c(impPointPlane, lpar, idealField);
 
     AlgebraicSymMatrix55 mo = ROOT::Math::Similarity(jl2c.jacobian(), m);
 
@@ -202,7 +205,7 @@ void PixelTrackProducerFromSoA::produce(edm::StreamID streamID,
   // std::cout << "processed " << nt << " good tuples " << tracks.size() << "out of " << indToEdm.size() << std::endl;
 
   // store tracks
-  storeTracks(iEvent, tracks, *httopo);
+  storeTracks(iEvent, tracks, httopo);
   iEvent.put(std::move(indToEdmP));
 }
 

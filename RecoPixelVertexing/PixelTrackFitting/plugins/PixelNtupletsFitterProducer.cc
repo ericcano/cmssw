@@ -30,7 +30,7 @@ public:
 
 private:
   bool useRiemannFit_;
-  edm::ESGetToken<MagneticField, IdealMagneticFieldRecord> idealMagneticFieldToken_;
+  const edm::ESGetToken<MagneticField, IdealMagneticFieldRecord> idealMagneticFieldToken_;
   void produce(edm::StreamID, edm::Event& iEvent, const edm::EventSetup& iSetup) const override;
 };
 
