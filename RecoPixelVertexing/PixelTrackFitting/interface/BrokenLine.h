@@ -98,32 +98,44 @@ namespace brokenline {
                                                     double x0,
                                                     double y0,
                                                     Rfit::Matrix3d& jacobian) {
-    double tempA, tempU, tempB, tempC, deltaOrth, deltaPara, tempSmallU, xi, tempV, mu, lambda, zeta;
-    auto sinPhi = sin(circle.par(0));
-    auto cosPhi = cos(circle.par(0));
-    deltaPara = x0 * cosPhi + y0 * sinPhi;
-    deltaOrth = x0 * sinPhi - y0 * cosPhi + circle.par(1);
-    tempSmallU = 1 + circle.par(2) * circle.par(1);
-    tempC = -circle.par(2) * y0 + tempSmallU * cosPhi;
-    tempB = circle.par(2) * x0 + tempSmallU * sinPhi;
-    tempA = 2. * deltaOrth + circle.par(2) * (Rfit::sqr(deltaOrth) + Rfit::sqr(deltaPara));
-    tempU = sqrt(1. + circle.par(2) * tempA);
-    xi = 1. / (Rfit::sqr(tempB) + Rfit::sqr(tempC));
-    tempV = 1. + circle.par(2) * deltaOrth;
-    lambda = (0.5 * tempA) / (tempU * Rfit::sqr(1. + tempU));
-    mu = 1. / (tempU * (1. + tempU)) + circle.par(2) * lambda;
-    zeta = Rfit::sqr(deltaOrth) + Rfit::sqr(deltaPara);
 
-    jacobian << xi * tempSmallU * tempV, -xi * Rfit::sqr(circle.par(2)) * deltaOrth, xi * deltaPara, 2. * mu * tempSmallU * deltaPara, 2. * mu * tempV,
+    // Avoid multiple access to the circle.par vector.
+    using scalar = std::remove_reference<decltype(circle.par(0))>::type;
+    scalar phi = circle.par(0);
+    scalar dee = circle.par(1);
+    scalar rho = circle.par(2);
+
+    // Avoid repeated trig. computations
+    scalar sinPhi = sin(phi);
+    scalar cosPhi = cos(phi);
+
+    // Intermediate computations for the circle parameters
+    scalar deltaPara = x0 * cosPhi + y0 * sinPhi;
+    scalar deltaOrth = x0 * sinPhi - y0 * cosPhi + dee;
+    scalar tempSmallU = 1 + rho * dee;
+    scalar tempC = -rho * y0 + tempSmallU * cosPhi;
+    scalar tempB = rho * x0 + tempSmallU * sinPhi;
+    scalar tempA = 2. * deltaOrth + rho * (Rfit::sqr(deltaOrth) + Rfit::sqr(deltaPara));
+    scalar tempU = sqrt(1. + rho * tempA);
+    
+    // Intermediate computations for the error matrix transform
+    scalar xi = 1. / (Rfit::sqr(tempB) + Rfit::sqr(tempC));
+    scalar tempV = 1. + rho * deltaOrth;
+    scalar lambda = (0.5 * tempA) / (Rfit::sqr(1. + tempU) * tempU);
+    scalar mu = 1. / (tempU * (1. + tempU)) + rho * lambda;
+    scalar zeta = Rfit::sqr(deltaOrth) + Rfit::sqr(deltaPara);
+    jacobian << xi * tempSmallU * tempV, -xi * Rfit::sqr(rho) * deltaOrth, xi * deltaPara, 2. * mu * tempSmallU * deltaPara, 2. * mu * tempV,
         mu * zeta - lambda * tempA, 0, 0, 1.;
 
-    // phi after translation
+    // translated circle parameters
+    // phi
     circle.par(0) = atan2(tempB, tempC);
-    // d after translation
+    // d
     circle.par(1) = tempA / (1 + tempU);
     // rho after translation. It is invariant, so noop
-    // circle.par(2)=circle.par(2);
+    // circle.par(2)= rho;
 
+    // translated error matrix
     circle.cov = jacobian * circle.cov * jacobian.transpose();
   }
 
