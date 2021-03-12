@@ -55,7 +55,7 @@ __global__ void kernelFastFit(double* __restrict__ phits, double* __restrict__ p
   Rfit::Map3xNd<N> hits(phits + i, 3, N);
   Rfit::Map4d result(presults + i, 4);
 #ifdef USE_BL
-  brokenline::BL_Fast_fit(hits, result);
+  brokenline::blFastFit(hits, result);
 #else
   Rfit::Fast_fit(hits, result);
 #endif
@@ -236,7 +236,7 @@ void testFit() {
   // FAST_FIT_CPU
 #ifdef USE_BL
   Vector4d fast_fit_results;
-  brokenline::BL_Fast_fit(hits, fast_fit_results);
+  brokenline::blFastFit(hits, fast_fit_results);
 #else
   Vector4d fast_fit_results;
   Rfit::Fast_fit(hits, fast_fit_results);

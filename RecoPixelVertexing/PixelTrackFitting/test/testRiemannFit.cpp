@@ -102,7 +102,7 @@ void testFit() {
   // FAST_FIT_CPU
 #ifdef USE_BL
   Vector4d fast_fit_results;
-  brokenline::BL_Fast_fit(hits, fast_fit_results);
+  brokenline::blFastFit(hits, fast_fit_results);
 #else
   Vector4d fast_fit_results;
   Rfit::Fast_fit(hits, fast_fit_results);
