@@ -99,11 +99,13 @@ namespace brokenline {
                                                     double y0,
                                                     Rfit::Matrix3d& jacobian) {
     double tempA, tempU, tempB, tempC, deltaOrth, deltaPara, tempSmallU, xi, tempV, mu, lambda, zeta;
-    deltaPara = x0 * cos(circle.par(0)) + y0 * sin(circle.par(0));
-    deltaOrth = x0 * sin(circle.par(0)) - y0 * cos(circle.par(0)) + circle.par(1);
+    auto sinPhi = sin(circle.par(0));
+    auto cosPhi = cos(circle.par(0));
+    deltaPara = x0 * cosPhi + y0 * sinPhi;
+    deltaOrth = x0 * sinPhi - y0 * cosPhi + circle.par(1);
     tempSmallU = 1 + circle.par(2) * circle.par(1);
-    tempC = -circle.par(2) * y0 + tempSmallU * cos(circle.par(0));
-    tempB = circle.par(2) * x0 + tempSmallU * sin(circle.par(0));
+    tempC = -circle.par(2) * y0 + tempSmallU * cosPhi;
+    tempB = circle.par(2) * x0 + tempSmallU * sinPhi;
     tempA = 2. * deltaOrth + circle.par(2) * (Rfit::sqr(deltaOrth) + Rfit::sqr(deltaPara));
     tempU = sqrt(1. + circle.par(2) * tempA);
     xi = 1. / (Rfit::sqr(tempB) + Rfit::sqr(tempC));
