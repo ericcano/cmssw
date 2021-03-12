@@ -153,7 +153,6 @@ namespace brokenline {
                                                         const V4& fast_fit,
                                                         const double bField,
                                                         PreparedBrokenLineData<n>& results) {
-    u_int i;
     Rfit::Vector2d dVec;
     Rfit::Vector2d eVec;
 
@@ -163,12 +162,12 @@ namespace brokenline {
 
     const double slope = -results.q / fast_fit(3);
 
-    Rfit::Matrix2d R = rotationMatrix(slope);
+    Rfit::Matrix2d rotMat = rotationMatrix(slope);
 
     // calculate radii and s
     results.radii = hits.block(0, 0, 2, n) - fast_fit.head(2) * Rfit::MatrixXd::Constant(1, n, 1);
     eVec = -fast_fit(2) * fast_fit.head(2) / fast_fit.head(2).norm();
-    for (i = 0; i < n; i++) {
+    for (u_int i = 0; i < n; i++) {
       dVec = results.radii.block(0, i, 2, 1);
       results.sTransverse(i) = results.q * fast_fit(2) * atan2(Rfit::cross2D(dVec, eVec), dVec.dot(eVec));  // calculates the arc length
     }
@@ -176,17 +175,17 @@ namespace brokenline {
 
     //calculate S and Z
     Rfit::Matrix2xNd<n> pointsSZ = Rfit::Matrix2xNd<n>::Zero();
-    for (i = 0; i < n; i++) {
+    for (u_int i = 0; i < n; i++) {
       pointsSZ(0, i) = results.sTransverse(i);
       pointsSZ(1, i) = z(i);
-      pointsSZ.block(0, i, 2, 1) = R * pointsSZ.block(0, i, 2, 1);
+      pointsSZ.block(0, i, 2, 1) = rotMat * pointsSZ.block(0, i, 2, 1);
     }
     results.sTotal = pointsSZ.block(0, 0, 1, n).transpose();
     results.zInSZplane = pointsSZ.block(1, 0, 1, n).transpose();
 
     //calculate VarBeta
     results.varBeta(0) = results.varBeta(n - 1) = 0;
-    for (i = 1; i < n - 1; i++) {
+    for (u_int i = 1; i < n - 1; i++) {
       results.varBeta(i) = multScatt(results.sTotal(i + 1) - results.sTotal(i), bField, fast_fit(2), i + 2, slope) +
                            multScatt(results.sTotal(i) - results.sTotal(i - 1), bField, fast_fit(2), i + 1, slope);
     }
@@ -208,10 +207,8 @@ namespace brokenline {
   __host__ __device__ inline Rfit::MatrixNd<n> matrixC_u(const Rfit::VectorNd<n>& w,
                                                          const Rfit::VectorNd<n>& S,
                                                          const Rfit::VectorNd<n>& VarBeta) {
-    u_int i;
-
     Rfit::MatrixNd<n> c_uMat = Rfit::MatrixNd<n>::Zero();
-    for (i = 0; i < n; i++) {
+    for (u_int i = 0; i < n; i++) {
       c_uMat(i, i) = w(i);
       if (i > 1)
         c_uMat(i, i) += 1. / (VarBeta(i - 1) * Rfit::sqr(S(i) - S(i - 1)));
