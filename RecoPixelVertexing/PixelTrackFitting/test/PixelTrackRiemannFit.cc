@@ -145,7 +145,7 @@ Vector5d True_par(const Matrix<double, 6, 1>& gen_par, const int& charge, const 
   const double y0 = gen_par(1) + gen_par(4) * sin(gen_par(3) * pi / 180);
   circle_fit circle;
   circle.par << x0, y0, gen_par(4);
-  circle.q = 1;
+  circle.qCharge = 1;
   Rfit::par_uvrtopak(circle, B_field, false);
   true_par.block(0, 0, 3, 1) = circle.par;
   true_par(3) = 1 / tan(gen_par(5) * pi / 180);
@@ -387,7 +387,7 @@ void test_helix_fit(bool getcin) {
     delta -= std::chrono::high_resolution_clock::now() - start;
     helixRiemann_fit[i % iteration] =
 #ifdef USE_BL
-        brokenline::BL_Helix_fit(gen.hits, gen.hits_ge, B_field);
+        brokenline::bl_Helix_fit(gen.hits, gen.hits_ge, B_field);
 #else
         Rfit::Helix_fit(gen.hits, gen.hits_ge, B_field, true);
 #endif
@@ -406,7 +406,7 @@ void test_helix_fit(bool getcin) {
            << true_par(3) << endl
            << "Zip:  " << helixRiemann_fit[i].par(4) << " +/- " << sqrt(helixRiemann_fit[i].cov(4, 4)) << " vs "
            << true_par(4) << endl
-           << "charge:" << helixRiemann_fit[i].q << " vs 1" << endl
+           << "charge:" << helixRiemann_fit[i].qCharge << " vs 1" << endl
            << "covariance matrix:" << endl
            << helixRiemann_fit[i].cov << endl
            << "Initial hits:\n"

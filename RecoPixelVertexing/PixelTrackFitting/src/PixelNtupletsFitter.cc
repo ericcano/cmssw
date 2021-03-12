@@ -59,9 +59,9 @@ std::unique_ptr<reco::Track> PixelNtupletsFitter::run(const std::vector<const Tr
   }
 
   helix_fit fittedTrack = useRiemannFit_ ? Rfit::Helix_fit(hits_gp, hits_ge, nominalB_, true)
-                                         : brokenline::BL_Helix_fit(hits_gp, hits_ge, nominalB_);
+                                         : brokenline::bl_Helix_fit(hits_gp, hits_ge, nominalB_);
 
-  int iCharge = fittedTrack.q;
+  int iCharge = fittedTrack.qCharge;
 
   // parameters are:
   // 0: phi
