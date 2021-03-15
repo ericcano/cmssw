@@ -155,7 +155,7 @@ __global__ void kernelLineFit(double* __restrict__ phits,
   riemannFit::Map3xNd<N> hits(phits + i, 3, N);
   riemannFit::Map4d fast_fit_input(pfast_fit_input + i, 4);
   riemannFit::Map6xNf<N> hits_ge(phits_ge + i, 6, N);
-  line_fit[i] = riemannFit::Line_fit(hits, hits_ge, circle_fit[i], fast_fit_input, B, true);
+  line_fit[i] = riemannFit::lineFit(hits, hits_ge, circle_fit[i], fast_fit_input, B, true);
 }
 #endif
 
@@ -302,7 +302,7 @@ void testFit() {
   cudaDeviceSynchronize();
 
   // LINE_FIT CPU
-  riemannFit::LineFit line_fit_results = riemannFit::Line_fit(hits, hits_ge, circle_fit_results, fast_fit_results, B, true);
+  riemannFit::LineFit line_fit_results = riemannFit::lineFit(hits, hits_ge, circle_fit_results, fast_fit_results, B, true);
 
   kernelLineFit<N>
       <<<Ntracks / 64, 64>>>(hitsGPU, hits_geGPU, B, circle_fit_resultsGPU, fast_fit_resultsGPU, line_fit_resultsGPU);

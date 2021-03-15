@@ -155,7 +155,7 @@ __global__ void kernelLineFit(CAConstants::TupleMultiplicity const *__restrict__
     riemannFit::Map4d fast_fit(pfast_fit_input + local_idx);
     riemannFit::Map6xNf<N> hits_ge(phits_ge + local_idx);
 
-    auto const &line_fit = riemannFit::Line_fit(hits, hits_ge, circle_fit[local_idx], fast_fit, B, true);
+    auto const &line_fit = riemannFit::lineFit(hits, hits_ge, circle_fit[local_idx], fast_fit, B, true);
 
     riemannFit::fromCircleToPerigee(circle_fit[local_idx]);
 
