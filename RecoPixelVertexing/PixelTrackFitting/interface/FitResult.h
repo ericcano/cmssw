@@ -31,7 +31,7 @@ namespace Rfit {
       |cov(X0,Y0)|cov(Y0,Y0)|cov( R,Y0)| \n
       |cov(X0, R)|cov(Y0, R)|cov( R, R)|
     */
-    int32_t q;  //!< particle charge
+    int32_t qCharge;  //!< particle charge
     float chi2;
   };
 
@@ -58,7 +58,7 @@ namespace Rfit {
     float chi2_circle;
     float chi2_line;
     //    Vector4d fast_fit;
-    int32_t q;  //!< particle charge
+    int32_t qCharge;  //!< particle charge
   };            // __attribute__((aligned(16)));
 
 }  // namespace Rfit

@@ -153,8 +153,8 @@ __global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ t
     Rfit::line_fit line;
 
     brokenline::prepareBrokenLineData(hits, fast_fit, B, data);
-    brokenline::BL_Line_fit(hits_ge, fast_fit, B, data, line);
-    brokenline::BL_Circle_fit(hits, hits_ge, fast_fit, B, data, circle);
+    brokenline::bl_Line_fit(hits_ge, fast_fit, B, data, line);
+    brokenline::bl_Circle_fit(hits, hits_ge, fast_fit, B, data, circle);
 
     results->stateAtBS.copyFromCircle(circle.par, circle.cov, line.par, line.cov, 1.f / float(B), tkid);
     results->pt(tkid) = float(B) / float(std::abs(circle.par(2)));

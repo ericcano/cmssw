@@ -118,8 +118,8 @@ void testFit() {
 
   brokenline::prepareBrokenLineData(hits, fast_fit_results, B, data);
   Rfit::line_fit line_fit_results;
-  brokenline::BL_Line_fit(hits_ge, fast_fit_results, B, data, line_fit_results);
-  brokenline::BL_Circle_fit(hits, hits_ge, fast_fit_results, B, data, circle_fit_results);
+  brokenline::bl_Line_fit(hits_ge, fast_fit_results, B, data, line_fit_results);
+  brokenline::bl_Circle_fit(hits, hits_ge, fast_fit_results, B, data, circle_fit_results);
   Jacob << 1., 0, 0, 0, 1., 0, 0, 0,
       -B / std::copysign(Rfit::sqr(circle_fit_results.par(2)), circle_fit_results.par(2));
   circle_fit_results.par(2) = B / std::abs(circle_fit_results.par(2));

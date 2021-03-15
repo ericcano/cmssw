@@ -575,12 +575,12 @@ namespace Rfit {
 
     circle_fit circle;
     circle.par << par_uvr_(0) * s_inv + h_(0), par_uvr_(1) * s_inv + h_(1), par_uvr_(2) * s_inv;
-    circle.q = Charge(hits2D, circle.par);
+    circle.qCharge = Charge(hits2D, circle.par);
     circle.chi2 = abs(chi2) * renorm * 1. / sqr(2 * v(2) * par_uvr_(2) * s);
     printIt(&circle.par, "circle_fit - CIRCLE PARAMETERS:");
     printIt(&circle.cov, "circle_fit - CIRCLE COVARIANCE:");
 #ifdef RFIT_DEBUG
-    printf("circle_fit - CIRCLE CHARGE: %d\n", circle.q);
+    printf("circle_fit - CIRCLE CHARGE: %d\n", circle.qCharge);
 #endif
 
 #ifdef RFIT_DEBUG
@@ -789,7 +789,7 @@ namespace Rfit {
                                                const bool error) {
     constexpr uint32_t N = M3xN::ColsAtCompileTime;
     constexpr auto n = N;
-    double theta = -circle.q * atan(fast_fit(3));
+    double theta = -circle.qCharge * atan(fast_fit(3));
     theta = theta < 0. ? theta + M_PI : theta;
 
     // Prepare the Rotation Matrix to rotate the points
@@ -829,12 +829,12 @@ namespace Rfit {
       const double dot = (-o).dot(p);
       // atan2(cross, dot) give back the angle in the transverse plane so tha the
       // final equation reads: x_i = -q*R*theta (theta = angle returned by atan2)
-      const double atan2_ = -circle.q * atan2(cross, dot);
+      const double atan2_ = -circle.qCharge * atan2(cross, dot);
       //    p2D.coeffRef(1, i) = atan2_ * circle.par(2);
       p2D(0, i) = atan2_ * circle.par(2);
 
       // associated Jacobian, used in weights and errors- computation
-      const double temp0 = -circle.q * circle.par(2) * 1. / (sqr(dot) + sqr(cross));
+      const double temp0 = -circle.qCharge * circle.par(2) * 1. / (sqr(dot) + sqr(cross));
       double d_X0 = 0., d_Y0 = 0., d_R = 0.;  // good approximation for big pt and eta
       if (error) {
         d_X0 = -temp0 * ((p(1) + o(1)) * dot - (p(0) - o(0)) * cross);
@@ -993,7 +993,7 @@ namespace Rfit {
       helix.cov.block(0, 0, 3, 3) = circle.cov;
       helix.cov.block(3, 3, 2, 2) = line.cov;
     }
-    helix.q = circle.q;
+    helix.qCharge = circle.qCharge;
     helix.chi2_circle = circle.chi2;
     helix.chi2_line = line.chi2;
 
