@@ -969,7 +969,7 @@ namespace riemannFit {
 */
 
   template <int N>
-  inline helix_fit Helix_fit(const Matrix3xNd<N>& hits,
+  inline HelixFit Helix_fit(const Matrix3xNd<N>& hits,
                              const Eigen::Matrix<float, 6, N>& hits_ge,
                              const double B,
                              const bool error) {
@@ -986,7 +986,7 @@ namespace riemannFit {
 
     par_uvrtopak(circle, B, error);
 
-    helix_fit helix;
+    HelixFit helix;
     helix.par << circle.par, line.par;
     if (error) {
       helix.cov = MatrixXd::Zero(5, 5);

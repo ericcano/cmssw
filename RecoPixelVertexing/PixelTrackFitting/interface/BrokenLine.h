@@ -552,10 +552,10 @@ namespace brokenline {
     \return (phi,Tip,p_t,cot(theta)),Zip), their covariance matrix and the chi2's of the circle and line fits.
   */
   template <int n>
-  inline riemannFit::helix_fit helixFit(const riemannFit::Matrix3xNd<n>& hits,
+  inline riemannFit::HelixFit helixFit(const riemannFit::Matrix3xNd<n>& hits,
                                       const Eigen::Matrix<float, 6, 4>& hits_ge,
                                       const double bField) {
-    riemannFit::helix_fit helix;
+    riemannFit::HelixFit helix;
     riemannFit::Vector4d fast_fit;
     fastFit(hits, fast_fit);
 

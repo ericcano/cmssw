@@ -45,7 +45,7 @@ namespace riemannFit {
     double chi2;
   };
 
-  struct helix_fit {
+  struct HelixFit {
     Vector5d par;  //!<(phi,Tip,pt,cotan(theta)),Zip)
     Matrix5d cov;
     /*!< ()->cov() \n

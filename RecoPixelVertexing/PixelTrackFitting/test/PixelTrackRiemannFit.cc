@@ -365,7 +365,7 @@ void test_helix_fit(bool getcin) {
   const int iteration = 5000;
   gen_par = New_par(gen_par, 1, B_field);
   true_par = True_par(gen_par, 1, B_field);
-  std::array<helix_fit, iteration> helixRiemann_fit;
+  std::array<HelixFit, iteration> helixRiemann_fit;
 
   std::cout << "\nTrue parameters: "
             << "phi: " << true_par(0) << " "
