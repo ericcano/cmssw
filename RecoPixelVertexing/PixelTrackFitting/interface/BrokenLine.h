@@ -373,14 +373,13 @@ namespace brokenline {
 
     riemannFit::Vector2d eMinusd = eVec - dVec;
     double tmp1 = eMinusd.squaredNorm();
+    double tmp2 = sqrt(riemannFit::sqr(2 * fast_fit(2)) - tmp1);
 
     riemannFit::Matrix3d jacobian;
     jacobian << (radii(1, 0) * eMinusd(0) - eMinusd(1) * radii(0, 0)) / tmp1,
         (radii(1, 1) * eMinusd(0) - eMinusd(1) * radii(0, 1)) / tmp1, 0,
-        (circle_results.qCharge / 2) * (eMinusd(0) * radii(0, 0) + eMinusd(1) * radii(1, 0)) /
-            sqrt(riemannFit::sqr(2 * fast_fit(2)) - tmp1),
-        (circle_results.qCharge / 2) * (eMinusd(0) * radii(0, 1) + eMinusd(1) * radii(1, 1)) /
-            sqrt(riemannFit::sqr(2 * fast_fit(2)) - tmp1),
+        (circle_results.qCharge / 2) * (eMinusd(0) * radii(0, 0) + eMinusd(1) * radii(1, 0)) / tmp2,
+        (circle_results.qCharge / 2) * (eMinusd(0) * radii(0, 1) + eMinusd(1) * radii(1, 1)) / tmp2,
         0, 0, 0, circle_results.qCharge;
 
     circle_results.cov << iMat(0, 0), iMat(0, 1), iMat(0, n), iMat(1, 0), iMat(1, 1), iMat(1, n), iMat(n, 0), iMat(n, 1), iMat(n, n);
