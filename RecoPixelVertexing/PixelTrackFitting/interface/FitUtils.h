@@ -49,13 +49,11 @@ namespace riemannFit {
   using Vector4f = Eigen::Vector4f;
   using Vector6f = Eigen::Matrix<double, 6, 1>;
 
-  using u_int = unsigned int;
-
   template <class C>
   __host__ __device__ void printIt(C* m, const char* prefix = "") {
 #ifdef RFIT_DEBUG
-    for (u_int r = 0; r < m->rows(); ++r) {
-      for (u_int c = 0; c < m->cols(); ++c) {
+    for (uint r = 0; r < m->rows(); ++r) {
+      for (uint c = 0; c < m->cols(); ++c) {
         printf("%s Matrix(%d,%d) = %g\n", prefix, r, c, (*m)(r, c));
       }
     }

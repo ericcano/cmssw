@@ -32,9 +32,9 @@ namespace riemannFit {
     // Radiation length of the pixel detector in the uniform assumption, with
     // 0.06 rad_len at 16 cm
     constexpr double xx_0_inv = 0.06 / 16.;
-    u_int n = length_values.rows();
+    uint n = length_values.rows();
     rad_lengths(0) = length_values(0) * xx_0_inv;
-    for (u_int j = 1; j < n; ++j) {
+    for (uint j = 1; j < n; ++j) {
       rad_lengths(j) = std::abs(length_values(j) - length_values(j - 1)) * xx_0_inv;
     }
   }
@@ -69,7 +69,7 @@ namespace riemannFit {
 #ifdef RFIT_DEBUG
     riemannFit::printIt(&s_arcs, "Scatter_cov_line - s_arcs: ");
 #endif
-    constexpr u_int n = N;
+    constexpr uint n = N;
     double p_t = std::min(20., fast_fit(2) * B);  // limit pt to avoid too small error!!!
     double p_2 = p_t * p_t * (1. + 1. / (fast_fit(3) * fast_fit(3)));
     VectorNd<N> rad_lengths_S;
@@ -85,14 +85,14 @@ namespace riemannFit {
     riemannFit::printIt(cov_sz, "Scatter_cov_line - cov_sz: ");
 #endif
     Matrix2Nd<N> tmp = Matrix2Nd<N>::Zero();
-    for (u_int k = 0; k < n; ++k) {
+    for (uint k = 0; k < n; ++k) {
       tmp(k, k) = cov_sz[k](0, 0);
       tmp(k + n, k + n) = cov_sz[k](1, 1);
       tmp(k, k + n) = tmp(k + n, k) = cov_sz[k](0, 1);
     }
-    for (u_int k = 0; k < n; ++k) {
-      for (u_int l = k; l < n; ++l) {
-        for (u_int i = 0; i < std::min(k, l); ++i) {
+    for (uint k = 0; k < n; ++k) {
+      for (uint l = k; l < n; ++l) {
+        for (uint i = 0; i < std::min(k, l); ++i) {
           tmp(k + n, l + n) += std::abs(S_values(k) - S_values(i)) * std::abs(S_values(l) - S_values(i)) * sig2_S(i);
         }
         tmp(l + n, k + n) = tmp(k + n, l + n);
@@ -124,7 +124,7 @@ namespace riemannFit {
                                                          const V4& fast_fit,
                                                          VectorNd<N> const& rad,
                                                          double B) {
-    constexpr u_int n = N;
+    constexpr uint n = N;
     double p_t = std::min(20., fast_fit(2) * B);  // limit pt to avoid too small error!!!
     double p_2 = p_t * p_t * (1. + 1. / (fast_fit(3) * fast_fit(3)));
     double theta = atan(fast_fit(3));
@@ -134,7 +134,7 @@ namespace riemannFit {
     const Vector2d o(fast_fit(0), fast_fit(1));
 
     // associated Jacobian, used in weights and errors computation
-    for (u_int i = 0; i < n; ++i) {  // x
+    for (uint i = 0; i < n; ++i) {  // x
       Vector2d p = p2D.block(0, i, 2, 1) - o;
       const double cross = cross2D(-o, p);
       const double dot = (-o).dot(p);
@@ -145,9 +145,9 @@ namespace riemannFit {
     MatrixNd<N> scatter_cov_rad = MatrixNd<N>::Zero();
     VectorNd<N> sig2 = (1. + 0.038 * rad_lengths.array().log()).abs2() * rad_lengths.array();
     sig2 *= 0.000225 / (p_2 * sqr(sin(theta)));
-    for (u_int k = 0; k < n; ++k) {
-      for (u_int l = k; l < n; ++l) {
-        for (u_int i = 0; i < std::min(k, l); ++i) {
+    for (uint k = 0; k < n; ++k) {
+      for (uint l = k; l < n; ++l) {
+        for (uint i = 0; i < std::min(k, l); ++i) {
           scatter_cov_rad(k, l) += (rad(k) - rad(i)) * (rad(l) - rad(i)) * sig2(i);
         }
         scatter_cov_rad(l, k) = scatter_cov_rad(k, l);
@@ -175,12 +175,12 @@ namespace riemannFit {
     printf("Address of p2D: %p\n", &p2D);
 #endif
     printIt(&p2D, "cov_radtocart - p2D:");
-    constexpr u_int n = N;
+    constexpr uint n = N;
     Matrix2Nd<N> cov_cart = Matrix2Nd<N>::Zero();
     VectorNd<N> rad_inv = rad.cwiseInverse();
     printIt(&rad_inv, "cov_radtocart - rad_inv:");
-    for (u_int i = 0; i < n; ++i) {
-      for (u_int j = i; j < n; ++j) {
+    for (uint i = 0; i < n; ++i) {
+      for (uint j = i; j < n; ++j) {
         cov_cart(i, j) = cov_rad(i, j) * p2D(1, i) * rad_inv(i) * p2D(1, j) * rad_inv(j);
         cov_cart(i + n, j + n) = cov_rad(i, j) * p2D(0, i) * rad_inv(i) * p2D(0, j) * rad_inv(j);
         cov_cart(i, j + n) = -cov_rad(i, j) * p2D(1, i) * rad_inv(i) * p2D(0, j) * rad_inv(j);
@@ -208,10 +208,10 @@ namespace riemannFit {
   __host__ __device__ inline VectorNd<N> cov_carttorad(const M2xN& p2D,
                                                        const Matrix2Nd<N>& cov_cart,
                                                        const VectorNd<N>& rad) {
-    constexpr u_int n = N;
+    constexpr uint n = N;
     VectorNd<N> cov_rad;
     const VectorNd<N> rad_inv2 = rad.cwiseInverse().array().square();
-    for (u_int i = 0; i < n; ++i) {
+    for (uint i = 0; i < n; ++i) {
       //!< in case you have (0,0) to avoid dividing by 0 radius
       if (rad(i) < 1.e-4)
         cov_rad(i) = cov_cart(i, i);
@@ -240,9 +240,9 @@ namespace riemannFit {
                                                               const Matrix2Nd<N>& cov_cart,
                                                               V4& fast_fit,
                                                               const VectorNd<N>& rad) {
-    constexpr u_int n = N;
+    constexpr uint n = N;
     VectorNd<N> cov_rad;
-    for (u_int i = 0; i < n; ++i) {
+    for (uint i = 0; i < n; ++i) {
       //!< in case you have (0,0) to avoid dividing by 0 radius
       if (rad(i) < 1.e-4)
         cov_rad(i) = cov_cart(i, i);  // TO FIX
@@ -463,7 +463,7 @@ namespace riemannFit {
 #endif
     // INITIALIZATION
     Matrix2Nd<N> V = hits_cov2D;
-    constexpr u_int n = N;
+    constexpr uint n = N;
     printIt(&hits2D, "circle_fit - hits2D:");
     printIt(&hits_cov2D, "circle_fit - hits_cov2D:");
 
@@ -639,8 +639,8 @@ namespace riemannFit {
       printIt(&C[0][0], "circle_fit - C[0][0]:");
 
       Matrix3d C0;  // cov matrix of center of gravity (r0.x,r0.y,r0.z)
-      for (u_int i = 0; i < 3; ++i) {
-        for (u_int j = i; j < 3; ++j) {
+      for (uint i = 0; i < 3; ++i) {
+        for (uint j = i; j < 3; ++j) {
           Eigen::Matrix<double, 1, 1> tmp;
           tmp = weight.transpose() * C[i][j] * weight;
           const double c = tmp(0, 0);
@@ -671,13 +671,13 @@ namespace riemannFit {
       }
       printIt(&D_[0][0], "circle_fit - D_[0][0]:");
 
-      constexpr u_int nu[6][2] = {{0, 0}, {0, 1}, {0, 2}, {1, 1}, {1, 2}, {2, 2}};
+      constexpr uint nu[6][2] = {{0, 0}, {0, 1}, {0, 2}, {1, 1}, {1, 2}, {2, 2}};
 
       Matrix6d E;  // cov matrix of the 6 independent elements of A
-      for (u_int a = 0; a < 6; ++a) {
-        const u_int i = nu[a][0], j = nu[a][1];
-        for (u_int b = a; b < 6; ++b) {
-          const u_int k = nu[b][0], l = nu[b][1];
+      for (uint a = 0; a < 6; ++a) {
+        const uint i = nu[a][0], j = nu[a][1];
+        for (uint b = a; b < 6; ++b) {
+          const uint k = nu[b][0], l = nu[b][1];
           VectorNd<N> t0(n);
           VectorNd<N> t1(n);
           if (l == k) {
@@ -712,8 +712,8 @@ namespace riemannFit {
       printIt(&E, "circle_fit - E:");
 
       Eigen::Matrix<double, 3, 6> J2;  // Jacobian of min_eigen() (numerically computed)
-      for (u_int a = 0; a < 6; ++a) {
-        const u_int i = nu[a][0], j = nu[a][1];
+      for (uint a = 0; a < 6; ++a) {
+        const uint i = nu[a][0], j = nu[a][1];
         Matrix3d Delta = Matrix3d::Zero();
         Delta(i, j) = Delta(j, i) = abs(A(i, j) * epsilon);
         J2.col(a) = min_eigen3D_fast(A + Delta);
@@ -823,7 +823,7 @@ namespace riemannFit {
     // associated Jacobian, used in weights and errors computation
     Matrix6d Cov = Matrix6d::Zero();
     Matrix2d cov_sz[N];
-    for (u_int i = 0; i < n; ++i) {
+    for (uint i = 0; i < n; ++i) {
       Vector2d p = hits.block(0, i, 2, 1) - o;
       const double cross = cross2D(-o, p);
       const double dot = (-o).dot(p);
@@ -973,7 +973,7 @@ namespace riemannFit {
                              const Eigen::Matrix<float, 6, N>& hits_ge,
                              const double B,
                              const bool error) {
-    constexpr u_int n = N;
+    constexpr uint n = N;
     VectorNd<4> rad = (hits.block(0, 0, 2, n).colwise().norm());
 
     // Fast_fit gives back (X0, Y0, R, theta) w/o errors, using only 3 points.
