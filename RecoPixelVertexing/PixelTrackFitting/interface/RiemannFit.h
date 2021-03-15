@@ -64,14 +64,14 @@ namespace riemannFit {
                                                    VNd1 const& s_arcs,
                                                    VNd2 const& z_values,
                                                    const double theta,
-                                                   const double B,
+                                                   const double bField,
                                                    MatrixNd<N>& ret) {
 #ifdef RFIT_DEBUG
     riemannFit::printIt(&s_arcs, "Scatter_cov_line - s_arcs: ");
 #endif
     constexpr uint n = N;
-    double p_t = std::min(20., fast_fit(2) * B);  // limit pt to avoid too small error!!!
-    double p_2 = p_t * p_t * (1. + 1. / (fast_fit(3) * fast_fit(3)));
+    double p_t = std::min(20., fast_fit(2) * bField);  // limit pt to avoid too small error!!!
+    double p_2 = p_t * p_t * (1. + 1. / sqr(fast_fit(3)));
     VectorNd<N> rad_lengths_S;
     // See documentation at http://eigen.tuxfamily.org/dox/group__TutorialArrayClass.html
     // Basically, to perform cwise operations on Matrices and Vectors, you need
@@ -126,7 +126,7 @@ namespace riemannFit {
                                                          double B) {
     constexpr uint n = N;
     double p_t = std::min(20., fast_fit(2) * B);  // limit pt to avoid too small error!!!
-    double p_2 = p_t * p_t * (1. + 1. / (fast_fit(3) * fast_fit(3)));
+    double p_2 = p_t * p_t * (1. + 1. / sqr(fast_fit(3)));
     double theta = atan(fast_fit(3));
     theta = theta < 0. ? theta + M_PI : theta;
     VectorNd<N> s_values;
