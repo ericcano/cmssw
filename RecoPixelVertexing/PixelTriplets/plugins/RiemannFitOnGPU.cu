@@ -18,8 +18,8 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
   auto fast_fit_resultsGPU_ = cms::cuda::make_device_unique<double[]>(
       maxNumberOfConcurrentFits_ * sizeof(riemannFit::Vector4d) / sizeof(double), stream);
   auto circle_fit_resultsGPU_holder =
-      cms::cuda::make_device_unique<char[]>(maxNumberOfConcurrentFits_ * sizeof(riemannFit::circle_fit), stream);
-  riemannFit::circle_fit *circle_fit_resultsGPU_ = (riemannFit::circle_fit *)(circle_fit_resultsGPU_holder.get());
+      cms::cuda::make_device_unique<char[]>(maxNumberOfConcurrentFits_ * sizeof(riemannFit::CircleFit), stream);
+  riemannFit::CircleFit *circle_fit_resultsGPU_ = (riemannFit::CircleFit *)(circle_fit_resultsGPU_holder.get());
 
   for (uint32_t offset = 0; offset < maxNumberOfTuples; offset += maxNumberOfConcurrentFits_) {
     // triplets

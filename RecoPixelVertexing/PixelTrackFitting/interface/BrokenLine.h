@@ -15,7 +15,7 @@ namespace brokenline {
     as defined in Karimäki V., 1990, Effective circle fitting for particle trajectories, 
     Nucl. Instr. and Meth. A305 (1991) 187.
   */
-  using karimaki_circle_fit = riemannFit::circle_fit;
+  using karimaki_circle_fit = riemannFit::CircleFit;
 
   /*!
     \brief data needed for the Broken Line fit procedure.

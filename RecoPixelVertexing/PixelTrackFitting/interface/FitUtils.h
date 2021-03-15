@@ -172,7 +172,7 @@ namespace riemannFit {
     \param B magnetic field in Gev/cm/c unit.
     \param error flag for errors computation.
   */
-  __host__ __device__ inline void par_uvrtopak(circle_fit& circle, const double B, const bool error) {
+  __host__ __device__ inline void par_uvrtopak(CircleFit& circle, const double B, const bool error) {
     Vector3d par_pak;
     const double temp0 = circle.par.head(2).squaredNorm();
     const double temp1 = sqrt(temp0);
@@ -195,7 +195,7 @@ namespace riemannFit {
     \param circle_uvr parameter (X0,Y0,R), covariance matrix to
     be transformed and particle charge.
   */
-  __host__ __device__ inline void fromCircleToPerigee(circle_fit& circle) {
+  __host__ __device__ inline void fromCircleToPerigee(CircleFit& circle) {
     Vector3d par_pak;
     const double temp0 = circle.par.head(2).squaredNorm();
     const double temp1 = sqrt(temp0);

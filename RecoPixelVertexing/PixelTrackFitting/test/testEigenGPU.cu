@@ -46,7 +46,7 @@ __global__ void kernelPrintSizes(double* __restrict__ phits, float* __restrict__
          sizeof(hits_ge[i]),
          sizeof(Vector4d),
          sizeof(riemannFit::line_fit),
-         sizeof(riemannFit::circle_fit));
+         sizeof(riemannFit::CircleFit));
 }
 
 template <int N>
@@ -68,7 +68,7 @@ __global__ void kernelBrokenLineFit(double* __restrict__ phits,
                                     float* __restrict__ phits_ge,
                                     double* __restrict__ pfast_fit_input,
                                     double B,
-                                    riemannFit::circle_fit* circle_fit,
+                                    riemannFit::CircleFit* circle_fit,
                                     riemannFit::line_fit* line_fit) {
   auto i = blockIdx.x * blockDim.x + threadIdx.x;
   riemannFit::Map3xNd<N> hits(phits + i, 3, N);
@@ -103,7 +103,7 @@ __global__ void kernelCircleFit(double* __restrict__ phits,
                                 float* __restrict__ phits_ge,
                                 double* __restrict__ pfast_fit_input,
                                 double B,
-                                riemannFit::circle_fit* circle_fit_resultsGPU) {
+                                riemannFit::CircleFit* circle_fit_resultsGPU) {
   auto i = blockIdx.x * blockDim.x + threadIdx.x;
   riemannFit::Map3xNd<N> hits(phits + i, 3, N);
   riemannFit::Map4d fast_fit_input(pfast_fit_input + i, 4);
@@ -148,7 +148,7 @@ template <int N>
 __global__ void kernelLineFit(double* __restrict__ phits,
                               float* __restrict__ phits_ge,
                               double B,
-                              riemannFit::circle_fit* circle_fit,
+                              riemannFit::CircleFit* circle_fit,
                               double* __restrict__ pfast_fit_input,
                               riemannFit::line_fit* line_fit) {
   auto i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -220,15 +220,15 @@ void testFit() {
   float* hits_geGPU = nullptr;
   double* fast_fit_resultsGPU = nullptr;
   double* fast_fit_resultsGPUret = new double[riemannFit::maxNumberOfTracks() * sizeof(Vector4d)];
-  riemannFit::circle_fit* circle_fit_resultsGPU = nullptr;
-  riemannFit::circle_fit* circle_fit_resultsGPUret = new riemannFit::circle_fit();
+  riemannFit::CircleFit* circle_fit_resultsGPU = nullptr;
+  riemannFit::CircleFit* circle_fit_resultsGPUret = new riemannFit::CircleFit();
   riemannFit::line_fit* line_fit_resultsGPU = nullptr;
   riemannFit::line_fit* line_fit_resultsGPUret = new riemannFit::line_fit();
 
   fillHitsAndHitsCov(hits, hits_ge);
 
   std::cout << "sizes " << N << ' ' << sizeof(hits) << ' ' << sizeof(hits_ge) << ' ' << sizeof(Vector4d) << ' '
-            << sizeof(riemannFit::line_fit) << ' ' << sizeof(riemannFit::circle_fit) << std::endl;
+            << sizeof(riemannFit::line_fit) << ' ' << sizeof(riemannFit::CircleFit) << std::endl;
 
   std::cout << "Generated hits:\n" << hits << std::endl;
   std::cout << "Generated cov:\n" << hits_ge << std::endl;
@@ -249,7 +249,7 @@ void testFit() {
   cudaCheck(cudaMalloc(&hits_geGPU, riemannFit::maxNumberOfTracks() * sizeof(riemannFit::Matrix6xNf<N>)));
   cudaCheck(cudaMalloc(&fast_fit_resultsGPU, riemannFit::maxNumberOfTracks() * sizeof(Vector4d)));
   cudaCheck(cudaMalloc(&line_fit_resultsGPU, riemannFit::maxNumberOfTracks() * sizeof(riemannFit::line_fit)));
-  cudaCheck(cudaMalloc(&circle_fit_resultsGPU, riemannFit::maxNumberOfTracks() * sizeof(riemannFit::circle_fit)));
+  cudaCheck(cudaMalloc(&circle_fit_resultsGPU, riemannFit::maxNumberOfTracks() * sizeof(riemannFit::CircleFit)));
 
   cudaCheck(cudaMemset(fast_fit_resultsGPU, 0, riemannFit::maxNumberOfTracks() * sizeof(Vector4d)));
   cudaCheck(cudaMemset(line_fit_resultsGPU, 0, riemannFit::maxNumberOfTracks() * sizeof(riemannFit::line_fit)));
@@ -294,7 +294,7 @@ void testFit() {
 
   riemannFit::Matrix2Nd<N> hits_cov = riemannFit::Matrix2Nd<N>::Zero();
   riemannFit::loadCovariance2D(hits_ge, hits_cov);
-  riemannFit::circle_fit circle_fit_results =
+  riemannFit::CircleFit circle_fit_results =
       riemannFit::Circle_fit(hits.block(0, 0, 2, N), hits_cov, fast_fit_results, rad, B, true);
 
   // CIRCLE_FIT GPU
@@ -312,7 +312,7 @@ void testFit() {
   std::cout << "Fitted values (CircleFit):\n" << circle_fit_results.par << std::endl;
 
   cudaCheck(
-      cudaMemcpy(circle_fit_resultsGPUret, circle_fit_resultsGPU, sizeof(riemannFit::circle_fit), cudaMemcpyDeviceToHost));
+      cudaMemcpy(circle_fit_resultsGPUret, circle_fit_resultsGPU, sizeof(riemannFit::CircleFit), cudaMemcpyDeviceToHost));
   std::cout << "Fitted values (CircleFit) GPU:\n" << circle_fit_resultsGPUret->par << std::endl;
   assert(isEqualFuzzy(circle_fit_results.par, circle_fit_resultsGPUret->par));
 

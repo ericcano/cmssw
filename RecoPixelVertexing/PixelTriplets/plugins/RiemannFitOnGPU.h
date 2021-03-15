@@ -90,7 +90,7 @@ __global__ void kernelCircleFit(CAConstants::TupleMultiplicity const *__restrict
                                 double *__restrict__ phits,
                                 float *__restrict__ phits_ge,
                                 double *__restrict__ pfast_fit_input,
-                                riemannFit::circle_fit *circle_fit,
+                                riemannFit::CircleFit *circle_fit,
                                 uint32_t offset) {
   assert(circle_fit);
   assert(N <= nHits);
@@ -132,7 +132,7 @@ __global__ void kernelLineFit(CAConstants::TupleMultiplicity const *__restrict__
                               double *__restrict__ phits,
                               float *__restrict__ phits_ge,
                               double *__restrict__ pfast_fit_input,
-                              riemannFit::circle_fit *__restrict__ circle_fit,
+                              riemannFit::CircleFit *__restrict__ circle_fit,
                               uint32_t offset) {
   assert(results);
   assert(circle_fit);

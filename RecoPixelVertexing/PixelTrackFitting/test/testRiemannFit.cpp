@@ -128,7 +128,7 @@ void testFit() {
   riemannFit::VectorNd<N> rad = (hits.block(0, 0, 2, N).colwise().norm());
   riemannFit::Matrix2Nd<N> hits_cov = riemannFit::Matrix2Nd<N>::Zero();
   riemannFit::loadCovariance2D(hits_ge, hits_cov);
-  riemannFit::circle_fit circle_fit_results =
+  riemannFit::CircleFit circle_fit_results =
       riemannFit::Circle_fit(hits.block(0, 0, 2, N), hits_cov, fast_fit_results, rad, B, true);
   // LINE_FIT CPU
   riemannFit::line_fit line_fit_results = riemannFit::Line_fit(hits, hits_ge, circle_fit_results, fast_fit_results, B, true);

@@ -143,7 +143,7 @@ Vector5d True_par(const Matrix<double, 6, 1>& gen_par, const int& charge, const 
   Vector5d true_par;
   const double x0 = gen_par(0) + gen_par(4) * cos(gen_par(3) * pi / 180);
   const double y0 = gen_par(1) + gen_par(4) * sin(gen_par(3) * pi / 180);
-  circle_fit circle;
+  CircleFit circle;
   circle.par << x0, y0, gen_par(4);
   circle.qCharge = 1;
   riemannFit::par_uvrtopak(circle, B_field, false);

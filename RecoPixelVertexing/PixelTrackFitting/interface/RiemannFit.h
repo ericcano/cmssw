@@ -452,7 +452,7 @@ namespace riemannFit {
     scattering.
 */
   template <typename M2xN, typename V4, int N>
-  __host__ __device__ inline circle_fit Circle_fit(const M2xN& hits2D,
+  __host__ __device__ inline CircleFit Circle_fit(const M2xN& hits2D,
                                                    const Matrix2Nd<N>& hits_cov2D,
                                                    const V4& fast_fit,
                                                    const VectorNd<N>& rad,
@@ -573,7 +573,7 @@ namespace riemannFit {
     Vector3d par_uvr_;  // used in error propagation
     par_uvr_ << -v(0) * v2x2_inv, -v(1) * v2x2_inv, h * v2x2_inv;
 
-    circle_fit circle;
+    CircleFit circle;
     circle.par << par_uvr_(0) * s_inv + h_(0), par_uvr_(1) * s_inv + h_(1), par_uvr_(2) * s_inv;
     circle.qCharge = Charge(hits2D, circle.par);
     circle.chi2 = abs(chi2) * renorm * 1. / sqr(2 * v(2) * par_uvr_(2) * s);
@@ -783,7 +783,7 @@ namespace riemannFit {
   template <typename M3xN, typename M6xN, typename V4>
   __host__ __device__ inline line_fit Line_fit(const M3xN& hits,
                                                const M6xN& hits_ge,
-                                               const circle_fit& circle,
+                                               const CircleFit& circle,
                                                const V4& fast_fit,
                                                const double B,
                                                const bool error) {
@@ -981,7 +981,7 @@ namespace riemannFit {
     Fast_fit(hits, fast_fit);
     riemannFit::Matrix2Nd<N> hits_cov = MatrixXd::Zero(2 * n, 2 * n);
     riemannFit::loadCovariance2D(hits_ge, hits_cov);
-    circle_fit circle = Circle_fit(hits.block(0, 0, 2, n), hits_cov, fast_fit, rad, B, error);
+    CircleFit circle = Circle_fit(hits.block(0, 0, 2, n), hits_cov, fast_fit, rad, B, error);
     line_fit line = Line_fit(hits, hits_ge, circle, fast_fit, B, error);
 
     par_uvrtopak(circle, B, error);

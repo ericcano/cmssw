@@ -23,7 +23,7 @@ namespace riemannFit {
   template <int N>
   using Matrix3xNd = Eigen::Matrix<double, 3, N>;  // used for inputs hits
 
-  struct circle_fit {
+  struct CircleFit {
     Vector3d par;  //!< parameter: (X0,Y0,R)
     Matrix3d cov;
     /*!< covariance matrix: \n
