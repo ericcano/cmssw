@@ -242,7 +242,7 @@ namespace brokenline {
   */
 
   template <typename M3xN, typename V4>
-  __host__ __device__ inline void blFastFit(const M3xN& hits, V4& result) {
+  __host__ __device__ inline void fastFit(const M3xN& hits, V4& result) {
     constexpr uint32_t n = M3xN::ColsAtCompileTime;
 
     const Rfit::Vector2d a = hits.block(0, n / 2, 2, 1) - hits.block(0, 0, 2, 1);
@@ -289,7 +289,7 @@ namespace brokenline {
    * covariance matrix are transformed to the original coordinate system.
   */
   template <typename M3xN, typename M6xN, typename V4, int n>
-  __host__ __device__ inline void bl_Circle_fit(const M3xN& hits,
+  __host__ __device__ inline void circleFit(const M3xN& hits,
                                                 const M6xN& hits_ge,
                                                 const V4& fast_fit,
                                                 const double bField,
@@ -433,7 +433,7 @@ namespace brokenline {
    * matrix are transformed to the original coordinate system.
    */
   template <typename V4, typename M6xN, int n>
-  __host__ __device__ inline void bl_Line_fit(const M6xN& hits_ge,
+  __host__ __device__ inline void lineFit(const M6xN& hits_ge,
                                               const V4& fast_fit,
                                               const double bField,
                                               const PreparedBrokenLineData<n>& data,
@@ -447,7 +447,7 @@ namespace brokenline {
     Rfit::Matrix2d rotMat = rotationMatrix(slope);
 
     Rfit::Matrix3d vMat = Rfit::Matrix3d::Zero();                 // covariance matrix XYZ
-    Rfit::Matrix2x3d JacobXYZtosZ = Rfit::Matrix2x3d::Zero();  // jacobian for computation of the error on s (xyz -> sz)
+    Rfit::Matrix2x3d jacobXYZtosZ = Rfit::Matrix2x3d::Zero();  // jacobian for computation of the error on s (xyz -> sz)
     Rfit::VectorNd<n> weights = Rfit::VectorNd<n>::Zero();
     for (u_int i = 0; i < n; i++) {
       vMat(0, 0) = hits_ge.col(i)[0];            // x errors
@@ -457,10 +457,10 @@ namespace brokenline {
       vMat(2, 1) = vMat(1, 2) = hits_ge.col(i)[4];  // cov_yz
       vMat(2, 2) = hits_ge.col(i)[5];            // z errors
       auto tmp = 1. / radii.block(0, i, 2, 1).norm();
-      JacobXYZtosZ(0, 0) = radii(1, i) * tmp;
-      JacobXYZtosZ(0, 1) = -radii(0, i) * tmp;
-      JacobXYZtosZ(1, 2) = 1.;
-      weights(i) = 1. / ((rotMat * JacobXYZtosZ * vMat * JacobXYZtosZ.transpose() * rotMat.transpose())(
+      jacobXYZtosZ(0, 0) = radii(1, i) * tmp;
+      jacobXYZtosZ(0, 1) = -radii(0, i) * tmp;
+      jacobXYZtosZ(1, 2) = 1.;
+      weights(i) = 1. / ((rotMat * jacobXYZtosZ * vMat * jacobXYZtosZ.transpose() * rotMat.transpose())(
                       1, 1));  // compute the orthogonal weight point by point
     }
 
@@ -552,12 +552,12 @@ namespace brokenline {
     \return (phi,Tip,p_t,cot(theta)),Zip), their covariance matrix and the chi2's of the circle and line fits.
   */
   template <int n>
-  inline Rfit::helix_fit bl_Helix_fit(const Rfit::Matrix3xNd<n>& hits,
+  inline Rfit::helix_fit helixFit(const Rfit::Matrix3xNd<n>& hits,
                                       const Eigen::Matrix<float, 6, 4>& hits_ge,
                                       const double bField) {
     Rfit::helix_fit helix;
     Rfit::Vector4d fast_fit;
-    blFastFit(hits, fast_fit);
+    fastFit(hits, fast_fit);
 
     PreparedBrokenLineData<n> data;
     karimaki_circle_fit circle;
@@ -565,8 +565,8 @@ namespace brokenline {
     Rfit::Matrix3d jacobian;
 
     prepareBrokenLineData(hits, fast_fit, bField, data);
-    bl_Line_fit(hits_ge, fast_fit, bField, data, line);
-    bl_Circle_fit(hits, hits_ge, fast_fit, bField, data, circle);
+    lineFit(hits_ge, fast_fit, bField, data, line);
+    circleFit(hits, hits_ge, fast_fit, bField, data, circle);
 
     // the circle fit gives k, but here we want p_t, so let's change the parameter and the covariance matrix
     jacobian << 1., 0, 0, 0, 1., 0, 0, 0, -std::abs(circle.par(2)) * bField / (Rfit::sqr(circle.par(2)) * circle.par(2));

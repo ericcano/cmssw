@@ -55,7 +55,7 @@ __global__ void kernelFastFit(double* __restrict__ phits, double* __restrict__ p
   Rfit::Map3xNd<N> hits(phits + i, 3, N);
   Rfit::Map4d result(presults + i, 4);
 #ifdef USE_BL
-  brokenline::blFastFit(hits, result);
+  brokenline::fastFit(hits, result);
 #else
   Rfit::Fast_fit(hits, result);
 #endif
@@ -82,8 +82,8 @@ __global__ void kernelBrokenLineFit(double* __restrict__ phits,
   auto& circle_fit_results = circle_fit[i];
 
   brokenline::prepareBrokenLineData(hits, fast_fit_input, B, data);
-  brokenline::bl_Line_fit(hits_ge, fast_fit_input, B, data, line_fit_results);
-  brokenline::bl_Circle_fit(hits, hits_ge, fast_fit_input, B, data, circle_fit_results);
+  brokenline::lineFit(hits_ge, fast_fit_input, B, data, line_fit_results);
+  brokenline::circleFit(hits, hits_ge, fast_fit_input, B, data, circle_fit_results);
   Jacob << 1., 0, 0, 0, 1., 0, 0, 0,
       -B / std::copysign(Rfit::sqr(circle_fit_results.par(2)), circle_fit_results.par(2));
   circle_fit_results.par(2) = B / std::abs(circle_fit_results.par(2));
@@ -236,7 +236,7 @@ void testFit() {
   // FAST_FIT_CPU
 #ifdef USE_BL
   Vector4d fast_fit_results;
-  brokenline::blFastFit(hits, fast_fit_results);
+  brokenline::fastFit(hits, fast_fit_results);
 #else
   Vector4d fast_fit_results;
   Rfit::Fast_fit(hits, fast_fit_results);
@@ -276,8 +276,8 @@ void testFit() {
   Rfit::line_fit line_fit_results;
   Rfit::Matrix3d Jacob;
   brokenline::prepareBrokenLineData(hits, fast_fit_results, B, data);
-  brokenline::bl_Line_fit(hits_ge, fast_fit_results, B, data, line_fit_results);
-  brokenline::bl_Circle_fit(hits, hits_ge, fast_fit_results, B, data, circle_fit_results);
+  brokenline::lineFit(hits_ge, fast_fit_results, B, data, line_fit_results);
+  brokenline::circleFit(hits, hits_ge, fast_fit_results, B, data, circle_fit_results);
   Jacob << 1., 0, 0, 0, 1., 0, 0, 0,
       -B / std::copysign(Rfit::sqr(circle_fit_results.par(2)), circle_fit_results.par(2));
   circle_fit_results.par(2) = B / std::abs(circle_fit_results.par(2));
