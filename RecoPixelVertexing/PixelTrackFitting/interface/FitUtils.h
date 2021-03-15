@@ -100,21 +100,21 @@ namespace riemannFit {
     // | 3  4  5 |
     constexpr uint32_t hits_in_fit = M6xNf::ColsAtCompileTime;
     for (uint32_t i = 0; i < hits_in_fit; ++i) {
-      auto ge_idx = 0;
-      auto j = 0;
-      auto l = 0;
-      hits_cov(i + j * hits_in_fit, i + l * hits_in_fit) = ge.col(i)[ge_idx];
-      ge_idx = 2;
-      j = 1;
-      l = 1;
-      hits_cov(i + j * hits_in_fit, i + l * hits_in_fit) = ge.col(i)[ge_idx];
-      ge_idx = 1;
-      j = 1;
-      l = 0;
-      hits_cov(i + l * hits_in_fit, i + j * hits_in_fit) = hits_cov(i + j * hits_in_fit, i + l * hits_in_fit) =
-          ge.col(i)[ge_idx];
-    }
-  }
+      {
+        constexpr uint32_t ge_idx = 0, j = 0, l = 0;
+        hits_cov(i + j * hits_in_fit, i + l * hits_in_fit) = ge.col(i)[ge_idx];
+      }
+      {
+        constexpr uint32_t ge_idx = 2, j = 1, l = 1;
+        hits_cov(i + j * hits_in_fit, i + l * hits_in_fit) = ge.col(i)[ge_idx];
+      }
+      {
+        constexpr uint32_t ge_idx = 1, j = 1, l = 0;
+        hits_cov(i + l * hits_in_fit, i + j * hits_in_fit) = hits_cov(i + j * hits_in_fit, i + l * hits_in_fit) =
+            ge.col(i)[ge_idx];
+      }
+    } 
+ }
 
   template <typename M6xNf, typename M3xNd>
   __host__ __device__ void loadCovariance(M6xNf const& ge, M3xNd& hits_cov) {
