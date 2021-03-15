@@ -35,7 +35,7 @@ namespace riemannFit {
     float chi2;
   };
 
-  struct line_fit {
+  struct LineFit {
     Vector2d par;  //!<(cotan(theta),Zip)
     Matrix2d cov;
     /*!<

@@ -781,7 +781,7 @@ namespace riemannFit {
  */
 
   template <typename M3xN, typename M6xN, typename V4>
-  __host__ __device__ inline line_fit Line_fit(const M3xN& hits,
+  __host__ __device__ inline LineFit Line_fit(const M3xN& hits,
                                                const M6xN& hits_ge,
                                                const CircleFit& circle,
                                                const V4& fast_fit,
@@ -916,7 +916,7 @@ namespace riemannFit {
     VectorNd<N> res = p2D_rot.row(1).transpose() - A.transpose() * sol;
     double chi2 = res.transpose() * Vy_inv * res;
 
-    line_fit line;
+    LineFit line;
     line.par << m, q;
     line.cov << cov_mq;
     line.chi2 = chi2;
@@ -982,7 +982,7 @@ namespace riemannFit {
     riemannFit::Matrix2Nd<N> hits_cov = MatrixXd::Zero(2 * n, 2 * n);
     riemannFit::loadCovariance2D(hits_ge, hits_cov);
     CircleFit circle = Circle_fit(hits.block(0, 0, 2, n), hits_cov, fast_fit, rad, B, error);
-    line_fit line = Line_fit(hits, hits_ge, circle, fast_fit, B, error);
+    LineFit line = Line_fit(hits, hits_ge, circle, fast_fit, B, error);
 
     par_uvrtopak(circle, B, error);
 

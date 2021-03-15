@@ -117,7 +117,7 @@ void testFit() {
   riemannFit::Matrix3d Jacob;
 
   brokenline::prepareBrokenLineData(hits, fast_fit_results, B, data);
-  riemannFit::line_fit line_fit_results;
+  riemannFit::LineFit line_fit_results;
   brokenline::lineFit(hits_ge, fast_fit_results, B, data, line_fit_results);
   brokenline::circleFit(hits, hits_ge, fast_fit_results, B, data, circle_fit_results);
   Jacob << 1., 0, 0, 0, 1., 0, 0, 0,
@@ -131,7 +131,7 @@ void testFit() {
   riemannFit::CircleFit circle_fit_results =
       riemannFit::Circle_fit(hits.block(0, 0, 2, N), hits_cov, fast_fit_results, rad, B, true);
   // LINE_FIT CPU
-  riemannFit::line_fit line_fit_results = riemannFit::Line_fit(hits, hits_ge, circle_fit_results, fast_fit_results, B, true);
+  riemannFit::LineFit line_fit_results = riemannFit::Line_fit(hits, hits_ge, circle_fit_results, fast_fit_results, B, true);
   riemannFit::par_uvrtopak(circle_fit_results, B, true);
 
 #endif

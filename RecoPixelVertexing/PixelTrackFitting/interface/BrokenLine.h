@@ -437,7 +437,7 @@ namespace brokenline {
                                               const V4& fast_fit,
                                               const double bField,
                                               const PreparedBrokenLineData<n>& data,
-                                              riemannFit::line_fit& line_results) {
+                                              riemannFit::LineFit& line_results) {
     const auto& radii = data.radii;
     const auto& sTotal = data.sTotal;
     const auto& zInSZplane = data.zInSZplane;
@@ -561,7 +561,7 @@ namespace brokenline {
 
     PreparedBrokenLineData<n> data;
     karimaki_circle_fit circle;
-    riemannFit::line_fit line;
+    riemannFit::LineFit line;
     riemannFit::Matrix3d jacobian;
 
     prepareBrokenLineData(hits, fast_fit, bField, data);

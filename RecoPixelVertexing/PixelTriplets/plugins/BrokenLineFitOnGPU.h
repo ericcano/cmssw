@@ -150,7 +150,7 @@ __global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ t
     riemannFit::Matrix3d Jacob;
 
     brokenline::karimaki_circle_fit circle;
-    riemannFit::line_fit line;
+    riemannFit::LineFit line;
 
     brokenline::prepareBrokenLineData(hits, fast_fit, B, data);
     brokenline::lineFit(hits_ge, fast_fit, B, data, line);
