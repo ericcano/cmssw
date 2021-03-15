@@ -969,7 +969,7 @@ namespace riemannFit {
 */
 
   template <int N>
-  inline HelixFit Helix_fit(const Matrix3xNd<N>& hits,
+  inline HelixFit helixFit(const Matrix3xNd<N>& hits,
                              const Eigen::Matrix<float, 6, N>& hits_ge,
                              const double B,
                              const bool error) {

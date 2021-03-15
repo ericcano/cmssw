@@ -389,7 +389,7 @@ void test_helix_fit(bool getcin) {
 #ifdef USE_BL
         brokenline::helixFit(gen.hits, gen.hits_ge, B_field);
 #else
-        riemannFit::Helix_fit(gen.hits, gen.hits_ge, B_field, true);
+        riemannFit::helixFit(gen.hits, gen.hits_ge, B_field, true);
 #endif
     delta += std::chrono::high_resolution_clock::now() - start;
 
