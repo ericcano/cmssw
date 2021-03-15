@@ -122,10 +122,10 @@ void SeedProducerFromSoA::produce(edm::StreamID streamID, edm::Event& iEvent, co
 
     float phi = tsoa.phi(it);
 
-    Rfit::Vector5d ipar, opar;
-    Rfit::Matrix5d icov, ocov;
+    riemannFit::Vector5d ipar, opar;
+    riemannFit::Matrix5d icov, ocov;
     fit.copyToDense(ipar, icov, it);
-    Rfit::transformToPerigeePlane(ipar, icov, opar, ocov);
+    riemannFit::transformToPerigeePlane(ipar, icov, opar, ocov);
 
     LocalTrajectoryParameters lpar(opar(0), opar(1), opar(2), opar(3), opar(4), 1.);
     AlgebraicSymMatrix55 m;

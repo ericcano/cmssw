@@ -8,7 +8,7 @@
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues>
 
-namespace Rfit {
+namespace riemannFit {
 
   using Vector2d = Eigen::Vector2d;
   using Vector3d = Eigen::Vector3d;
@@ -61,5 +61,5 @@ namespace Rfit {
     int32_t qCharge;  //!< particle charge
   };            // __attribute__((aligned(16)));
 
-}  // namespace Rfit
+}  // namespace riemannFit
 #endif

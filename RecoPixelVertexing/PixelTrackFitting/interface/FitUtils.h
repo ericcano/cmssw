@@ -5,7 +5,7 @@
 #include "HeterogeneousCore/CUDAUtilities/interface/cuda_assert.h"
 #include "RecoPixelVertexing/PixelTrackFitting/interface/FitResult.h"
 
-namespace Rfit {
+namespace riemannFit {
 
   constexpr double epsilon = 1.e-4;  //!< used in numerical derivative (J2 in Circle_fit())
 
@@ -240,6 +240,6 @@ namespace Rfit {
     ocov = J * icov * J.transpose();
   }
 
-}  // namespace Rfit
+}  // namespace riemannFit
 
 #endif  // RecoPixelVertexing_PixelTrackFitting_interface_FitUtils_h

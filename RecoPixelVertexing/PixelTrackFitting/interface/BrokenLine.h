@@ -15,7 +15,7 @@ namespace brokenline {
     as defined in Karimäki V., 1990, Effective circle fitting for particle trajectories, 
     Nucl. Instr. and Meth. A305 (1991) 187.
   */
-  using karimaki_circle_fit = Rfit::circle_fit;
+  using karimaki_circle_fit = riemannFit::circle_fit;
 
   /*!
     \brief data needed for the Broken Line fit procedure.
@@ -23,12 +23,12 @@ namespace brokenline {
   template <int n>
   struct PreparedBrokenLineData {
     int qCharge;                      //!< particle charge
-    Rfit::Matrix2xNd<n> radii;  //!< xy data in the system in which the pre-fitted center is the origin
-    Rfit::VectorNd<n> sTransverse; //!< total distance traveled in the transverse plane
+    riemannFit::Matrix2xNd<n> radii;  //!< xy data in the system in which the pre-fitted center is the origin
+    riemannFit::VectorNd<n> sTransverse; //!< total distance traveled in the transverse plane
                                 //   starting from the pre-fitted closest approach
-    Rfit::VectorNd<n> sTotal;   //!< total distance traveled (three-dimensional)
-    Rfit::VectorNd<n> zInSZplane;  //!< orthogonal coordinate to the pre-fitted line in the sz plane
-    Rfit::VectorNd<n> varBeta;  //!< kink angles in the SZ plane
+    riemannFit::VectorNd<n> sTotal;   //!< total distance traveled (three-dimensional)
+    riemannFit::VectorNd<n> zInSZplane;  //!< orthogonal coordinate to the pre-fitted line in the sz plane
+    riemannFit::VectorNd<n> varBeta;  //!< kink angles in the SZ plane
   };
 
   /*!
@@ -62,9 +62,9 @@ namespace brokenline {
     
     //! number between 1/3 (uniform material) and 1 (thin scatterer) to be manually tuned
     constexpr double geometry_factor = 0.7;  
-    constexpr double fact = geometry_factor * Rfit::sqr(13.6 / 1000.);
-    return fact / (pt2 * (1. + Rfit::sqr(slope))) * (std::abs(length) * inv_X0) *
-           Rfit::sqr(1. + 0.038 * log(std::abs(length) * inv_X0));
+    constexpr double fact = geometry_factor * riemannFit::sqr(13.6 / 1000.);
+    return fact / (pt2 * (1. + riemannFit::sqr(slope))) * (std::abs(length) * inv_X0) *
+           riemannFit::sqr(1. + 0.038 * log(std::abs(length) * inv_X0));
   }
 
   /*!
@@ -74,9 +74,9 @@ namespace brokenline {
     
     \return 2D rotation matrix.
   */
-  __host__ __device__ inline Rfit::Matrix2d rotationMatrix(double slope) {
-    Rfit::Matrix2d rot;
-    rot(0, 0) = 1. / sqrt(1. + Rfit::sqr(slope));
+  __host__ __device__ inline riemannFit::Matrix2d rotationMatrix(double slope) {
+    riemannFit::Matrix2d rot;
+    rot(0, 0) = 1. / sqrt(1. + riemannFit::sqr(slope));
     rot(0, 1) = slope * rot(0, 0);
     rot(1, 0) = -rot(0, 1);
     rot(1, 1) = rot(0, 0);
@@ -97,7 +97,7 @@ namespace brokenline {
   __host__ __device__ inline void translateKarimaki(karimaki_circle_fit& circle,
                                                     double x0,
                                                     double y0,
-                                                    Rfit::Matrix3d& jacobian) {
+                                                    riemannFit::Matrix3d& jacobian) {
 
     // Avoid multiple access to the circle.par vector.
     using scalar = std::remove_reference<decltype(circle.par(0))>::type;
@@ -115,16 +115,16 @@ namespace brokenline {
     scalar tempSmallU = 1 + rho * dee;
     scalar tempC = -rho * y0 + tempSmallU * cosPhi;
     scalar tempB = rho * x0 + tempSmallU * sinPhi;
-    scalar tempA = 2. * deltaOrth + rho * (Rfit::sqr(deltaOrth) + Rfit::sqr(deltaPara));
+    scalar tempA = 2. * deltaOrth + rho * (riemannFit::sqr(deltaOrth) + riemannFit::sqr(deltaPara));
     scalar tempU = sqrt(1. + rho * tempA);
     
     // Intermediate computations for the error matrix transform
-    scalar xi = 1. / (Rfit::sqr(tempB) + Rfit::sqr(tempC));
+    scalar xi = 1. / (riemannFit::sqr(tempB) + riemannFit::sqr(tempC));
     scalar tempV = 1. + rho * deltaOrth;
-    scalar lambda = (0.5 * tempA) / (Rfit::sqr(1. + tempU) * tempU);
+    scalar lambda = (0.5 * tempA) / (riemannFit::sqr(1. + tempU) * tempU);
     scalar mu = 1. / (tempU * (1. + tempU)) + rho * lambda;
-    scalar zeta = Rfit::sqr(deltaOrth) + Rfit::sqr(deltaPara);
-    jacobian << xi * tempSmallU * tempV, -xi * Rfit::sqr(rho) * deltaOrth, xi * deltaPara, 2. * mu * tempSmallU * deltaPara, 2. * mu * tempV,
+    scalar zeta = riemannFit::sqr(deltaOrth) + riemannFit::sqr(deltaPara);
+    jacobian << xi * tempSmallU * tempV, -xi * riemannFit::sqr(rho) * deltaOrth, xi * deltaPara, 2. * mu * tempSmallU * deltaPara, 2. * mu * tempV,
         mu * zeta - lambda * tempA, 0, 0, 1.;
 
     // translated circle parameters
@@ -152,28 +152,28 @@ namespace brokenline {
                                                         const V4& fast_fit,
                                                         const double bField,
                                                         PreparedBrokenLineData<n>& results) {
-    Rfit::Vector2d dVec;
-    Rfit::Vector2d eVec;
+    riemannFit::Vector2d dVec;
+    riemannFit::Vector2d eVec;
 
     dVec = hits.block(0, 1, 2, 1) - hits.block(0, 0, 2, 1);
     eVec = hits.block(0, n - 1, 2, 1) - hits.block(0, n - 2, 2, 1);
-    results.qCharge = Rfit::cross2D(dVec, eVec) > 0 ? -1 : 1;
+    results.qCharge = riemannFit::cross2D(dVec, eVec) > 0 ? -1 : 1;
 
     const double slope = -results.qCharge / fast_fit(3);
 
-    Rfit::Matrix2d rotMat = rotationMatrix(slope);
+    riemannFit::Matrix2d rotMat = rotationMatrix(slope);
 
     // calculate radii and s
-    results.radii = hits.block(0, 0, 2, n) - fast_fit.head(2) * Rfit::MatrixXd::Constant(1, n, 1);
+    results.radii = hits.block(0, 0, 2, n) - fast_fit.head(2) * riemannFit::MatrixXd::Constant(1, n, 1);
     eVec = -fast_fit(2) * fast_fit.head(2) / fast_fit.head(2).norm();
     for (u_int i = 0; i < n; i++) {
       dVec = results.radii.block(0, i, 2, 1);
-      results.sTransverse(i) = results.qCharge * fast_fit(2) * atan2(Rfit::cross2D(dVec, eVec), dVec.dot(eVec));  // calculates the arc length
+      results.sTransverse(i) = results.qCharge * fast_fit(2) * atan2(riemannFit::cross2D(dVec, eVec), dVec.dot(eVec));  // calculates the arc length
     }
-    Rfit::VectorNd<n> zVec = hits.block(2, 0, 1, n).transpose();
+    riemannFit::VectorNd<n> zVec = hits.block(2, 0, 1, n).transpose();
 
     //calculate sTotal and zVec
-    Rfit::Matrix2xNd<n> pointsSZ = Rfit::Matrix2xNd<n>::Zero();
+    riemannFit::Matrix2xNd<n> pointsSZ = riemannFit::Matrix2xNd<n>::Zero();
     for (u_int i = 0; i < n; i++) {
       pointsSZ(0, i) = results.sTransverse(i);
       pointsSZ(1, i) = zVec(i);
@@ -203,18 +203,18 @@ namespace brokenline {
     \return the n-by-n matrix of the linear system
   */
   template <int n>
-  __host__ __device__ inline Rfit::MatrixNd<n> matrixC_u(const Rfit::VectorNd<n>& weights,
-                                                         const Rfit::VectorNd<n>& sTotal,
-                                                         const Rfit::VectorNd<n>& varBeta) {
-    Rfit::MatrixNd<n> c_uMat = Rfit::MatrixNd<n>::Zero();
+  __host__ __device__ inline riemannFit::MatrixNd<n> matrixC_u(const riemannFit::VectorNd<n>& weights,
+                                                         const riemannFit::VectorNd<n>& sTotal,
+                                                         const riemannFit::VectorNd<n>& varBeta) {
+    riemannFit::MatrixNd<n> c_uMat = riemannFit::MatrixNd<n>::Zero();
     for (u_int i = 0; i < n; i++) {
       c_uMat(i, i) = weights(i);
       if (i > 1)
-        c_uMat(i, i) += 1. / (varBeta(i - 1) * Rfit::sqr(sTotal(i) - sTotal(i - 1)));
+        c_uMat(i, i) += 1. / (varBeta(i - 1) * riemannFit::sqr(sTotal(i) - sTotal(i - 1)));
       if (i > 0 && i < n - 1)
-        c_uMat(i, i) += (1. / varBeta(i)) * Rfit::sqr((sTotal(i + 1) - sTotal(i - 1)) / ((sTotal(i + 1) - sTotal(i)) * (sTotal(i) - sTotal(i - 1))));
+        c_uMat(i, i) += (1. / varBeta(i)) * riemannFit::sqr((sTotal(i + 1) - sTotal(i - 1)) / ((sTotal(i + 1) - sTotal(i)) * (sTotal(i) - sTotal(i - 1))));
       if (i < n - 2)
-        c_uMat(i, i) += 1. / (varBeta(i + 1) * Rfit::sqr(sTotal(i + 1) - sTotal(i)));
+        c_uMat(i, i) += 1. / (varBeta(i + 1) * riemannFit::sqr(sTotal(i + 1) - sTotal(i)));
 
       if (i > 0 && i < n - 1)
         c_uMat(i, i + 1) =
@@ -245,22 +245,22 @@ namespace brokenline {
   __host__ __device__ inline void fastFit(const M3xN& hits, V4& result) {
     constexpr uint32_t n = M3xN::ColsAtCompileTime;
 
-    const Rfit::Vector2d a = hits.block(0, n / 2, 2, 1) - hits.block(0, 0, 2, 1);
-    const Rfit::Vector2d b = hits.block(0, n - 1, 2, 1) - hits.block(0, n / 2, 2, 1);
-    const Rfit::Vector2d c = hits.block(0, 0, 2, 1) - hits.block(0, n - 1, 2, 1);
+    const riemannFit::Vector2d a = hits.block(0, n / 2, 2, 1) - hits.block(0, 0, 2, 1);
+    const riemannFit::Vector2d b = hits.block(0, n - 1, 2, 1) - hits.block(0, n / 2, 2, 1);
+    const riemannFit::Vector2d c = hits.block(0, 0, 2, 1) - hits.block(0, n - 1, 2, 1);
 
-    auto tmp = 0.5 / Rfit::cross2D(c, a);
+    auto tmp = 0.5 / riemannFit::cross2D(c, a);
     result(0) = hits(0, 0) - (a(1) * c.squaredNorm() + c(1) * a.squaredNorm()) * tmp;
     result(1) = hits(1, 0) + (a(0) * c.squaredNorm() + c(0) * a.squaredNorm()) * tmp;
     // check Wikipedia for these formulas
 
-    result(2) = sqrt(a.squaredNorm() * b.squaredNorm() * c.squaredNorm()) / (2. * std::abs(Rfit::cross2D(b, a)));
+    result(2) = sqrt(a.squaredNorm() * b.squaredNorm() * c.squaredNorm()) / (2. * std::abs(riemannFit::cross2D(b, a)));
     // Using Math Olympiad's formula R=abc/(4A)
 
-    const Rfit::Vector2d d = hits.block(0, 0, 2, 1) - result.head(2);
-    const Rfit::Vector2d e = hits.block(0, n - 1, 2, 1) - result.head(2);
+    const riemannFit::Vector2d d = hits.block(0, 0, 2, 1) - result.head(2);
+    const riemannFit::Vector2d e = hits.block(0, n - 1, 2, 1) - result.head(2);
 
-    result(3) = result(2) * atan2(Rfit::cross2D(d, e), d.dot(e)) / (hits(2, n - 1) - hits(2, 0));
+    result(3) = result(2) * atan2(riemannFit::cross2D(d, e), d.dot(e)) / (hits(2, n - 1) - hits(2, 0));
     // ds/dz slope between last and first point
   }
 
@@ -302,15 +302,15 @@ namespace brokenline {
     auto& zInSZplane = data.zInSZplane;
     auto& varBeta = data.varBeta;
     const double slope = -circle_results.qCharge / fast_fit(3);
-    varBeta *= 1. + Rfit::sqr(slope);  // the kink angles are projected!
+    varBeta *= 1. + riemannFit::sqr(slope);  // the kink angles are projected!
 
     for (u_int i = 0; i < n; i++) {
       zInSZplane(i) = radii.block(0, i, 2, 1).norm() - fast_fit(2);
     }
 
-    Rfit::Matrix2d vMat;     // covariance matrix
-    Rfit::VectorNd<n> weightsVec;  // weights
-    Rfit::Matrix2d rotMat;    // rotation matrix point by point
+    riemannFit::Matrix2d vMat;     // covariance matrix
+    riemannFit::VectorNd<n> weightsVec;  // weights
+    riemannFit::Matrix2d rotMat;    // rotation matrix point by point
     for (u_int i = 0; i < n; i++) {
       vMat(0, 0) = hits_ge.col(i)[0];            // x errors
       vMat(0, 1) = vMat(1, 0) = hits_ge.col(i)[1];  // cov_xy
@@ -319,13 +319,13 @@ namespace brokenline {
       weightsVec(i) = 1. / ((rotMat * vMat * rotMat.transpose())(1, 1));  // compute the orthogonal weight point by point
     }
 
-    Rfit::VectorNplusONEd<n> r_uVec;
+    riemannFit::VectorNplusONEd<n> r_uVec;
     r_uVec(n) = 0;
     for (u_int i = 0; i < n; i++) {
       r_uVec(i) = weightsVec(i) * zInSZplane(i);
     }
 
-    Rfit::MatrixNplusONEd<n> c_uMat;
+    riemannFit::MatrixNplusONEd<n> c_uMat;
     c_uMat.block(0, 0, n, n) = matrixC_u(weightsVec, sTransverse, varBeta);
     c_uMat(n, n) = 0;
     //add the border to the c_uMat matrix
@@ -343,44 +343,44 @@ namespace brokenline {
       }
       c_uMat(n, i) = c_uMat(i, n);
       if (i > 0 && i < n - 1)
-        c_uMat(n, n) += Rfit::sqr(sTransverse(i + 1) - sTransverse(i - 1)) / (4. * varBeta(i));
+        c_uMat(n, n) += riemannFit::sqr(sTransverse(i + 1) - sTransverse(i - 1)) / (4. * varBeta(i));
     }
 
 #ifdef CPP_DUMP
     std::cout << "CU5\n" << c_uMat << std::endl;
 #endif
-    Rfit::MatrixNplusONEd<n> iMat;
+    riemannFit::MatrixNplusONEd<n> iMat;
     math::cholesky::invert(c_uMat, iMat);
 #ifdef CPP_DUMP
     std::cout << "I5\n" << iMat << std::endl;
 #endif
 
-    Rfit::VectorNplusONEd<n> uVec = iMat * r_uVec;  // obtain the fitted parameters by solving the linear system
+    riemannFit::VectorNplusONEd<n> uVec = iMat * r_uVec;  // obtain the fitted parameters by solving the linear system
 
     // compute (phi, d_ca, k) in the system in which the midpoint of the first two corrected hits is the origin...
 
     radii.block(0, 0, 2, 1) /= radii.block(0, 0, 2, 1).norm();
     radii.block(0, 1, 2, 1) /= radii.block(0, 1, 2, 1).norm();
 
-    Rfit::Vector2d dVec = hits.block(0, 0, 2, 1) + (-zInSZplane(0) + uVec(0)) * radii.block(0, 0, 2, 1);
-    Rfit::Vector2d eVec = hits.block(0, 1, 2, 1) + (-zInSZplane(1) + uVec(1)) * radii.block(0, 1, 2, 1);
+    riemannFit::Vector2d dVec = hits.block(0, 0, 2, 1) + (-zInSZplane(0) + uVec(0)) * radii.block(0, 0, 2, 1);
+    riemannFit::Vector2d eVec = hits.block(0, 1, 2, 1) + (-zInSZplane(1) + uVec(1)) * radii.block(0, 1, 2, 1);
 
     circle_results.par << atan2((eVec - dVec)(1), (eVec - dVec)(0)),
-        -circle_results.qCharge * (fast_fit(2) - sqrt(Rfit::sqr(fast_fit(2)) - 0.25 * (eVec - dVec).squaredNorm())),
+        -circle_results.qCharge * (fast_fit(2) - sqrt(riemannFit::sqr(fast_fit(2)) - 0.25 * (eVec - dVec).squaredNorm())),
         circle_results.qCharge * (1. / fast_fit(2) + uVec(n));
 
     assert(circle_results.qCharge * circle_results.par(1) <= 0);
 
-    Rfit::Vector2d eMinusd = eVec - dVec;
+    riemannFit::Vector2d eMinusd = eVec - dVec;
     double tmp1 = eMinusd.squaredNorm();
 
-    Rfit::Matrix3d jacobian;
+    riemannFit::Matrix3d jacobian;
     jacobian << (radii(1, 0) * eMinusd(0) - eMinusd(1) * radii(0, 0)) / tmp1,
         (radii(1, 1) * eMinusd(0) - eMinusd(1) * radii(0, 1)) / tmp1, 0,
         (circle_results.qCharge / 2) * (eMinusd(0) * radii(0, 0) + eMinusd(1) * radii(1, 0)) /
-            sqrt(Rfit::sqr(2 * fast_fit(2)) - tmp1),
+            sqrt(riemannFit::sqr(2 * fast_fit(2)) - tmp1),
         (circle_results.qCharge / 2) * (eMinusd(0) * radii(0, 1) + eMinusd(1) * radii(1, 1)) /
-            sqrt(Rfit::sqr(2 * fast_fit(2)) - tmp1),
+            sqrt(riemannFit::sqr(2 * fast_fit(2)) - tmp1),
         0, 0, 0, circle_results.qCharge;
 
     circle_results.cov << iMat(0, 0), iMat(0, 1), iMat(0, n), iMat(1, 0), iMat(1, 1), iMat(1, n), iMat(n, 0), iMat(n, 1), iMat(n, n);
@@ -390,7 +390,7 @@ namespace brokenline {
     //...Translate in the system in which the first corrected hit is the origin, adding the m.s. correction...
 
     translateKarimaki(circle_results, 0.5 * (eVec - dVec)(0), 0.5 * (eVec - dVec)(1), jacobian);
-    circle_results.cov(0, 0) += (1 + Rfit::sqr(slope)) * multScatt(sTotal(1) - sTotal(0), bField, fast_fit(2), 2, slope);
+    circle_results.cov(0, 0) += (1 + riemannFit::sqr(slope)) * multScatt(sTotal(1) - sTotal(0), bField, fast_fit(2), 2, slope);
 
     //...And translate back to the original system
 
@@ -399,9 +399,9 @@ namespace brokenline {
     // compute chi2
     circle_results.chi2 = 0;
     for (u_int i = 0; i < n; i++) {
-      circle_results.chi2 += weightsVec(i) * Rfit::sqr(zInSZplane(i) - uVec(i));
+      circle_results.chi2 += weightsVec(i) * riemannFit::sqr(zInSZplane(i) - uVec(i));
       if (i > 0 && i < n - 1)
-        circle_results.chi2 += Rfit::sqr(uVec(i - 1) / (sTransverse(i) - sTransverse(i - 1)) -
+        circle_results.chi2 += riemannFit::sqr(uVec(i - 1) / (sTransverse(i) - sTransverse(i - 1)) -
                                          uVec(i) * (sTransverse(i + 1) - sTransverse(i - 1)) / ((sTransverse(i + 1) - sTransverse(i)) * (sTransverse(i) - sTransverse(i - 1))) +
                                          uVec(i + 1) / (sTransverse(i + 1) - sTransverse(i)) + (sTransverse(i + 1) - sTransverse(i - 1)) * uVec(n) / 2) /
                                varBeta(i);
@@ -437,18 +437,18 @@ namespace brokenline {
                                               const V4& fast_fit,
                                               const double bField,
                                               const PreparedBrokenLineData<n>& data,
-                                              Rfit::line_fit& line_results) {
+                                              riemannFit::line_fit& line_results) {
     const auto& radii = data.radii;
     const auto& sTotal = data.sTotal;
     const auto& zInSZplane = data.zInSZplane;
     const auto& varBeta = data.varBeta;
 
     const double slope = -data.qCharge / fast_fit(3);
-    Rfit::Matrix2d rotMat = rotationMatrix(slope);
+    riemannFit::Matrix2d rotMat = rotationMatrix(slope);
 
-    Rfit::Matrix3d vMat = Rfit::Matrix3d::Zero();                 // covariance matrix XYZ
-    Rfit::Matrix2x3d jacobXYZtosZ = Rfit::Matrix2x3d::Zero();  // jacobian for computation of the error on s (xyz -> sz)
-    Rfit::VectorNd<n> weights = Rfit::VectorNd<n>::Zero();
+    riemannFit::Matrix3d vMat = riemannFit::Matrix3d::Zero();                 // covariance matrix XYZ
+    riemannFit::Matrix2x3d jacobXYZtosZ = riemannFit::Matrix2x3d::Zero();  // jacobian for computation of the error on s (xyz -> sz)
+    riemannFit::VectorNd<n> weights = riemannFit::VectorNd<n>::Zero();
     for (u_int i = 0; i < n; i++) {
       vMat(0, 0) = hits_ge.col(i)[0];            // x errors
       vMat(0, 1) = vMat(1, 0) = hits_ge.col(i)[1];  // cov_xy
@@ -464,30 +464,30 @@ namespace brokenline {
                       1, 1));  // compute the orthogonal weight point by point
     }
 
-    Rfit::VectorNd<n> r_u;
+    riemannFit::VectorNd<n> r_u;
     for (u_int i = 0; i < n; i++) {
       r_u(i) = weights(i) * zInSZplane(i);
     }
 #ifdef CPP_DUMP
     std::cout << "CU4\n" << matrixC_u(w, sTotal, varBeta) << std::endl;
 #endif
-    Rfit::MatrixNd<n> iMat;
+    riemannFit::MatrixNd<n> iMat;
     math::cholesky::invert(matrixC_u(weights, sTotal, varBeta), iMat);
 #ifdef CPP_DUMP
     std::cout << "I4\n" << iMat << std::endl;
 #endif
 
-    Rfit::VectorNd<n> uVec = iMat * r_u;  // obtain the fitted parameters by solving the linear system
+    riemannFit::VectorNd<n> uVec = iMat * r_u;  // obtain the fitted parameters by solving the linear system
 
     // line parameters in the system in which the first hit is the origin and with axis along SZ
     line_results.par << (uVec(1) - uVec(0)) / (sTotal(1) - sTotal(0)), uVec(0);
     auto idiff = 1. / (sTotal(1) - sTotal(0));
-    line_results.cov << (iMat(0, 0) - 2 * iMat(0, 1) + iMat(1, 1)) * Rfit::sqr(idiff) +
+    line_results.cov << (iMat(0, 0) - 2 * iMat(0, 1) + iMat(1, 1)) * riemannFit::sqr(idiff) +
                             multScatt(sTotal(1) - sTotal(0), bField, fast_fit(2), 2, slope),
         (iMat(0, 1) - iMat(0, 0)) * idiff, (iMat(0, 1) - iMat(0, 0)) * idiff, iMat(0, 0);
 
     // translate to the original SZ system
-    Rfit::Matrix2d jacobian;
+    riemannFit::Matrix2d jacobian;
     jacobian(0, 0) = 1.;
     jacobian(0, 1) = 0;
     jacobian(1, 0) = -sTotal(0);
@@ -508,9 +508,9 @@ namespace brokenline {
     // compute chi2
     line_results.chi2 = 0;
     for (u_int i = 0; i < n; i++) {
-      line_results.chi2 += weights(i) * Rfit::sqr(zInSZplane(i) - uVec(i));
+      line_results.chi2 += weights(i) * riemannFit::sqr(zInSZplane(i) - uVec(i));
       if (i > 0 && i < n - 1)
-        line_results.chi2 += Rfit::sqr(uVec(i - 1) / (sTotal(i) - sTotal(i - 1)) -
+        line_results.chi2 += riemannFit::sqr(uVec(i - 1) / (sTotal(i) - sTotal(i - 1)) -
                                        uVec(i) * (sTotal(i + 1) - sTotal(i - 1)) / ((sTotal(i + 1) - sTotal(i)) * (sTotal(i) - sTotal(i - 1))) +
                                        uVec(i + 1) / (sTotal(i + 1) - sTotal(i))) /
                              varBeta(i);
@@ -552,29 +552,29 @@ namespace brokenline {
     \return (phi,Tip,p_t,cot(theta)),Zip), their covariance matrix and the chi2's of the circle and line fits.
   */
   template <int n>
-  inline Rfit::helix_fit helixFit(const Rfit::Matrix3xNd<n>& hits,
+  inline riemannFit::helix_fit helixFit(const riemannFit::Matrix3xNd<n>& hits,
                                       const Eigen::Matrix<float, 6, 4>& hits_ge,
                                       const double bField) {
-    Rfit::helix_fit helix;
-    Rfit::Vector4d fast_fit;
+    riemannFit::helix_fit helix;
+    riemannFit::Vector4d fast_fit;
     fastFit(hits, fast_fit);
 
     PreparedBrokenLineData<n> data;
     karimaki_circle_fit circle;
-    Rfit::line_fit line;
-    Rfit::Matrix3d jacobian;
+    riemannFit::line_fit line;
+    riemannFit::Matrix3d jacobian;
 
     prepareBrokenLineData(hits, fast_fit, bField, data);
     lineFit(hits_ge, fast_fit, bField, data, line);
     circleFit(hits, hits_ge, fast_fit, bField, data, circle);
 
     // the circle fit gives k, but here we want p_t, so let's change the parameter and the covariance matrix
-    jacobian << 1., 0, 0, 0, 1., 0, 0, 0, -std::abs(circle.par(2)) * bField / (Rfit::sqr(circle.par(2)) * circle.par(2));
+    jacobian << 1., 0, 0, 0, 1., 0, 0, 0, -std::abs(circle.par(2)) * bField / (riemannFit::sqr(circle.par(2)) * circle.par(2));
     circle.par(2) = bField / std::abs(circle.par(2));
     circle.cov = jacobian * circle.cov * jacobian.transpose();
 
     helix.par << circle.par, line.par;
-    helix.cov = Rfit::MatrixXd::Zero(5, 5);
+    helix.cov = riemannFit::MatrixXd::Zero(5, 5);
     helix.cov.block(0, 0, 3, 3) = circle.cov;
     helix.cov.block(3, 3, 2, 2) = line.cov;
     helix.qCharge = circle.qCharge;

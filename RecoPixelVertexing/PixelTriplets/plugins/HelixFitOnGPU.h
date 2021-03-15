@@ -7,7 +7,7 @@
 
 #include "CAConstants.h"
 
-namespace Rfit {
+namespace riemannFit {
   // in case of memory issue can be made smaller
   constexpr uint32_t maxNumberOfConcurrentFits = CAConstants::maxNumberOfTuples;
   constexpr uint32_t stride = maxNumberOfConcurrentFits;
@@ -29,7 +29,7 @@ namespace Rfit {
   // fast fit
   using Map4d = Eigen::Map<Vector4d, 0, Eigen::InnerStride<stride> >;
 
-}  // namespace Rfit
+}  // namespace riemannFit
 
 class HelixFitOnGPU {
 public:
@@ -54,7 +54,7 @@ public:
   void deallocateOnGPU();
 
 private:
-  static constexpr uint32_t maxNumberOfConcurrentFits_ = Rfit::maxNumberOfConcurrentFits;
+  static constexpr uint32_t maxNumberOfConcurrentFits_ = riemannFit::maxNumberOfConcurrentFits;
 
   // fowarded
   Tuples const *tuples_d = nullptr;

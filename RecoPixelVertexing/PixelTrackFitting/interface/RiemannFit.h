@@ -3,7 +3,7 @@
 
 #include "RecoPixelVertexing/PixelTrackFitting/interface/FitUtils.h"
 
-namespace Rfit {
+namespace riemannFit {
 
   /*!  Compute the Radiation length in the uniform hypothesis
  *
@@ -67,7 +67,7 @@ namespace Rfit {
                                                    const double B,
                                                    MatrixNd<N>& ret) {
 #ifdef RFIT_DEBUG
-    Rfit::printIt(&s_arcs, "Scatter_cov_line - s_arcs: ");
+    riemannFit::printIt(&s_arcs, "Scatter_cov_line - s_arcs: ");
 #endif
     constexpr u_int n = N;
     double p_t = std::min(20., fast_fit(2) * B);  // limit pt to avoid too small error!!!
@@ -82,7 +82,7 @@ namespace Rfit {
     VectorNd<N> sig2_S;
     sig2_S = .000225 / p_2 * (1. + 0.038 * rad_lengths_S.array().log()).abs2() * rad_lengths_S.array();
 #ifdef RFIT_DEBUG
-    Rfit::printIt(cov_sz, "Scatter_cov_line - cov_sz: ");
+    riemannFit::printIt(cov_sz, "Scatter_cov_line - cov_sz: ");
 #endif
     Matrix2Nd<N> tmp = Matrix2Nd<N>::Zero();
     for (u_int k = 0; k < n; ++k) {
@@ -101,7 +101,7 @@ namespace Rfit {
     // We are interested only in the errors orthogonal to the rotated s-axis
     // which, in our formalism, are in the lower square matrix.
 #ifdef RFIT_DEBUG
-    Rfit::printIt(&tmp, "Scatter_cov_line - tmp: ");
+    riemannFit::printIt(&tmp, "Scatter_cov_line - tmp: ");
 #endif
     ret = tmp.block(n, n, n, n);
   }
@@ -154,7 +154,7 @@ namespace Rfit {
       }
     }
 #ifdef RFIT_DEBUG
-    Rfit::printIt(&scatter_cov_rad, "Scatter_cov_rad - scatter_cov_rad: ");
+    riemannFit::printIt(&scatter_cov_rad, "Scatter_cov_rad - scatter_cov_rad: ");
 #endif
     return scatter_cov_rad;
   }
@@ -979,8 +979,8 @@ namespace Rfit {
     // Fast_fit gives back (X0, Y0, R, theta) w/o errors, using only 3 points.
     Vector4d fast_fit;
     Fast_fit(hits, fast_fit);
-    Rfit::Matrix2Nd<N> hits_cov = MatrixXd::Zero(2 * n, 2 * n);
-    Rfit::loadCovariance2D(hits_ge, hits_cov);
+    riemannFit::Matrix2Nd<N> hits_cov = MatrixXd::Zero(2 * n, 2 * n);
+    riemannFit::loadCovariance2D(hits_ge, hits_cov);
     circle_fit circle = Circle_fit(hits.block(0, 0, 2, n), hits_cov, fast_fit, rad, B, error);
     line_fit line = Line_fit(hits, hits_ge, circle, fast_fit, B, error);
 
@@ -1000,6 +1000,6 @@ namespace Rfit {
     return helix;
   }
 
-}  // namespace Rfit
+}  // namespace riemannFit
 
 #endif  // RecoPixelVertexing_PixelTrackFitting_interface_RiemannFit_h

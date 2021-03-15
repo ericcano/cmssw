@@ -12,14 +12,14 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
 
   //  Fit internals
   auto hitsGPU_ = cms::cuda::make_device_unique<double[]>(
-      maxNumberOfConcurrentFits_ * sizeof(Rfit::Matrix3xNd<4>) / sizeof(double), stream);
+      maxNumberOfConcurrentFits_ * sizeof(riemannFit::Matrix3xNd<4>) / sizeof(double), stream);
   auto hits_geGPU_ = cms::cuda::make_device_unique<float[]>(
-      maxNumberOfConcurrentFits_ * sizeof(Rfit::Matrix6x4f) / sizeof(float), stream);
+      maxNumberOfConcurrentFits_ * sizeof(riemannFit::Matrix6x4f) / sizeof(float), stream);
   auto fast_fit_resultsGPU_ = cms::cuda::make_device_unique<double[]>(
-      maxNumberOfConcurrentFits_ * sizeof(Rfit::Vector4d) / sizeof(double), stream);
+      maxNumberOfConcurrentFits_ * sizeof(riemannFit::Vector4d) / sizeof(double), stream);
   auto circle_fit_resultsGPU_holder =
-      cms::cuda::make_device_unique<char[]>(maxNumberOfConcurrentFits_ * sizeof(Rfit::circle_fit), stream);
-  Rfit::circle_fit *circle_fit_resultsGPU_ = (Rfit::circle_fit *)(circle_fit_resultsGPU_holder.get());
+      cms::cuda::make_device_unique<char[]>(maxNumberOfConcurrentFits_ * sizeof(riemannFit::circle_fit), stream);
+  riemannFit::circle_fit *circle_fit_resultsGPU_ = (riemannFit::circle_fit *)(circle_fit_resultsGPU_holder.get());
 
   for (uint32_t offset = 0; offset < maxNumberOfTuples; offset += maxNumberOfConcurrentFits_) {
     // triplets

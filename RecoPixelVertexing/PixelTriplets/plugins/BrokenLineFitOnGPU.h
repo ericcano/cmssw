@@ -50,7 +50,7 @@ __global__ void kernelBLFastFit(Tuples const *__restrict__ foundNtuplets,
   }
 #endif
 
-  for (int local_idx = local_start, nt = Rfit::maxNumberOfConcurrentFits; local_idx < nt;
+  for (int local_idx = local_start, nt = riemannFit::maxNumberOfConcurrentFits; local_idx < nt;
        local_idx += gridDim.x * blockDim.x) {
     auto tuple_idx = local_idx + offset;
     if (tuple_idx >= tupleMultiplicity->size(nHits))
@@ -62,9 +62,9 @@ __global__ void kernelBLFastFit(Tuples const *__restrict__ foundNtuplets,
 
     assert(foundNtuplets->size(tkid) == nHits);
 
-    Rfit::Map3xNd<N> hits(phits + local_idx);
-    Rfit::Map4d fast_fit(pfast_fit + local_idx);
-    Rfit::Map6xNf<N> hits_ge(phits_ge + local_idx);
+    riemannFit::Map3xNd<N> hits(phits + local_idx);
+    riemannFit::Map4d fast_fit(pfast_fit + local_idx);
+    riemannFit::Map6xNf<N> hits_ge(phits_ge + local_idx);
 
 #ifdef BL_DUMP_HITS
     __shared__ int done;
@@ -133,7 +133,7 @@ __global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ t
 
   // look in bin for this hit multiplicity
   auto local_start = blockIdx.x * blockDim.x + threadIdx.x;
-  for (int local_idx = local_start, nt = Rfit::maxNumberOfConcurrentFits; local_idx < nt;
+  for (int local_idx = local_start, nt = riemannFit::maxNumberOfConcurrentFits; local_idx < nt;
        local_idx += gridDim.x * blockDim.x) {
     auto tuple_idx = local_idx + offset;
     if (tuple_idx >= tupleMultiplicity->size(nHits))
@@ -142,15 +142,15 @@ __global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ t
     // get it for the ntuple container (one to one to helix)
     auto tkid = *(tupleMultiplicity->begin(nHits) + tuple_idx);
 
-    Rfit::Map3xNd<N> hits(phits + local_idx);
-    Rfit::Map4d fast_fit(pfast_fit + local_idx);
-    Rfit::Map6xNf<N> hits_ge(phits_ge + local_idx);
+    riemannFit::Map3xNd<N> hits(phits + local_idx);
+    riemannFit::Map4d fast_fit(pfast_fit + local_idx);
+    riemannFit::Map6xNf<N> hits_ge(phits_ge + local_idx);
 
     brokenline::PreparedBrokenLineData<N> data;
-    Rfit::Matrix3d Jacob;
+    riemannFit::Matrix3d Jacob;
 
     brokenline::karimaki_circle_fit circle;
-    Rfit::line_fit line;
+    riemannFit::line_fit line;
 
     brokenline::prepareBrokenLineData(hits, fast_fit, B, data);
     brokenline::lineFit(hits_ge, fast_fit, B, data, line);
