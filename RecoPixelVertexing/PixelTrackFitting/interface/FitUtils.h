@@ -179,10 +179,10 @@ namespace riemannFit {
     if (error) {
       const double temp2 = sqr(circle.par(0)) * 1. / temp0;
       const double temp3 = 1. / temp1 * circle.qCharge;
-      Matrix3d J4;
-      J4 << -circle.par(1) * temp2 * 1. / sqr(circle.par(0)), temp2 * 1. / circle.par(0), 0., circle.par(0) * temp3,
+      Matrix3d j4Mat;
+      j4Mat << -circle.par(1) * temp2 * 1. / sqr(circle.par(0)), temp2 * 1. / circle.par(0), 0., circle.par(0) * temp3,
           circle.par(1) * temp3, -circle.qCharge, 0., 0., B;
-      circle.cov = J4 * circle.cov * J4.transpose();
+      circle.cov = j4Mat * circle.cov * j4Mat.transpose();
     }
     circle.par = par_pak;
   }
@@ -202,10 +202,10 @@ namespace riemannFit {
 
     const double temp2 = sqr(circle.par(0)) * 1. / temp0;
     const double temp3 = 1. / temp1 * circle.qCharge;
-    Matrix3d J4;
-    J4 << -circle.par(1) * temp2 * 1. / sqr(circle.par(0)), temp2 * 1. / circle.par(0), 0., circle.par(0) * temp3,
+    Matrix3d j4Mat;
+    j4Mat << -circle.par(1) * temp2 * 1. / sqr(circle.par(0)), temp2 * 1. / circle.par(0), 0., circle.par(0) * temp3,
         circle.par(1) * temp3, -circle.qCharge, 0., 0., -circle.qCharge / (circle.par(2) * circle.par(2));
-    circle.cov = J4 * circle.cov * J4.transpose();
+    circle.cov = j4Mat * circle.cov * j4Mat.transpose();
 
     circle.par = par_pak;
   }
@@ -226,16 +226,16 @@ namespace riemannFit {
     op(3) = ip(1);
     op(4) = -ip(4);
 
-    Matrix5d J = Matrix5d::Zero();
+    Matrix5d jMat = Matrix5d::Zero();
 
-    J(0, 2) = sinTheta;
-    J(0, 3) = -sinTheta2 * cosTheta * ip(2);
-    J(1, 0) = 1.;
-    J(2, 3) = -1.;
-    J(3, 1) = 1.;
-    J(4, 4) = -1;
+    jMat(0, 2) = sinTheta;
+    jMat(0, 3) = -sinTheta2 * cosTheta * ip(2);
+    jMat(1, 0) = 1.;
+    jMat(2, 3) = -1.;
+    jMat(3, 1) = 1.;
+    jMat(4, 4) = -1;
 
-    ocov = J * icov * J.transpose();
+    ocov = jMat * icov * jMat.transpose();
   }
 
 }  // namespace riemannFit
