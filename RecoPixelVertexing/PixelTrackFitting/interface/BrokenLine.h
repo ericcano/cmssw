@@ -389,7 +389,7 @@ namespace brokenline {
     //...Translate in the system in which the first corrected hit is the origin, adding the m.s. correction...
 
     auto eMinusDVec = eVec - dVec;
-    translateKarimaki(circle_results, 0.5 * eMinusDVec(0), 0.5 * eMinusDVec (1), jacobian);
+    translateKarimaki(circle_results, 0.5 * eMinusDVec(0), 0.5 * eMinusDVec(1), jacobian);
     circle_results.cov(0, 0) += (1 + riemannFit::sqr(slope)) * multScatt(sTotal(1) - sTotal(0), bField, fast_fit(2), 2, slope);
 
     //...And translate back to the original system
