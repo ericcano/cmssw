@@ -59,7 +59,7 @@ namespace riemannFit {
  */
 
   template <typename V4, typename VNd1, typename VNd2, int N>
-  __host__ __device__ inline auto Scatter_cov_line(Matrix2d const* cov_sz,
+  __host__ __device__ inline auto scatterCovLine(Matrix2d const* cov_sz,
                                                    const V4& fast_fit,
                                                    VNd1 const& s_arcs,
                                                    VNd2 const& z_values,
@@ -861,7 +861,7 @@ namespace riemannFit {
     // The following matrix will contain errors orthogonal to the rotated S
     // component only, with the Multiple Scattering properly treated!!
     MatrixNd<N> cov_with_ms;
-    Scatter_cov_line(cov_sz, fast_fit, p2D.row(0), p2D.row(1), theta, B, cov_with_ms);
+    scatterCovLine(cov_sz, fast_fit, p2D.row(0), p2D.row(1), theta, B, cov_with_ms);
 #ifdef RFIT_DEBUG
     printIt(cov_sz, "line_fit - cov_sz:");
     printIt(&cov_with_ms, "line_fit - cov_with_ms: ");
