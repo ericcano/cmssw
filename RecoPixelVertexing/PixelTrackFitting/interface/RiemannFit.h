@@ -120,7 +120,7 @@ namespace riemannFit {
     negligible).
  */
   template <typename M2xN, typename V4, int N>
-  __host__ __device__ inline MatrixNd<N> Scatter_cov_rad(const M2xN& p2D,
+  __host__ __device__ inline MatrixNd<N> scatter_cov_rad(const M2xN& p2D,
                                                          const V4& fast_fit,
                                                          VectorNd<N> const& rad,
                                                          double B) {
@@ -476,15 +476,15 @@ namespace riemannFit {
     double renorm;
     {
       MatrixNd<N> cov_rad = cov_carttorad_prefit(hits2D, V, fast_fit, rad).asDiagonal();
-      MatrixNd<N> scatter_cov_rad = Scatter_cov_rad(hits2D, fast_fit, rad, B);
-      printIt(&scatter_cov_rad, "circle_fit - scatter_cov_rad:");
+      MatrixNd<N> scatterCovRadMat = scatter_cov_rad(hits2D, fast_fit, rad, B);
+      printIt(&scatterCovRadMat, "circle_fit - scatter_cov_rad:");
       printIt(&hits2D, "circle_fit - hits2D bis:");
 #ifdef RFIT_DEBUG
       printf("Address of hits2D: a) %p\n", &hits2D);
 #endif
-      V += cov_radtocart(hits2D, scatter_cov_rad, rad);
+      V += cov_radtocart(hits2D, scatterCovRadMat, rad);
       printIt(&V, "circle_fit - V:");
-      cov_rad += scatter_cov_rad;
+      cov_rad += scatterCovRadMat;
       printIt(&cov_rad, "circle_fit - cov_rad:");
       math::cholesky::invert(cov_rad, G);
       // G = cov_rad.inverse();
