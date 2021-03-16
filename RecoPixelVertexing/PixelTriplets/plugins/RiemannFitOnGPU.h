@@ -73,7 +73,7 @@ __global__ void kernelFastFit(Tuples const *__restrict__ foundNtuplets,
       hits.col(i) << hhp->xGlobal(hit), hhp->yGlobal(hit), hhp->zGlobal(hit);
       hits_ge.col(i) << ge[0], ge[1], ge[2], ge[3], ge[4], ge[5];
     }
-    riemannFit::Fast_fit(hits, fast_fit);
+    riemannFit::fastFit(hits, fast_fit);
 
     // no NaN here....
     assert(fast_fit(0) == fast_fit(0));
@@ -114,7 +114,7 @@ __global__ void kernelCircleFit(CAConstants::TupleMultiplicity const *__restrict
     riemannFit::Matrix2Nd<N> hits_cov = riemannFit::Matrix2Nd<N>::Zero();
     riemannFit::loadCovariance2D(hits_ge, hits_cov);
 
-    circle_fit[local_idx] = riemannFit::Circle_fit(hits.block(0, 0, 2, N), hits_cov, fast_fit, rad, B, true);
+    circle_fit[local_idx] = riemannFit::circleFit(hits.block(0, 0, 2, N), hits_cov, fast_fit, rad, B, true);
 
 #ifdef RIEMANN_DEBUG
 //    auto tkid = *(tupleMultiplicity->begin(nHits) + tuple_idx);

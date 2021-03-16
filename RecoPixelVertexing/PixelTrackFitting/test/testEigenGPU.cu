@@ -57,7 +57,7 @@ __global__ void kernelFastFit(double* __restrict__ phits, double* __restrict__ p
 #ifdef USE_BL
   brokenline::fastFit(hits, result);
 #else
-  riemannFit::Fast_fit(hits, result);
+  riemannFit::fastFit(hits, result);
 #endif
 }
 
@@ -133,7 +133,7 @@ __global__ void kernelCircleFit(double* __restrict__ phits,
     printf("B: %f\n", B);
   }
 #endif
-  circle_fit_resultsGPU[i] = riemannFit::Circle_fit(hits.block(0, 0, 2, n), hits_cov, fast_fit_input, rad, B, true);
+  circle_fit_resultsGPU[i] = riemannFit::circleFit(hits.block(0, 0, 2, n), hits_cov, fast_fit_input, rad, B, true);
 #ifdef TEST_DEBUG
   if (0 == i) {
     printf("Circle param %f,%f,%f\n",
@@ -239,7 +239,7 @@ void testFit() {
   brokenline::fastFit(hits, fast_fit_results);
 #else
   Vector4d fast_fit_results;
-  riemannFit::Fast_fit(hits, fast_fit_results);
+  riemannFit::fastFit(hits, fast_fit_results);
 #endif
   std::cout << "Fitted values (FastFit, [X0, Y0, R, tan(theta)]):\n" << fast_fit_results << std::endl;
 
@@ -295,7 +295,7 @@ void testFit() {
   riemannFit::Matrix2Nd<N> hits_cov = riemannFit::Matrix2Nd<N>::Zero();
   riemannFit::loadCovariance2D(hits_ge, hits_cov);
   riemannFit::CircleFit circle_fit_results =
-      riemannFit::Circle_fit(hits.block(0, 0, 2, N), hits_cov, fast_fit_results, rad, B, true);
+      riemannFit::circleFit(hits.block(0, 0, 2, N), hits_cov, fast_fit_results, rad, B, true);
 
   // CIRCLE_FIT GPU
   kernelCircleFit<N><<<Ntracks / 64, 64>>>(hitsGPU, hits_geGPU, fast_fit_resultsGPU, B, circle_fit_resultsGPU);

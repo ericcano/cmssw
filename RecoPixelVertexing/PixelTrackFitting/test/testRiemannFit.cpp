@@ -105,7 +105,7 @@ void testFit() {
   brokenline::fastFit(hits, fast_fit_results);
 #else
   Vector4d fast_fit_results;
-  riemannFit::Fast_fit(hits, fast_fit_results);
+  riemannFit::fastFit(hits, fast_fit_results);
 #endif
   std::cout << "Fitted values (FastFit, [X0, Y0, R, tan(theta)]):\n" << fast_fit_results << std::endl;
 
@@ -129,7 +129,7 @@ void testFit() {
   riemannFit::Matrix2Nd<N> hits_cov = riemannFit::Matrix2Nd<N>::Zero();
   riemannFit::loadCovariance2D(hits_ge, hits_cov);
   riemannFit::CircleFit circle_fit_results =
-      riemannFit::Circle_fit(hits.block(0, 0, 2, N), hits_cov, fast_fit_results, rad, B, true);
+      riemannFit::circleFit(hits.block(0, 0, 2, N), hits_cov, fast_fit_results, rad, B, true);
   // LINE_FIT CPU
   riemannFit::LineFit line_fit_results = riemannFit::lineFit(hits, hits_ge, circle_fit_results, fast_fit_results, B, true);
   riemannFit::par_uvrtopak(circle_fit_results, B, true);

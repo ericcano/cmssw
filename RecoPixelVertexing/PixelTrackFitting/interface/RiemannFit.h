@@ -138,10 +138,10 @@ namespace riemannFit {
       Vector2d pVec = p2D.block(0, i, 2, 1) - oVec;
       const double cross = cross2D(-oVec, pVec);
       const double dot = (-oVec).dot(pVec);
-      const double atan2_ = atan2(cross, dot);
-      s_values(i) = std::abs(atan2_ * fast_fit(2));
+      const double tempAtan2 = atan2(cross, dot);
+      s_values(i) = std::abs(tempAtan2 * fast_fit(2));
     }
-    computeRadLenUniformMaterial(s_values * sqrt(1. + 1. / (fast_fit(3) * fast_fit(3))), rad_lengths);
+    computeRadLenUniformMaterial(s_values * sqrt(1. + 1. / sqr(fast_fit(3))), rad_lengths);
     MatrixNd<N> scatter_cov_rad = MatrixNd<N>::Zero();
     VectorNd<N> sig2 = (1. + 0.038 * rad_lengths.array().log()).abs2() * rad_lengths.array();
     sig2 *= 0.000225 / (p_2 * sqr(sin(theta)));
@@ -272,7 +272,7 @@ namespace riemannFit {
 */
 
   template <int N>
-  __host__ __device__ inline VectorNd<N> Weight_circle(const MatrixNd<N>& cov_rad_inv) {
+  __host__ __device__ inline VectorNd<N> weightCircle(const MatrixNd<N>& cov_rad_inv) {
     return cov_rad_inv.colwise().sum().transpose();
   }
 
@@ -285,7 +285,7 @@ namespace riemannFit {
     \return q int 1 or -1.
 */
   template <typename M2xN>
-  __host__ __device__ inline int32_t Charge(const M2xN& p2D, const Vector3d& par_uvr) {
+  __host__ __device__ inline int32_t charge(const M2xN& p2D, const Vector3d& par_uvr) {
     return ((p2D(0, 1) - p2D(0, 0)) * (par_uvr.y() - p2D(1, 0)) - (p2D(1, 1) - p2D(1, 0)) * (par_uvr.x() - p2D(0, 0)) >
             0)
                ? -1
@@ -342,7 +342,7 @@ namespace riemannFit {
 
   /*!
     \brief 2D version of min_eigen3D().
-    \param A the Matrix you want to know eigenvector and eigenvalue.
+    \param aMat the Matrix you want to know eigenvector and eigenvalue.
     \param chi2 the double were the chi2-related quantity will be stored
     \return the eigenvector associated to the minimum eigenvalue.
     \detail The computedDirect() method of SelfAdjointEigenSolver for 2x2 Matrix
@@ -350,9 +350,9 @@ namespace riemannFit {
     significantly in single precision.
 */
 
-  __host__ __device__ inline Vector2d min_eigen2D(const Matrix2d& A, double& chi2) {
+  __host__ __device__ inline Vector2d min_eigen2D(const Matrix2d& aMat, double& chi2) {
     Eigen::SelfAdjointEigenSolver<Matrix2d> solver(2);
-    solver.computeDirect(A);
+    solver.computeDirect(aMat);
     int min_index;
     chi2 = solver.eigenvalues().minCoeff(&min_index);
     return solver.eigenvectors().col(min_index);
@@ -372,48 +372,48 @@ namespace riemannFit {
 */
 
   template <typename M3xN, typename V4>
-  __host__ __device__ inline void Fast_fit(const M3xN& hits, V4& result) {
+  __host__ __device__ inline void fastFit(const M3xN& hits, V4& result) {
     constexpr uint32_t N = M3xN::ColsAtCompileTime;
     constexpr auto n = N;  // get the number of hits
     printIt(&hits, "Fast_fit - hits: ");
 
     // CIRCLE FIT
     // Make segments between middle-to-first(b) and last-to-first(c) hits
-    const Vector2d b = hits.block(0, n / 2, 2, 1) - hits.block(0, 0, 2, 1);
-    const Vector2d c = hits.block(0, n - 1, 2, 1) - hits.block(0, 0, 2, 1);
-    printIt(&b, "Fast_fit - b: ");
-    printIt(&c, "Fast_fit - c: ");
+    const Vector2d bVec = hits.block(0, n / 2, 2, 1) - hits.block(0, 0, 2, 1);
+    const Vector2d cVec = hits.block(0, n - 1, 2, 1) - hits.block(0, 0, 2, 1);
+    printIt(&bVec, "Fast_fit - b: ");
+    printIt(&cVec, "Fast_fit - c: ");
     // Compute their lengths
-    auto b2 = b.squaredNorm();
-    auto c2 = c.squaredNorm();
+    auto b2 = bVec.squaredNorm();
+    auto c2 = cVec.squaredNorm();
     // The algebra has been verified (MR). The usual approach has been followed:
     // * use an orthogonal reference frame passing from the first point.
     // * build the segments (chords)
     // * build orthogonal lines through mid points
     // * make a system and solve for X0 and Y0.
     // * add the initial point
-    bool flip = abs(b.x()) < abs(b.y());
-    auto bx = flip ? b.y() : b.x();
-    auto by = flip ? b.x() : b.y();
-    auto cx = flip ? c.y() : c.x();
-    auto cy = flip ? c.x() : c.y();
+    bool flip = abs(bVec.x()) < abs(bVec.y());
+    auto bx = flip ? bVec.y() : bVec.x();
+    auto by = flip ? bVec.x() : bVec.y();
+    auto cx = flip ? cVec.y() : cVec.x();
+    auto cy = flip ? cVec.x() : cVec.y();
     //!< in case b.x is 0 (2 hits with same x)
     auto div = 2. * (cx * by - bx * cy);
     // if aligned TO FIX
-    auto Y0 = (cx * b2 - bx * c2) / div;
-    auto X0 = (0.5 * b2 - Y0 * by) / bx;
-    result(0) = hits(0, 0) + (flip ? Y0 : X0);
-    result(1) = hits(1, 0) + (flip ? X0 : Y0);
-    result(2) = sqrt(sqr(X0) + sqr(Y0));
+    auto y0 = (cx * b2 - bx * c2) / div;
+    auto x0 = (0.5 * b2 - y0 * by) / bx;
+    result(0) = hits(0, 0) + (flip ? y0 : x0);
+    result(1) = hits(1, 0) + (flip ? x0 : y0);
+    result(2) = sqrt(sqr(x0) + sqr(y0));
     printIt(&result, "Fast_fit - result: ");
 
     // LINE FIT
-    const Vector2d d = hits.block(0, 0, 2, 1) - result.head(2);
-    const Vector2d e = hits.block(0, n - 1, 2, 1) - result.head(2);
-    printIt(&e, "Fast_fit - e: ");
-    printIt(&d, "Fast_fit - d: ");
+    const Vector2d dVec = hits.block(0, 0, 2, 1) - result.head(2);
+    const Vector2d eVec = hits.block(0, n - 1, 2, 1) - result.head(2);
+    printIt(&eVec, "Fast_fit - e: ");
+    printIt(&dVec, "Fast_fit - d: ");
     // Compute the arc-length between first and last point: L = R * theta = R * atan (tan (Theta) )
-    auto dr = result(2) * atan2(cross2D(d, e), d.dot(e));
+    auto dr = result(2) * atan2(cross2D(dVec, eVec), dVec.dot(eVec));
     // Simple difference in Z between last and first hit
     auto dz = hits(2, n - 1) - hits(2, 0);
 
@@ -432,7 +432,7 @@ namespace riemannFit {
     \param hits_cov2D covariance matrix of 2D points.
     \param fast_fit pre-fit result in this form: (X0,Y0,R,tan(theta)).
     (tan(theta) is not used).
-    \param B magnetic field
+    \param bField magnetic field
     \param error flag for error computation.
     \param scattering flag for multiple scattering
     \return circle circle_fit:
@@ -452,17 +452,17 @@ namespace riemannFit {
     scattering.
 */
   template <typename M2xN, typename V4, int N>
-  __host__ __device__ inline CircleFit Circle_fit(const M2xN& hits2D,
+  __host__ __device__ inline CircleFit circleFit(const M2xN& hits2D,
                                                    const Matrix2Nd<N>& hits_cov2D,
                                                    const V4& fast_fit,
                                                    const VectorNd<N>& rad,
-                                                   const double B,
+                                                   const double bField,
                                                    const bool error) {
 #ifdef RFIT_DEBUG
     printf("circle_fit - enter\n");
 #endif
     // INITIALIZATION
-    Matrix2Nd<N> V = hits_cov2D;
+    Matrix2Nd<N> vMat = hits_cov2D;
     constexpr uint n = N;
     printIt(&hits2D, "circle_fit - hits2D:");
     printIt(&hits_cov2D, "circle_fit - hits_cov2D:");
@@ -472,25 +472,25 @@ namespace riemannFit {
 #endif
     // WEIGHT COMPUTATION
     VectorNd<N> weight;
-    MatrixNd<N> G;
+    MatrixNd<N> gMat;
     double renorm;
     {
-      MatrixNd<N> cov_rad = cov_carttorad_prefit(hits2D, V, fast_fit, rad).asDiagonal();
-      MatrixNd<N> scatterCovRadMat = scatter_cov_rad(hits2D, fast_fit, rad, B);
+      MatrixNd<N> cov_rad = cov_carttorad_prefit(hits2D, vMat, fast_fit, rad).asDiagonal();
+      MatrixNd<N> scatterCovRadMat = scatter_cov_rad(hits2D, fast_fit, rad, bField);
       printIt(&scatterCovRadMat, "circle_fit - scatter_cov_rad:");
       printIt(&hits2D, "circle_fit - hits2D bis:");
 #ifdef RFIT_DEBUG
       printf("Address of hits2D: a) %p\n", &hits2D);
 #endif
-      V += cov_radtocart(hits2D, scatterCovRadMat, rad);
-      printIt(&V, "circle_fit - V:");
+      vMat += cov_radtocart(hits2D, scatterCovRadMat, rad);
+      printIt(&vMat, "circle_fit - V:");
       cov_rad += scatterCovRadMat;
       printIt(&cov_rad, "circle_fit - cov_rad:");
-      math::cholesky::invert(cov_rad, G);
-      // G = cov_rad.inverse();
-      renorm = G.sum();
-      G *= 1. / renorm;
-      weight = Weight_circle(G);
+      math::cholesky::invert(cov_rad, gMat);
+      // gMat = cov_rad.inverse();
+      renorm = gMat.sum();
+      gMat *= 1. / renorm;
+      weight = weightCircle(gMat);
     }
     printIt(&weight, "circle_fit - weight:");
 
@@ -503,19 +503,19 @@ namespace riemannFit {
 #ifdef RFIT_DEBUG
     printf("Address of hits2D: b) %p\n", &hits2D);
 #endif
-    const Vector2d h_ = hits2D.rowwise().mean();  // centroid
-    printIt(&h_, "circle_fit - h_:");
+    const Vector2d hCentroid = hits2D.rowwise().mean();  // centroid
+    printIt(&hCentroid, "circle_fit - h_:");
     Matrix3xNd<N> p3D;
-    p3D.block(0, 0, 2, n) = hits2D.colwise() - h_;
+    p3D.block(0, 0, 2, n) = hits2D.colwise() - hCentroid;
     printIt(&p3D, "circle_fit - p3D: a)");
     Vector2Nd<N> mc;  // centered hits, used in error computation
     mc << p3D.row(0).transpose(), p3D.row(1).transpose();
     printIt(&mc, "circle_fit - mc(centered hits):");
 
     // scale
-    const double q = mc.squaredNorm();
-    const double s = sqrt(n * 1. / q);  // scaling factor
-    p3D *= s;
+    const double tempQ = mc.squaredNorm();
+    const double tempS = sqrt(n * 1. / tempQ);  // scaling factor
+    p3D *= tempS;
 
     // project on paraboloid
     p3D.row(2) = p3D.block(0, 0, 2, n).colwise().squaredNorm();
@@ -529,22 +529,22 @@ namespace riemannFit {
     // compute
     Vector3d r0;
     r0.noalias() = p3D * weight;  // center of gravity
-    const Matrix3xNd<N> X = p3D.colwise() - r0;
-    Matrix3d A = X * G * X.transpose();
-    printIt(&A, "circle_fit - A:");
+    const Matrix3xNd<N> xMat = p3D.colwise() - r0;
+    Matrix3d aMat = xMat * gMat * xMat.transpose();
+    printIt(&aMat, "circle_fit - A:");
 
 #ifdef RFIT_DEBUG
     printf("circle_fit - MINIMIZE\n");
 #endif
     // minimize
     double chi2;
-    Vector3d v = min_eigen3D(A, chi2);
+    Vector3d vVec = min_eigen3D(aMat, chi2);
 #ifdef RFIT_DEBUG
     printf("circle_fit - AFTER MIN_EIGEN\n");
 #endif
-    printIt(&v, "v BEFORE INVERSION");
-    v *= (v(2) > 0) ? 1 : -1;  // TO FIX dovrebbe essere N(3)>0
-    printIt(&v, "v AFTER INVERSION");
+    printIt(&vVec, "v BEFORE INVERSION");
+    vVec *= (vVec(2) > 0) ? 1 : -1;  // TO FIX dovrebbe essere N(3)>0
+    printIt(&vVec, "v AFTER INVERSION");
     // This hack to be able to run on GPU where the automatic assignment to a
     // double from the vector multiplication is not working.
 #ifdef RFIT_DEBUG
@@ -554,12 +554,11 @@ namespace riemannFit {
 #ifdef RFIT_DEBUG
     printf("circle_fit - AFTER MIN_EIGEN 2\n");
 #endif
-    cm = -v.transpose() * r0;
+    cm = -vVec.transpose() * r0;
 #ifdef RFIT_DEBUG
     printf("circle_fit - AFTER MIN_EIGEN 3\n");
 #endif
-    const double c = cm(0, 0);
-    //  const double c = -v.transpose() * r0;
+    const double tempC = cm(0, 0);
 
 #ifdef RFIT_DEBUG
     printf("circle_fit - COMPUTE CIRCLE PARAMETER\n");
@@ -567,16 +566,16 @@ namespace riemannFit {
     // COMPUTE CIRCLE PARAMETER
 
     // auxiliary quantities
-    const double h = sqrt(1. - sqr(v(2)) - 4. * c * v(2));
-    const double v2x2_inv = 1. / (2. * v(2));
-    const double s_inv = 1. / s;
-    Vector3d par_uvr_;  // used in error propagation
-    par_uvr_ << -v(0) * v2x2_inv, -v(1) * v2x2_inv, h * v2x2_inv;
+    const double tempH = sqrt(1. - sqr(vVec(2)) - 4. * tempC * vVec(2));
+    const double v2x2_inv = 1. / (2. * vVec(2));
+    const double s_inv = 1. / tempS;
+    Vector3d par_uvr;  // used in error propagation
+    par_uvr << -vVec(0) * v2x2_inv, -vVec(1) * v2x2_inv, tempH * v2x2_inv;
 
     CircleFit circle;
-    circle.par << par_uvr_(0) * s_inv + h_(0), par_uvr_(1) * s_inv + h_(1), par_uvr_(2) * s_inv;
-    circle.qCharge = Charge(hits2D, circle.par);
-    circle.chi2 = abs(chi2) * renorm * 1. / sqr(2 * v(2) * par_uvr_(2) * s);
+    circle.par << par_uvr(0) * s_inv + hCentroid(0), par_uvr(1) * s_inv + hCentroid(1), par_uvr(2) * s_inv;
+    circle.qCharge = charge(hits2D, circle.par);
+    circle.chi2 = abs(chi2) * renorm / sqr(2 * vVec(2) * par_uvr(2) * tempS);
     printIt(&circle.par, "circle_fit - CIRCLE PARAMETERS:");
     printIt(&circle.cov, "circle_fit - CIRCLE COVARIANCE:");
 #ifdef RFIT_DEBUG
@@ -591,28 +590,28 @@ namespace riemannFit {
 #ifdef RFIT_DEBUG
       printf("circle_fit - ERROR PRPAGATION ACTIVATED\n");
 #endif
-      ArrayNd<N> Vcs_[2][2];  // cov matrix of center & scaled points
-      MatrixNd<N> C[3][3];    // cov matrix of 3D transformed points
+      ArrayNd<N> vcsMat[2][2];  // cov matrix of center & scaled points
+      MatrixNd<N> cMat[3][3];    // cov matrix of 3D transformed points
 #ifdef RFIT_DEBUG
       printf("circle_fit - ERROR PRPAGATION ACTIVATED 2\n");
 #endif
       {
         Eigen::Matrix<double, 1, 1> cm;
         Eigen::Matrix<double, 1, 1> cm2;
-        cm = mc.transpose() * V * mc;
-        const double c = cm(0, 0);
-        Matrix2Nd<N> Vcs;
-        Vcs.template triangularView<Eigen::Upper>() =
-            (sqr(s) * V + sqr(sqr(s)) * 1. / (4. * q * n) *
-                              (2. * V.squaredNorm() + 4. * c) *  // mc.transpose() * V * mc) *
+        cm = mc.transpose() * vMat * mc;
+        const double tempC2 = cm(0, 0);
+        Matrix2Nd<N> tempVcsMat;
+        tempVcsMat.template triangularView<Eigen::Upper>() =
+            (sqr(tempS) * vMat + sqr(sqr(tempS)) * 1. / (4. * tempQ * n) *
+                              (2. * vMat.squaredNorm() + 4. * tempC2) *  // mc.transpose() * V * mc) *
                               (mc * mc.transpose()));
 
-        printIt(&Vcs, "circle_fit - Vcs:");
-        C[0][0] = Vcs.block(0, 0, n, n).template selfadjointView<Eigen::Upper>();
-        Vcs_[0][1] = Vcs.block(0, n, n, n);
-        C[1][1] = Vcs.block(n, n, n, n).template selfadjointView<Eigen::Upper>();
-        Vcs_[1][0] = Vcs_[0][1].transpose();
-        printIt(&Vcs, "circle_fit - Vcs:");
+        printIt(&tempVcsMat, "circle_fit - Vcs:");
+        cMat[0][0] = tempVcsMat.block(0, 0, n, n).template selfadjointView<Eigen::Upper>();
+        vcsMat[0][1] = tempVcsMat.block(0, n, n, n);
+        cMat[1][1] = tempVcsMat.block(n, n, n, n).template selfadjointView<Eigen::Upper>();
+        vcsMat[1][0] = vcsMat[0][1].transpose();
+        printIt(&tempVcsMat, "circle_fit - Vcs:");
       }
 
       {
@@ -622,58 +621,56 @@ namespace riemannFit {
         const ArrayNd<N> t01 = p3D.row(0).transpose() * p3D.row(1);
         const ArrayNd<N> t11 = p3D.row(1).transpose() * p3D.row(1);
         const ArrayNd<N> t10 = t01.transpose();
-        Vcs_[0][0] = C[0][0];
-        ;
-        C[0][1] = Vcs_[0][1];
-        C[0][2] = 2. * (Vcs_[0][0] * t0 + Vcs_[0][1] * t1);
-        Vcs_[1][1] = C[1][1];
-        C[1][2] = 2. * (Vcs_[1][0] * t0 + Vcs_[1][1] * t1);
+        vcsMat[0][0] = cMat[0][0];
+        cMat[0][1] = vcsMat[0][1];
+        cMat[0][2] = 2. * (vcsMat[0][0] * t0 + vcsMat[0][1] * t1);
+        vcsMat[1][1] = cMat[1][1];
+        cMat[1][2] = 2. * (vcsMat[1][0] * t0 + vcsMat[1][1] * t1);
         MatrixNd<N> tmp;
         tmp.template triangularView<Eigen::Upper>() =
-            (2. * (Vcs_[0][0] * Vcs_[0][0] + Vcs_[0][0] * Vcs_[0][1] + Vcs_[1][1] * Vcs_[1][0] +
-                   Vcs_[1][1] * Vcs_[1][1]) +
-             4. * (Vcs_[0][0] * t00 + Vcs_[0][1] * t01 + Vcs_[1][0] * t10 + Vcs_[1][1] * t11))
+            (2. * (vcsMat[0][0] * vcsMat[0][0] + vcsMat[0][0] * vcsMat[0][1] + vcsMat[1][1] * vcsMat[1][0] +
+                   vcsMat[1][1] * vcsMat[1][1]) +
+             4. * (vcsMat[0][0] * t00 + vcsMat[0][1] * t01 + vcsMat[1][0] * t10 + vcsMat[1][1] * t11))
                 .matrix();
-        C[2][2] = tmp.template selfadjointView<Eigen::Upper>();
+        cMat[2][2] = tmp.template selfadjointView<Eigen::Upper>();
       }
-      printIt(&C[0][0], "circle_fit - C[0][0]:");
+      printIt(&cMat[0][0], "circle_fit - C[0][0]:");
 
-      Matrix3d C0;  // cov matrix of center of gravity (r0.x,r0.y,r0.z)
+      Matrix3d c0Mat;  // cov matrix of center of gravity (r0.x,r0.y,r0.z)
       for (uint i = 0; i < 3; ++i) {
         for (uint j = i; j < 3; ++j) {
           Eigen::Matrix<double, 1, 1> tmp;
-          tmp = weight.transpose() * C[i][j] * weight;
-          const double c = tmp(0, 0);
-          C0(i, j) = c;  //weight.transpose() * C[i][j] * weight;
-          C0(j, i) = C0(i, j);
+          tmp = weight.transpose() * cMat[i][j] * weight;
+          // Workaround to get things working in GPU
+          const double tempC = tmp(0, 0);
+          c0Mat(i, j) = tempC;  //weight.transpose() * C[i][j] * weight;
+          c0Mat(j, i) = c0Mat(i, j);
         }
       }
-      printIt(&C0, "circle_fit - C0:");
+      printIt(&c0Mat, "circle_fit - C0:");
 
-      const MatrixNd<N> W = weight * weight.transpose();
-      const MatrixNd<N> H = MatrixNd<N>::Identity().rowwise() - weight.transpose();
-      const MatrixNx3d<N> s_v = H * p3D.transpose();
-      printIt(&W, "circle_fit - W:");
-      printIt(&H, "circle_fit - H:");
+      const MatrixNd<N> wMat = weight * weight.transpose();
+      const MatrixNd<N> hMat = MatrixNd<N>::Identity().rowwise() - weight.transpose();
+      const MatrixNx3d<N> s_v = hMat * p3D.transpose();
+      printIt(&wMat, "circle_fit - W:");
+      printIt(&hMat, "circle_fit - H:");
       printIt(&s_v, "circle_fit - s_v:");
 
-      MatrixNd<N> D_[3][3];  // cov(s_v)
-      {
-        D_[0][0] = (H * C[0][0] * H.transpose()).cwiseProduct(W);
-        D_[0][1] = (H * C[0][1] * H.transpose()).cwiseProduct(W);
-        D_[0][2] = (H * C[0][2] * H.transpose()).cwiseProduct(W);
-        D_[1][1] = (H * C[1][1] * H.transpose()).cwiseProduct(W);
-        D_[1][2] = (H * C[1][2] * H.transpose()).cwiseProduct(W);
-        D_[2][2] = (H * C[2][2] * H.transpose()).cwiseProduct(W);
-        D_[1][0] = D_[0][1].transpose();
-        D_[2][0] = D_[0][2].transpose();
-        D_[2][1] = D_[1][2].transpose();
-      }
-      printIt(&D_[0][0], "circle_fit - D_[0][0]:");
+      MatrixNd<N> dMat[3][3];  // cov(s_v)
+      dMat[0][0] = (hMat * cMat[0][0] * hMat.transpose()).cwiseProduct(wMat);
+      dMat[0][1] = (hMat * cMat[0][1] * hMat.transpose()).cwiseProduct(wMat);
+      dMat[0][2] = (hMat * cMat[0][2] * hMat.transpose()).cwiseProduct(wMat);
+      dMat[1][1] = (hMat * cMat[1][1] * hMat.transpose()).cwiseProduct(wMat);
+      dMat[1][2] = (hMat * cMat[1][2] * hMat.transpose()).cwiseProduct(wMat);
+      dMat[2][2] = (hMat * cMat[2][2] * hMat.transpose()).cwiseProduct(wMat);
+      dMat[1][0] = dMat[0][1].transpose();
+      dMat[2][0] = dMat[0][2].transpose();
+      dMat[2][1] = dMat[1][2].transpose();
+      printIt(&dMat[0][0], "circle_fit - D_[0][0]:");
 
       constexpr uint nu[6][2] = {{0, 0}, {0, 1}, {0, 2}, {1, 1}, {1, 2}, {2, 2}};
 
-      Matrix6d E;  // cov matrix of the 6 independent elements of A
+      Matrix6d eMat;  // cov matrix of the 6 independent elements of A
       for (uint a = 0; a < 6; ++a) {
         const uint i = nu[a][0], j = nu[a][1];
         for (uint b = a; b < 6; ++b) {
@@ -681,78 +678,81 @@ namespace riemannFit {
           VectorNd<N> t0(n);
           VectorNd<N> t1(n);
           if (l == k) {
-            t0 = 2. * D_[j][l] * s_v.col(l);
+            t0 = 2. * dMat[j][l] * s_v.col(l);
             if (i == j)
               t1 = t0;
             else
-              t1 = 2. * D_[i][l] * s_v.col(l);
+              t1 = 2. * dMat[i][l] * s_v.col(l);
           } else {
-            t0 = D_[j][l] * s_v.col(k) + D_[j][k] * s_v.col(l);
+            t0 = dMat[j][l] * s_v.col(k) + dMat[j][k] * s_v.col(l);
             if (i == j)
               t1 = t0;
             else
-              t1 = D_[i][l] * s_v.col(k) + D_[i][k] * s_v.col(l);
+              t1 = dMat[i][l] * s_v.col(k) + dMat[i][k] * s_v.col(l);
           }
 
           if (i == j) {
             Eigen::Matrix<double, 1, 1> cm;
             cm = s_v.col(i).transpose() * (t0 + t1);
-            const double c = cm(0, 0);
-            E(a, b) = 0. + c;
+            // Workaround to get things working in GPU
+            const double tempC = cm(0, 0);
+            eMat(a, b) = 0. + tempC;
           } else {
             Eigen::Matrix<double, 1, 1> cm;
             cm = (s_v.col(i).transpose() * t0) + (s_v.col(j).transpose() * t1);
-            const double c = cm(0, 0);
-            E(a, b) = 0. + c;  //(s_v.col(i).transpose() * t0) + (s_v.col(j).transpose() * t1);
+            // Workaround to get things working in GPU
+            const double tempC = cm(0, 0);
+            eMat(a, b) = 0. + tempC;  //(s_v.col(i).transpose() * t0) + (s_v.col(j).transpose() * t1);
           }
           if (b != a)
-            E(b, a) = E(a, b);
+            eMat(b, a) = eMat(a, b);
         }
       }
-      printIt(&E, "circle_fit - E:");
+      printIt(&eMat, "circle_fit - E:");
 
-      Eigen::Matrix<double, 3, 6> J2;  // Jacobian of min_eigen() (numerically computed)
+      Eigen::Matrix<double, 3, 6> j2Mat;  // Jacobian of min_eigen() (numerically computed)
       for (uint a = 0; a < 6; ++a) {
         const uint i = nu[a][0], j = nu[a][1];
-        Matrix3d Delta = Matrix3d::Zero();
-        Delta(i, j) = Delta(j, i) = abs(A(i, j) * epsilon);
-        J2.col(a) = min_eigen3D_fast(A + Delta);
-        const int sign = (J2.col(a)(2) > 0) ? 1 : -1;
-        J2.col(a) = (J2.col(a) * sign - v) / Delta(i, j);
+        Matrix3d delta = Matrix3d::Zero();
+        delta(i, j) = delta(j, i) = abs(aMat(i, j) * epsilon);
+        j2Mat.col(a) = min_eigen3D_fast(aMat + delta);
+        const int sign = (j2Mat.col(a)(2) > 0) ? 1 : -1;
+        j2Mat.col(a) = (j2Mat.col(a) * sign - vVec) / delta(i, j);
       }
-      printIt(&J2, "circle_fit - J2:");
+      printIt(&j2Mat, "circle_fit - J2:");
 
-      Matrix4d Cvc;  // joint cov matrix of (v0,v1,v2,c)
+      Matrix4d cvcMat;  // joint cov matrix of (v0,v1,v2,c)
       {
-        Matrix3d t0 = J2 * E * J2.transpose();
+        Matrix3d t0 = j2Mat * eMat * j2Mat.transpose();
         Vector3d t1 = -t0 * r0;
-        Cvc.block(0, 0, 3, 3) = t0;
-        Cvc.block(0, 3, 3, 1) = t1;
-        Cvc.block(3, 0, 1, 3) = t1.transpose();
+        cvcMat.block(0, 0, 3, 3) = t0;
+        cvcMat.block(0, 3, 3, 1) = t1;
+        cvcMat.block(3, 0, 1, 3) = t1.transpose();
         Eigen::Matrix<double, 1, 1> cm1;
         Eigen::Matrix<double, 1, 1> cm3;
-        cm1 = (v.transpose() * C0 * v);
-        //      cm2 = (C0.cwiseProduct(t0)).sum();
+        cm1 = (vVec.transpose() * c0Mat * vVec);
+        //      cm2 = (c0Mat.cwiseProduct(t0)).sum();
         cm3 = (r0.transpose() * t0 * r0);
-        const double c = cm1(0, 0) + (C0.cwiseProduct(t0)).sum() + cm3(0, 0);
-        Cvc(3, 3) = c;
-        // (v.transpose() * C0 * v) + (C0.cwiseProduct(t0)).sum() + (r0.transpose() * t0 * r0);
+        // Workaround to get things working in GPU
+        const double tempC = cm1(0, 0) + (c0Mat.cwiseProduct(t0)).sum() + cm3(0, 0);
+        cvcMat(3, 3) = tempC;
+        // (v.transpose() * c0Mat * v) + (c0Mat.cwiseProduct(t0)).sum() + (r0.transpose() * t0 * r0);
       }
-      printIt(&Cvc, "circle_fit - Cvc:");
+      printIt(&cvcMat, "circle_fit - Cvc:");
 
-      Eigen::Matrix<double, 3, 4> J3;  // Jacobian (v0,v1,v2,c)->(X0,Y0,R)
+      Eigen::Matrix<double, 3, 4> j3Mat;  // Jacobian (v0,v1,v2,c)->(X0,Y0,R)
       {
-        const double t = 1. / h;
-        J3 << -v2x2_inv, 0, v(0) * sqr(v2x2_inv) * 2., 0, 0, -v2x2_inv, v(1) * sqr(v2x2_inv) * 2., 0,
-            v(0) * v2x2_inv * t, v(1) * v2x2_inv * t, -h * sqr(v2x2_inv) * 2. - (2. * c + v(2)) * v2x2_inv * t, -t;
+        const double t = 1. / tempH;
+        j3Mat << -v2x2_inv, 0, vVec(0) * sqr(v2x2_inv) * 2., 0, 0, -v2x2_inv, vVec(1) * sqr(v2x2_inv) * 2., 0,
+            vVec(0) * v2x2_inv * t, vVec(1) * v2x2_inv * t, -tempH * sqr(v2x2_inv) * 2. - (2. * tempC + vVec(2)) * v2x2_inv * t, -t;
       }
-      printIt(&J3, "circle_fit - J3:");
+      printIt(&j3Mat, "circle_fit - J3:");
 
-      const RowVector2Nd<N> Jq = mc.transpose() * s * 1. / n;  // var(q)
+      const RowVector2Nd<N> Jq = mc.transpose() * tempS * 1. / n;  // var(q)
       printIt(&Jq, "circle_fit - Jq:");
 
-      Matrix3d cov_uvr = J3 * Cvc * J3.transpose() * sqr(s_inv)  // cov(X0,Y0,R)
-                         + (par_uvr_ * par_uvr_.transpose()) * (Jq * V * Jq.transpose());
+      Matrix3d cov_uvr = j3Mat * cvcMat * j3Mat.transpose() * sqr(s_inv)  // cov(X0,Y0,R)
+                         + (par_uvr * par_uvr.transpose()) * (Jq * vMat * Jq.transpose());
 
       circle.cov = cov_uvr;
     }
@@ -785,7 +785,7 @@ namespace riemannFit {
                                                const M6xN& hits_ge,
                                                const CircleFit& circle,
                                                const V4& fast_fit,
-                                               const double B,
+                                               const double bField,
                                                const bool error) {
     constexpr uint32_t N = M3xN::ColsAtCompileTime;
     constexpr auto n = N;
@@ -805,10 +805,10 @@ namespace riemannFit {
     // z values will be ordinary y-values
 
     Matrix2xNd<N> p2D = Matrix2xNd<N>::Zero();
-    Eigen::Matrix<double, 2, 6> Jx;
+    Eigen::Matrix<double, 2, 6> jxMat;
 
 #ifdef RFIT_DEBUG
-    printf("Line_fit - B: %g\n", B);
+    printf("Line_fit - B: %g\n", bField);
     printIt(&hits, "Line_fit points: ");
     printIt(&hits_ge, "Line_fit covs: ");
     printIt(&rot, "Line_fit rot: ");
@@ -818,41 +818,41 @@ namespace riemannFit {
     // Slide 11
     // a ==> -o i.e. the origin of the circle in XY plane, negative
     // b ==> p i.e. distances of the points wrt the origin of the circle.
-    const Vector2d o(circle.par(0), circle.par(1));
+    const Vector2d oVec(circle.par(0), circle.par(1));
 
     // associated Jacobian, used in weights and errors computation
-    Matrix6d Cov = Matrix6d::Zero();
+    Matrix6d covMat = Matrix6d::Zero();
     Matrix2d cov_sz[N];
     for (uint i = 0; i < n; ++i) {
-      Vector2d p = hits.block(0, i, 2, 1) - o;
-      const double cross = cross2D(-o, p);
-      const double dot = (-o).dot(p);
+      Vector2d pVec = hits.block(0, i, 2, 1) - oVec;
+      const double cross = cross2D(-oVec, pVec);
+      const double dot = (-oVec).dot(pVec);
       // atan2(cross, dot) give back the angle in the transverse plane so tha the
       // final equation reads: x_i = -q*R*theta (theta = angle returned by atan2)
-      const double atan2_ = -circle.qCharge * atan2(cross, dot);
+      const double tempQAtan2 = -circle.qCharge * atan2(cross, dot);
       //    p2D.coeffRef(1, i) = atan2_ * circle.par(2);
-      p2D(0, i) = atan2_ * circle.par(2);
+      p2D(0, i) = tempQAtan2 * circle.par(2);
 
       // associated Jacobian, used in weights and errors- computation
       const double temp0 = -circle.qCharge * circle.par(2) * 1. / (sqr(dot) + sqr(cross));
       double d_X0 = 0., d_Y0 = 0., d_R = 0.;  // good approximation for big pt and eta
       if (error) {
-        d_X0 = -temp0 * ((p(1) + o(1)) * dot - (p(0) - o(0)) * cross);
-        d_Y0 = temp0 * ((p(0) + o(0)) * dot - (o(1) - p(1)) * cross);
-        d_R = atan2_;
+        d_X0 = -temp0 * ((pVec(1) + oVec(1)) * dot - (pVec(0) - oVec(0)) * cross);
+        d_Y0 = temp0 * ((pVec(0) + oVec(0)) * dot - (oVec(1) - pVec(1)) * cross);
+        d_R = tempQAtan2;
       }
-      const double d_x = temp0 * (o(1) * dot + o(0) * cross);
-      const double d_y = temp0 * (-o(0) * dot + o(1) * cross);
-      Jx << d_X0, d_Y0, d_R, d_x, d_y, 0., 0., 0., 0., 0., 0., 1.;
+      const double d_x = temp0 * (oVec(1) * dot + oVec(0) * cross);
+      const double d_y = temp0 * (-oVec(0) * dot + oVec(1) * cross);
+      jxMat << d_X0, d_Y0, d_R, d_x, d_y, 0., 0., 0., 0., 0., 0., 1.;
 
-      Cov.block(0, 0, 3, 3) = circle.cov;
-      Cov(3, 3) = hits_ge.col(i)[0];              // x errors
-      Cov(4, 4) = hits_ge.col(i)[2];              // y errors
-      Cov(5, 5) = hits_ge.col(i)[5];              // z errors
-      Cov(3, 4) = Cov(4, 3) = hits_ge.col(i)[1];  // cov_xy
-      Cov(3, 5) = Cov(5, 3) = hits_ge.col(i)[3];  // cov_xz
-      Cov(4, 5) = Cov(5, 4) = hits_ge.col(i)[4];  // cov_yz
-      Matrix2d tmp = Jx * Cov * Jx.transpose();
+      covMat.block(0, 0, 3, 3) = circle.cov;
+      covMat(3, 3) = hits_ge.col(i)[0];              // x errors
+      covMat(4, 4) = hits_ge.col(i)[2];              // y errors
+      covMat(5, 5) = hits_ge.col(i)[5];              // z errors
+      covMat(3, 4) = covMat(4, 3) = hits_ge.col(i)[1];  // cov_xy
+      covMat(3, 5) = covMat(5, 3) = hits_ge.col(i)[3];  // cov_xz
+      covMat(4, 5) = covMat(5, 4) = hits_ge.col(i)[4];  // cov_yz
+      Matrix2d tmp = jxMat * covMat * jxMat.transpose();
       cov_sz[i].noalias() = rot * tmp * rot.transpose();
     }
     // Math of d_{X0,Y0,R,x,y} all verified by hand
@@ -861,7 +861,7 @@ namespace riemannFit {
     // The following matrix will contain errors orthogonal to the rotated S
     // component only, with the Multiple Scattering properly treated!!
     MatrixNd<N> cov_with_ms;
-    scatterCovLine(cov_sz, fast_fit, p2D.row(0), p2D.row(1), theta, B, cov_with_ms);
+    scatterCovLine(cov_sz, fast_fit, p2D.row(0), p2D.row(1), theta, bField, cov_with_ms);
 #ifdef RFIT_DEBUG
     printIt(cov_sz, "line_fit - cov_sz:");
     printIt(&cov_with_ms, "line_fit - cov_with_ms: ");
@@ -880,52 +880,54 @@ namespace riemannFit {
 #endif
 
     // Build the A Matrix
-    Matrix2xNd<N> A;
-    A << MatrixXd::Ones(1, n), p2D_rot.row(0);  // rotated s values
+    Matrix2xNd<N> aMat;
+    aMat << MatrixXd::Ones(1, n), p2D_rot.row(0);  // rotated s values
 
 #ifdef RFIT_DEBUG
-    printIt(&A, "A Matrix:");
+    printIt(&aMat, "A Matrix:");
 #endif
 
     // Build A^T V-1 A, where V-1 is the covariance of only the Y components.
-    MatrixNd<N> Vy_inv;
-    math::cholesky::invert(cov_with_ms, Vy_inv);
-    // MatrixNd<N> Vy_inv = cov_with_ms.inverse();
-    Eigen::Matrix<double, 2, 2> Cov_params = A * Vy_inv * A.transpose();
+    MatrixNd<N> vyInvMat;
+    math::cholesky::invert(cov_with_ms, vyInvMat);
+    // MatrixNd<N> vyInvMat = cov_with_ms.inverse();
+    Eigen::Matrix<double, 2, 2> covParamsMat = aMat * vyInvMat * aMat.transpose();
     // Compute the Covariance Matrix of the fit parameters
-    math::cholesky::invert(Cov_params, Cov_params);
+    math::cholesky::invert(covParamsMat, covParamsMat);
 
     // Now Compute the Parameters in the form [2,1]
     // The first component is q.
     // The second component is m.
-    Eigen::Matrix<double, 2, 1> sol = Cov_params * A * Vy_inv * p2D_rot.row(1).transpose();
+    Eigen::Matrix<double, 2, 1> sol = covParamsMat * aMat * vyInvMat * p2D_rot.row(1).transpose();
 
 #ifdef RFIT_DEBUG
     printIt(&sol, "Rotated solutions:");
 #endif
 
     // We need now to transfer back the results in the original s-z plane
-    auto common_factor = 1. / (sin(theta) - sol(1, 0) * cos(theta));
-    Eigen::Matrix<double, 2, 2> J;
-    J << 0., common_factor * common_factor, common_factor, sol(0, 0) * cos(theta) * common_factor * common_factor;
+    const auto sinTheta = sin(theta);
+    const auto cosTheta = cos(theta);
+    auto common_factor = 1. / (sinTheta - sol(1, 0) * cosTheta);
+    Eigen::Matrix<double, 2, 2> jMat;
+    jMat << 0., common_factor * common_factor, common_factor, sol(0, 0) * cosTheta * common_factor * common_factor;
 
-    double m = common_factor * (sol(1, 0) * sin(theta) + cos(theta));
-    double q = common_factor * sol(0, 0);
-    auto cov_mq = J * Cov_params * J.transpose();
+    double tempM = common_factor * (sol(1, 0) * sinTheta + cosTheta);
+    double tempQ = common_factor * sol(0, 0);
+    auto cov_mq = jMat * covParamsMat * jMat.transpose();
 
-    VectorNd<N> res = p2D_rot.row(1).transpose() - A.transpose() * sol;
-    double chi2 = res.transpose() * Vy_inv * res;
+    VectorNd<N> res = p2D_rot.row(1).transpose() - aMat.transpose() * sol;
+    double chi2 = res.transpose() * vyInvMat * res;
 
     LineFit line;
-    line.par << m, q;
+    line.par << tempM, tempQ;
     line.cov << cov_mq;
     line.chi2 = chi2;
 
 #ifdef RFIT_DEBUG
     printf("Common_factor: %g\n", common_factor);
-    printIt(&J, "Jacobian:");
+    printIt(&jMat, "Jacobian:");
     printIt(&sol, "Rotated solutions:");
-    printIt(&Cov_params, "Cov_params:");
+    printIt(&covParamsMat, "Cov_params:");
     printIt(&cov_mq, "Rotated Covariance Matrix:");
     printIt(&(line.par), "Real Parameters:");
     printIt(&(line.cov), "Real Covariance Matrix:");
@@ -959,7 +961,7 @@ namespace riemannFit {
    |(x0,z0)|(x1,z0)|(x2,z0)|.|(y0,z0)|(y1,z0)|(y2,z0)|.|(z0,z0)|(z1,z0)|(z2,z0)| \n
    |(x0,z1)|(x1,z1)|(x2,z1)|.|(y0,z1)|(y1,z1)|(y2,z1)|.|(z0,z1)|(z1,z1)|(z2,z1)| \n
    |(x0,z2)|(x1,z2)|(x2,z2)|.|(y0,z2)|(y1,z2)|(y2,z2)|.|(z0,z2)|(z1,z2)|(z2,z2)|
-   \param B magnetic field in the center of the detector in Gev/cm/c
+   \param bField magnetic field in the center of the detector in Gev/cm/c
    unit, in order to perform pt calculation.
    \param error flag for error computation.
    \param scattering flag for multiple scattering treatment.
@@ -971,20 +973,20 @@ namespace riemannFit {
   template <int N>
   inline HelixFit helixFit(const Matrix3xNd<N>& hits,
                              const Eigen::Matrix<float, 6, N>& hits_ge,
-                             const double B,
+                             const double bField,
                              const bool error) {
     constexpr uint n = N;
     VectorNd<4> rad = (hits.block(0, 0, 2, n).colwise().norm());
 
     // Fast_fit gives back (X0, Y0, R, theta) w/o errors, using only 3 points.
     Vector4d fast_fit;
-    Fast_fit(hits, fast_fit);
+    fastFit(hits, fast_fit);
     riemannFit::Matrix2Nd<N> hits_cov = MatrixXd::Zero(2 * n, 2 * n);
     riemannFit::loadCovariance2D(hits_ge, hits_cov);
-    CircleFit circle = Circle_fit(hits.block(0, 0, 2, n), hits_cov, fast_fit, rad, B, error);
-    LineFit line = lineFit(hits, hits_ge, circle, fast_fit, B, error);
+    CircleFit circle = circleFit(hits.block(0, 0, 2, n), hits_cov, fast_fit, rad, bField, error);
+    LineFit line = lineFit(hits, hits_ge, circle, fast_fit, bField, error);
 
-    par_uvrtopak(circle, B, error);
+    par_uvrtopak(circle, bField, error);
 
     HelixFit helix;
     helix.par << circle.par, line.par;
