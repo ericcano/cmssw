@@ -131,13 +131,13 @@ namespace riemannFit {
     theta = theta < 0. ? theta + M_PI : theta;
     VectorNd<N> s_values;
     VectorNd<N> rad_lengths;
-    const Vector2d o(fast_fit(0), fast_fit(1));
+    const Vector2d oVec(fast_fit(0), fast_fit(1));
 
     // associated Jacobian, used in weights and errors computation
     for (uint i = 0; i < n; ++i) {  // x
-      Vector2d p = p2D.block(0, i, 2, 1) - o;
-      const double cross = cross2D(-o, p);
-      const double dot = (-o).dot(p);
+      Vector2d pVec = p2D.block(0, i, 2, 1) - oVec;
+      const double cross = cross2D(-oVec, pVec);
+      const double dot = (-oVec).dot(pVec);
       const double atan2_ = atan2(cross, dot);
       s_values(i) = std::abs(atan2_ * fast_fit(2));
     }
