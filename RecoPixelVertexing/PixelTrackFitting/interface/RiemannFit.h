@@ -76,9 +76,9 @@ namespace riemannFit {
     // See documentation at http://eigen.tuxfamily.org/dox/group__TutorialArrayClass.html
     // Basically, to perform cwise operations on Matrices and Vectors, you need
     // to transform them into Array-like objects.
-    VectorNd<N> S_values = s_arcs.array() * s_arcs.array() + z_values.array() * z_values.array();
-    S_values = S_values.array().sqrt();
-    computeRadLenUniformMaterial(S_values, rad_lengths_S);
+    VectorNd<N> s_values = s_arcs.array() * s_arcs.array() + z_values.array() * z_values.array();
+    s_values = s_values.array().sqrt();
+    computeRadLenUniformMaterial(s_values, rad_lengths_S);
     VectorNd<N> sig2_S;
     sig2_S = .000225 / p_2 * (1. + 0.038 * rad_lengths_S.array().log()).abs2() * rad_lengths_S.array();
 #ifdef RFIT_DEBUG
@@ -93,7 +93,7 @@ namespace riemannFit {
     for (uint k = 0; k < n; ++k) {
       for (uint l = k; l < n; ++l) {
         for (uint i = 0; i < std::min(k, l); ++i) {
-          tmp(k + n, l + n) += std::abs(S_values(k) - S_values(i)) * std::abs(S_values(l) - S_values(i)) * sig2_S(i);
+          tmp(k + n, l + n) += std::abs(s_values(k) - s_values(i)) * std::abs(s_values(l) - s_values(i)) * sig2_S(i);
         }
         tmp(l + n, k + n) = tmp(k + n, l + n);
       }
