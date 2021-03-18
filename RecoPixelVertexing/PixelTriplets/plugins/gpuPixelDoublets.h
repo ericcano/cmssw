@@ -1,5 +1,5 @@
-#ifndef RecoLocalTracker_SiPixelRecHits_plugins_gpuPixelDoublets_h
-#define RecoLocalTracker_SiPixelRecHits_plugins_gpuPixelDoublets_h
+#ifndef RecoPixelVertexing_PixelTriplets_plugins_gpuPixelDoublets_h
+#define RecoPixelVertexing_PixelTriplets_plugins_gpuPixelDoublets_h
 
 #include "RecoPixelVertexing/PixelTriplets/plugins/gpuPixelDoubletsAlgos.h"
 
@@ -127,4 +127,4 @@ namespace gpuPixelDoublets {
 
 }  // namespace gpuPixelDoublets
 
-#endif  // RecoLocalTracker_SiPixelRecHits_plugins_gpuPixelDouplets_h
+#endif  // RecoPixelVertexing_PixelTriplets_plugins_gpuPixelDoublets_h
