@@ -117,7 +117,7 @@ __global__ void kernelBLFastFit(Tuples const *__restrict__ foundNtuplets,
 
 template <int N>
 __global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ tupleMultiplicity,
-                            double B,
+                            double bField,
                             OutputSoA *results,
                             double *__restrict__ phits,
                             float *__restrict__ phits_ge,
@@ -147,17 +147,16 @@ __global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ t
     riemannFit::Map6xNf<N> hits_ge(phits_ge + local_idx);
 
     brokenline::PreparedBrokenLineData<N> data;
-    riemannFit::Matrix3d Jacob;
 
     brokenline::karimaki_circle_fit circle;
     riemannFit::LineFit line;
 
-    brokenline::prepareBrokenLineData(hits, fast_fit, B, data);
-    brokenline::lineFit(hits_ge, fast_fit, B, data, line);
-    brokenline::circleFit(hits, hits_ge, fast_fit, B, data, circle);
+    brokenline::prepareBrokenLineData(hits, fast_fit, bField, data);
+    brokenline::lineFit(hits_ge, fast_fit, bField, data, line);
+    brokenline::circleFit(hits, hits_ge, fast_fit, bField, data, circle);
 
-    results->stateAtBS.copyFromCircle(circle.par, circle.cov, line.par, line.cov, 1.f / float(B), tkid);
-    results->pt(tkid) = float(B) / float(std::abs(circle.par(2)));
+    results->stateAtBS.copyFromCircle(circle.par, circle.cov, line.par, line.cov, 1.f / float(bField), tkid);
+    results->pt(tkid) = float(bField) / float(std::abs(circle.par(2)));
     results->eta(tkid) = asinhf(line.par(0));
     results->chi2(tkid) = (circle.chi2 + line.chi2) / (2 * N - 5);
 
