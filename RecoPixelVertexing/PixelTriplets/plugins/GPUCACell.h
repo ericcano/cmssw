@@ -19,7 +19,7 @@
 
 class GPUCACell {
 public:
-  using ptrAsInt = unsigned long long;
+  using PtrAsInt = unsigned long long;
 
   static constexpr auto maxCellsPerHit = caConstants::maxCellsPerHit;
   using OuterHitOfCell = caConstants::OuterHitOfCell;
@@ -70,10 +70,10 @@ public:
       if (i > 0) {
         cellNeighbors[i].reset();
 #ifdef __CUDACC__
-        auto zero = (ptrAsInt)(&cellNeighbors[0]);
-        atomicCAS((ptrAsInt*)(&theOuterNeighbors),
+        auto zero = (PtrAsInt)(&cellNeighbors[0]);
+        atomicCAS((PtrAsInt*)(&theOuterNeighbors),
                   zero,
-                  (ptrAsInt)(&cellNeighbors[i]));  // if fails we cannot give "i" back...
+                  (PtrAsInt)(&cellNeighbors[i]));  // if fails we cannot give "i" back...
 #else
         theOuterNeighbors = &cellNeighbors[i];
 #endif
@@ -90,8 +90,8 @@ public:
       if (i > 0) {
         cellTracks[i].reset();
 #ifdef __CUDACC__
-        auto zero = (ptrAsInt)(&cellTracks[0]);
-        atomicCAS((ptrAsInt*)(&theTracks), zero, (ptrAsInt)(&cellTracks[i]));  // if fails we cannot give "i" back...
+        auto zero = (PtrAsInt)(&cellTracks[0]);
+        atomicCAS((PtrAsInt*)(&theTracks), zero, (PtrAsInt)(&cellTracks[i]));  // if fails we cannot give "i" back...
 #else
         theTracks = &cellTracks[i];
 #endif
