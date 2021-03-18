@@ -159,7 +159,7 @@ public:
   using TkSoA = pixelTrack::TrackSoA;
   using HitContainer = pixelTrack::HitContainer;
 
-  CAHitNtupletGeneratorKernels(Params const& params) : m_params(params) {}
+  CAHitNtupletGeneratorKernels(Params const& params) : params_(params) {}
   ~CAHitNtupletGeneratorKernels() = default;
 
   TupleMultiplicity const* tupleMultiplicity() const { return device_tupleMultiplicity_.get(); }
@@ -198,7 +198,7 @@ private:
 
   unique_ptr<cms::cuda::AtomicPairCounter::c_type[]> device_storage_;
   // params
-  Params const& m_params;
+  Params const& params_;
 };
 
 using CAHitNtupletGeneratorKernelsGPU = CAHitNtupletGeneratorKernels<cms::cudacompat::GPUTraits>;
