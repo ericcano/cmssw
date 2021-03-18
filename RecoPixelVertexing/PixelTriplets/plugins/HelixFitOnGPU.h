@@ -1,5 +1,5 @@
-#ifndef RecoPixelVertexing_PixelTrackFitting_plugins_HelixFitOnGPU_h
-#define RecoPixelVertexing_PixelTrackFitting_plugins_HelixFitOnGPU_h
+#ifndef RecoPixelVertexing_PixelTriplets_plugins_HelixFitOnGPU_h
+#define RecoPixelVertexing_PixelTriplets_plugins_HelixFitOnGPU_h
 
 #include "CUDADataFormats/Track/interface/PixelTrackHeterogeneous_t.h"
 #include "CUDADataFormats/TrackingRecHit/interface/TrackingRecHit2DHeterogeneous.h"
@@ -65,4 +65,4 @@ private:
   const bool fit5as4_;
 };
 
-#endif  // RecoPixelVertexing_PixelTrackFitting_plugins_HelixFitOnGPU_h
+#endif  // RecoPixelVertexing_PixelTriplets_plugins_HelixFitOnGPU_h
