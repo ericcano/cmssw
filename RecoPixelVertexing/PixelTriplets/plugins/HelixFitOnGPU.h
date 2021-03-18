@@ -57,9 +57,9 @@ private:
   static constexpr uint32_t maxNumberOfConcurrentFits_ = riemannFit::maxNumberOfConcurrentFits;
 
   // fowarded
-  Tuples const *tuples_d = nullptr;
-  TupleMultiplicity const *tupleMultiplicity_d = nullptr;
-  OutputSoA *outputSoa_d;
+  Tuples const *tuples_ = nullptr;
+  TupleMultiplicity const *tupleMultiplicity_ = nullptr;
+  OutputSoA *outputSoa_;
   float bField_;
 
   const bool fit5as4_;

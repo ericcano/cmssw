@@ -1,12 +1,12 @@
 #include "RiemannFitOnGPU.h"
 
 void HelixFitOnGPU::launchRiemannKernelsOnCPU(HitsView const *hv, uint32_t nhits, uint32_t maxNumberOfTuples) {
-  assert(tuples_d);
+  assert(tuples_);
 
   //  Fit internals
-  auto hitsGPU_ = std::make_unique<double[]>(maxNumberOfConcurrentFits_ * sizeof(riemannFit::Matrix3xNd<4>) / sizeof(double));
-  auto hits_geGPU_ = std::make_unique<float[]>(maxNumberOfConcurrentFits_ * sizeof(riemannFit::Matrix6x4f) / sizeof(float));
-  auto fast_fit_resultsGPU_ =
+  auto hitsGPU = std::make_unique<double[]>(maxNumberOfConcurrentFits_ * sizeof(riemannFit::Matrix3xNd<4>) / sizeof(double));
+  auto hits_geGPU = std::make_unique<float[]>(maxNumberOfConcurrentFits_ * sizeof(riemannFit::Matrix6x4f) / sizeof(float));
+  auto fast_fit_resultsGPU =
       std::make_unique<double[]>(maxNumberOfConcurrentFits_ * sizeof(riemannFit::Vector4d) / sizeof(double));
   auto circle_fit_resultsGPU_holder = std::make_unique<char[]>(maxNumberOfConcurrentFits_ * sizeof(riemannFit::CircleFit));
   riemannFit::CircleFit *circle_fit_resultsGPU_ = (riemannFit::CircleFit *)(circle_fit_resultsGPU_holder.get());
@@ -14,95 +14,95 @@ void HelixFitOnGPU::launchRiemannKernelsOnCPU(HitsView const *hv, uint32_t nhits
   for (uint32_t offset = 0; offset < maxNumberOfTuples; offset += maxNumberOfConcurrentFits_) {
     // triplets
     kernelFastFit<3>(
-        tuples_d, tupleMultiplicity_d, 3, hv, hitsGPU_.get(), hits_geGPU_.get(), fast_fit_resultsGPU_.get(), offset);
+        tuples_, tupleMultiplicity_, 3, hv, hitsGPU.get(), hits_geGPU.get(), fast_fit_resultsGPU.get(), offset);
 
-    kernelCircleFit<3>(tupleMultiplicity_d,
+    kernelCircleFit<3>(tupleMultiplicity_,
                        3,
                        bField_,
-                       hitsGPU_.get(),
-                       hits_geGPU_.get(),
-                       fast_fit_resultsGPU_.get(),
+                       hitsGPU.get(),
+                       hits_geGPU.get(),
+                       fast_fit_resultsGPU.get(),
                        circle_fit_resultsGPU_,
                        offset);
 
-    kernelLineFit<3>(tupleMultiplicity_d,
+    kernelLineFit<3>(tupleMultiplicity_,
                      3,
                      bField_,
-                     outputSoa_d,
-                     hitsGPU_.get(),
-                     hits_geGPU_.get(),
-                     fast_fit_resultsGPU_.get(),
+                     outputSoa_,
+                     hitsGPU.get(),
+                     hits_geGPU.get(),
+                     fast_fit_resultsGPU.get(),
                      circle_fit_resultsGPU_,
                      offset);
 
     // quads
     kernelFastFit<4>(
-        tuples_d, tupleMultiplicity_d, 4, hv, hitsGPU_.get(), hits_geGPU_.get(), fast_fit_resultsGPU_.get(), offset);
+        tuples_, tupleMultiplicity_, 4, hv, hitsGPU.get(), hits_geGPU.get(), fast_fit_resultsGPU.get(), offset);
 
-    kernelCircleFit<4>(tupleMultiplicity_d,
+    kernelCircleFit<4>(tupleMultiplicity_,
                        4,
                        bField_,
-                       hitsGPU_.get(),
-                       hits_geGPU_.get(),
-                       fast_fit_resultsGPU_.get(),
+                       hitsGPU.get(),
+                       hits_geGPU.get(),
+                       fast_fit_resultsGPU.get(),
                        circle_fit_resultsGPU_,
                        offset);
 
-    kernelLineFit<4>(tupleMultiplicity_d,
+    kernelLineFit<4>(tupleMultiplicity_,
                      4,
                      bField_,
-                     outputSoa_d,
-                     hitsGPU_.get(),
-                     hits_geGPU_.get(),
-                     fast_fit_resultsGPU_.get(),
+                     outputSoa_,
+                     hitsGPU.get(),
+                     hits_geGPU.get(),
+                     fast_fit_resultsGPU.get(),
                      circle_fit_resultsGPU_,
                      offset);
 
     if (fit5as4_) {
       // penta
       kernelFastFit<4>(
-          tuples_d, tupleMultiplicity_d, 5, hv, hitsGPU_.get(), hits_geGPU_.get(), fast_fit_resultsGPU_.get(), offset);
+          tuples_, tupleMultiplicity_, 5, hv, hitsGPU.get(), hits_geGPU.get(), fast_fit_resultsGPU.get(), offset);
 
-      kernelCircleFit<4>(tupleMultiplicity_d,
+      kernelCircleFit<4>(tupleMultiplicity_,
                          5,
                          bField_,
-                         hitsGPU_.get(),
-                         hits_geGPU_.get(),
-                         fast_fit_resultsGPU_.get(),
+                         hitsGPU.get(),
+                         hits_geGPU.get(),
+                         fast_fit_resultsGPU.get(),
                          circle_fit_resultsGPU_,
                          offset);
 
-      kernelLineFit<4>(tupleMultiplicity_d,
+      kernelLineFit<4>(tupleMultiplicity_,
                        5,
                        bField_,
-                       outputSoa_d,
-                       hitsGPU_.get(),
-                       hits_geGPU_.get(),
-                       fast_fit_resultsGPU_.get(),
+                       outputSoa_,
+                       hitsGPU.get(),
+                       hits_geGPU.get(),
+                       fast_fit_resultsGPU.get(),
                        circle_fit_resultsGPU_,
                        offset);
 
     } else {
       // penta all 5
       kernelFastFit<5>(
-          tuples_d, tupleMultiplicity_d, 5, hv, hitsGPU_.get(), hits_geGPU_.get(), fast_fit_resultsGPU_.get(), offset);
+          tuples_, tupleMultiplicity_, 5, hv, hitsGPU.get(), hits_geGPU.get(), fast_fit_resultsGPU.get(), offset);
 
-      kernelCircleFit<5>(tupleMultiplicity_d,
+      kernelCircleFit<5>(tupleMultiplicity_,
                          5,
                          bField_,
-                         hitsGPU_.get(),
-                         hits_geGPU_.get(),
-                         fast_fit_resultsGPU_.get(),
+                         hitsGPU.get(),
+                         hits_geGPU.get(),
+                         fast_fit_resultsGPU.get(),
                          circle_fit_resultsGPU_,
                          offset);
 
-      kernelLineFit<5>(tupleMultiplicity_d,
+      kernelLineFit<5>(tupleMultiplicity_,
                        5,
                        bField_,
-                       outputSoa_d,
-                       hitsGPU_.get(),
-                       hits_geGPU_.get(),
-                       fast_fit_resultsGPU_.get(),
+                       outputSoa_,
+                       hitsGPU.get(),
+                       hits_geGPU.get(),
+                       fast_fit_resultsGPU.get(),
                        circle_fit_resultsGPU_,
                        offset);
     }
