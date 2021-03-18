@@ -159,7 +159,8 @@ public:
   using TkSoA = pixelTrack::TrackSoA;
   using HitContainer = pixelTrack::HitContainer;
 
-  CAHitNtupletGeneratorKernels(Params const& params) : params_(params) {}
+  CAHitNtupletGeneratorKernels(Params const& params) : params_(params), 
+          paramsMaxDoubletes3Quarters_(3 * params.maxNumberOfDoublets_ / 4) {}
   ~CAHitNtupletGeneratorKernels() = default;
 
   TupleMultiplicity const* tupleMultiplicity() const { return device_tupleMultiplicity_.get(); }
@@ -200,6 +201,19 @@ private:
   unique_ptr<cms::cuda::AtomicPairCounter::c_type[]> device_storage_;
   // params
   Params const& params_;
+  /// Intermediate result avoiding repeated computations.
+  const uint32_t paramsMaxDoubletes3Quarters_; 
+  /// Compute the number of doublet blocks for block size
+  inline uint32_t nDoubletBlocks(uint32_t blockSize) {
+    // We want (3 * params_.maxNumberOfDoublets_ / 4 + blockSize - 1) / blockSize, but first part is pre-computed.
+    return (paramsMaxDoubletes3Quarters_ + blockSize - 1) / blockSize;
+  }
+  
+  /// Compute the number of quadruplet blocks for block size
+  inline uint32_t nQuadrupletBlocks(uint32_t blockSize) {
+    // caConstants::maxNumberOfQuadruplets is a constexpr, so the compiler will pre compute the 3*max/4
+    return (3 * caConstants::maxNumberOfQuadruplets / 4 + blockSize - 1) / blockSize;
+  }
 };
 
 using CAHitNtupletGeneratorKernelsGPU = CAHitNtupletGeneratorKernels<cms::cudacompat::GPUTraits>;
