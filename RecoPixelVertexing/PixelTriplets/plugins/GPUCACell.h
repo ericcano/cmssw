@@ -145,8 +145,6 @@ public:
     // detIndex of the layerStart for the Phase1 Pixel Detector:
     // [BPX1, BPX2, BPX3, BPX4,  FP1,  FP2,  FP3,  FN1,  FN2,  FN3, LAST_VALID]
     // [   0,   96,  320,  672, 1184, 1296, 1408, 1520, 1632, 1744,       1856]
-    constexpr uint32_t last_bpix1_detIndex = 96;
-    constexpr uint32_t last_barrel_detIndex = 1184;
     auto ri = get_inner_r(hh);
     auto zi = get_inner_z(hh);
 
@@ -155,7 +153,7 @@ public:
 
     auto r1 = otherCell.get_inner_r(hh);
     auto z1 = otherCell.get_inner_z(hh);
-    auto isBarrel = otherCell.get_outer_detIndex(hh) < last_barrel_detIndex;
+    auto isBarrel = otherCell.get_outer_detIndex(hh) < caConstants::last_barrel_detIndex;
     bool aligned = areAlignedRZ(r1,
                                 z1,
                                 ri,
@@ -167,7 +165,7 @@ public:
     return (aligned &&
             dcaCut(hh,
                    otherCell,
-                   otherCell.get_inner_detIndex(hh) < last_bpix1_detIndex ? dcaCutInnerTriplet : dcaCutOuterTriplet,
+                   otherCell.get_inner_detIndex(hh) < caConstants::last_bpix1_detIndex ? dcaCutInnerTriplet : dcaCutOuterTriplet,
                    hardCurvCut));  // FIXME tune cuts
   }
 

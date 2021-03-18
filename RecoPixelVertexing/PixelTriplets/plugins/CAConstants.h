@@ -58,6 +58,10 @@ namespace caConstants {
   constexpr float barrel_z_length = 26.f;
   constexpr float forward_z_begin = 32.f;
   
+  // Last indexes
+  constexpr uint32_t last_bpix1_detIndex = 96;
+  constexpr uint32_t last_barrel_detIndex = 1184;
+  
   // types
   using hindex_type = uint32_t;  // FIXME from siPixelRecHitsHeterogeneousProduct
   using tindex_type = uint16_t;  // for tuples

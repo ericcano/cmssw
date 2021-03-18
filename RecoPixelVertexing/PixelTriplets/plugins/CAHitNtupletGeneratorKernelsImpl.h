@@ -178,7 +178,7 @@ __global__ void kernel_fastDuplicateRemover(GPUCACell const *__restrict__ cells,
       // return tracks->chi2(it);  //chi2
     };
 
-    // find min socre
+    // find min score
     for (auto it : thisCell.tracks()) {
       if (tracks->quality(it) == loose && score(it) < mc) {
         mc = score(it);
@@ -224,14 +224,12 @@ __global__ void kernel_connect(cms::cuda::AtomicPairCounter *apc1,
     int numberOfPossibleNeighbors = isOuterHitOfCell[innerHitId].size();
     auto vi = isOuterHitOfCell[innerHitId].data();
 
-    constexpr uint32_t last_bpix1_detIndex = 96;
-    constexpr uint32_t last_barrel_detIndex = 1184;
     auto ri = thisCell.get_inner_r(hh);
     auto zi = thisCell.get_inner_z(hh);
 
     auto ro = thisCell.get_outer_r(hh);
     auto zo = thisCell.get_outer_z(hh);
-    auto isBarrel = thisCell.get_inner_detIndex(hh) < last_barrel_detIndex;
+    auto isBarrel = thisCell.get_inner_detIndex(hh) < caConstants::last_barrel_detIndex;
 
     for (int j = first; j < numberOfPossibleNeighbors; j += stride) {
       auto otherCell = __ldg(vi + j);
@@ -250,7 +248,7 @@ __global__ void kernel_connect(cms::cuda::AtomicPairCounter *apc1,
       if (aligned &&
           thisCell.dcaCut(hh,
                           oc,
-                          oc.get_inner_detIndex(hh) < last_bpix1_detIndex ? dcaCutInnerTriplet : dcaCutOuterTriplet,
+                          oc.get_inner_detIndex(hh) < caConstants::last_bpix1_detIndex ? dcaCutInnerTriplet : dcaCutOuterTriplet,
                           hardCurvCut)) {  // FIXME tune cuts
         oc.addOuterNeighbor(cellIndex, *cellNeighbors);
         thisCell.theUsed |= 1;
@@ -292,7 +290,6 @@ __global__ void kernel_find_ntuplets(GPUCACell::Hits const *__restrict__ hhp,
 __global__ void kernel_mark_used(GPUCACell::Hits const *__restrict__ hhp,
                                  GPUCACell *__restrict__ cells,
                                  uint32_t const *nCells) {
-  // auto const &hh = *hhp;
   auto first = threadIdx.x + blockIdx.x * blockDim.x;
   for (int idx = first, nt = (*nCells); idx < nt; idx += gridDim.x * blockDim.x) {
     auto &thisCell = cells[idx];
@@ -489,9 +486,6 @@ __global__ void kernel_tripletCleaner(TrackingRecHit2DSOAView const *__restrict_
   auto const &foundNtuplets = *ptuples;
   auto const &tracks = *ptracks;
 
-  //  auto const & hh = *hhp;
-  // auto l1end = hh.hitsLayerStart_d[1];
-
   int first = blockDim.x * blockIdx.x + threadIdx.x;
   for (int idx = first, ntot = hitToTuple.nbins(); idx < ntot; idx += gridDim.x * blockDim.x) {
     if (hitToTuple.size(idx) < 2)
@@ -515,7 +509,6 @@ __global__ void kernel_tripletCleaner(TrackingRecHit2DSOAView const *__restrict_
 
     if (maxNh > 3)
       continue;
-    // if (idx>=l1end) continue;  // only for layer 1
     // for triplets choose best tip!
     for (auto ip = hitToTuple.begin(idx); ip != hitToTuple.end(idx); ++ip) {
       auto const it = *ip;
