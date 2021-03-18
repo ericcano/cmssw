@@ -66,7 +66,7 @@ public:
   __device__ __forceinline__ int addOuterNeighbor(CellNeighbors::value_t t, CellNeighborsVector& cellNeighbors) {
     // use smart cache
     if (outerNeighbors().empty()) {
-      auto i = cellNeighbors.extend();  // maybe waisted....
+      auto i = cellNeighbors.extend();  // maybe wasted....
       if (i > 0) {
         cellNeighbors[i].reset();
 #ifdef __CUDACC__
@@ -86,7 +86,7 @@ public:
 
   __device__ __forceinline__ int addTrack(CellTracks::value_t t, CellTracksVector& cellTracks) {
     if (tracks().empty()) {
-      auto i = cellTracks.extend();  // maybe waisted....
+      auto i = cellTracks.extend();  // maybe wasted....
       if (i > 0) {
         cellTracks[i].reset();
 #ifdef __CUDACC__
@@ -138,8 +138,8 @@ public:
                                   GPUCACell const& otherCell,
                                   const float ptmin,
                                   const float hardCurvCut,
-                                  const float CAThetaCutBarrel,
-                                  const float CAThetaCutForward,
+                                  const float caThetaCutBarrel,
+                                  const float caThetaCutForward,
                                   const float dcaCutInnerTriplet,
                                   const float dcaCutOuterTriplet) const {
     // detIndex of the layerStart for the Phase1 Pixel Detector:
@@ -161,7 +161,7 @@ public:
                                 ro,
                                 zo,
                                 ptmin,
-                                isBarrel ? CAThetaCutBarrel : CAThetaCutForward);  // 2.f*thetaCut); // FIXME tune cuts
+                                isBarrel ? caThetaCutBarrel : caThetaCutForward);  // 2.f*thetaCut); // FIXME tune cuts
     return (aligned &&
             dcaCut(hh,
                    otherCell,
