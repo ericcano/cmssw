@@ -86,7 +86,7 @@ __global__ void kernelFastFit(Tuples const *__restrict__ foundNtuplets,
 template <int N>
 __global__ void kernelCircleFit(caConstants::TupleMultiplicity const *__restrict__ tupleMultiplicity,
                                 uint32_t nHits,
-                                double B,
+                                double bField,
                                 double *__restrict__ phits,
                                 float *__restrict__ phits_ge,
                                 double *__restrict__ pfast_fit_input,
@@ -114,7 +114,7 @@ __global__ void kernelCircleFit(caConstants::TupleMultiplicity const *__restrict
     riemannFit::Matrix2Nd<N> hits_cov = riemannFit::Matrix2Nd<N>::Zero();
     riemannFit::loadCovariance2D(hits_ge, hits_cov);
 
-    circle_fit[local_idx] = riemannFit::circleFit(hits.block(0, 0, 2, N), hits_cov, fast_fit, rad, B, true);
+    circle_fit[local_idx] = riemannFit::circleFit(hits.block(0, 0, 2, N), hits_cov, fast_fit, rad, bField, true);
 
 #ifdef RIEMANN_DEBUG
 //    auto tkid = *(tupleMultiplicity->begin(nHits) + tuple_idx);
@@ -127,7 +127,7 @@ __global__ void kernelCircleFit(caConstants::TupleMultiplicity const *__restrict
 template <int N>
 __global__ void kernelLineFit(caConstants::TupleMultiplicity const *__restrict__ tupleMultiplicity,
                               uint32_t nHits,
-                              double B,
+                              double bField,
                               OutputSoA *results,
                               double *__restrict__ phits,
                               float *__restrict__ phits_ge,
@@ -155,13 +155,13 @@ __global__ void kernelLineFit(caConstants::TupleMultiplicity const *__restrict__
     riemannFit::Map4d fast_fit(pfast_fit_input + local_idx);
     riemannFit::Map6xNf<N> hits_ge(phits_ge + local_idx);
 
-    auto const &line_fit = riemannFit::lineFit(hits, hits_ge, circle_fit[local_idx], fast_fit, B, true);
+    auto const &line_fit = riemannFit::lineFit(hits, hits_ge, circle_fit[local_idx], fast_fit, bField, true);
 
     riemannFit::fromCircleToPerigee(circle_fit[local_idx]);
 
     results->stateAtBS.copyFromCircle(
-        circle_fit[local_idx].par, circle_fit[local_idx].cov, line_fit.par, line_fit.cov, 1.f / float(B), tkid);
-    results->pt(tkid) = B / std::abs(circle_fit[local_idx].par(2));
+        circle_fit[local_idx].par, circle_fit[local_idx].cov, line_fit.par, line_fit.cov, 1.f / float(bField), tkid);
+    results->pt(tkid) = bField / std::abs(circle_fit[local_idx].par(2));
     results->eta(tkid) = asinhf(line_fit.par(0));
     results->chi2(tkid) = (circle_fit[local_idx].chi2 + line_fit.chi2) / (2 * N - 5);
 
