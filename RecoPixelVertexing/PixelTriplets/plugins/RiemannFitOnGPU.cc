@@ -9,7 +9,7 @@ void HelixFitOnGPU::launchRiemannKernelsOnCPU(HitsView const *hv, uint32_t nhits
   auto fast_fit_resultsGPU =
       std::make_unique<double[]>(maxNumberOfConcurrentFits_ * sizeof(riemannFit::Vector4d) / sizeof(double));
   auto circle_fit_resultsGPU_holder = std::make_unique<char[]>(maxNumberOfConcurrentFits_ * sizeof(riemannFit::CircleFit));
-  riemannFit::CircleFit *circle_fit_resultsGPU_ = (riemannFit::CircleFit *)(circle_fit_resultsGPU_holder.get());
+  riemannFit::CircleFit *circle_fit_resultsGPU = (riemannFit::CircleFit *)(circle_fit_resultsGPU_holder.get());
 
   for (uint32_t offset = 0; offset < maxNumberOfTuples; offset += maxNumberOfConcurrentFits_) {
     // triplets
@@ -22,7 +22,7 @@ void HelixFitOnGPU::launchRiemannKernelsOnCPU(HitsView const *hv, uint32_t nhits
                        hitsGPU.get(),
                        hits_geGPU.get(),
                        fast_fit_resultsGPU.get(),
-                       circle_fit_resultsGPU_,
+                       circle_fit_resultsGPU,
                        offset);
 
     kernelLineFit<3>(tupleMultiplicity_,
@@ -32,7 +32,7 @@ void HelixFitOnGPU::launchRiemannKernelsOnCPU(HitsView const *hv, uint32_t nhits
                      hitsGPU.get(),
                      hits_geGPU.get(),
                      fast_fit_resultsGPU.get(),
-                     circle_fit_resultsGPU_,
+                     circle_fit_resultsGPU,
                      offset);
 
     // quads
@@ -45,7 +45,7 @@ void HelixFitOnGPU::launchRiemannKernelsOnCPU(HitsView const *hv, uint32_t nhits
                        hitsGPU.get(),
                        hits_geGPU.get(),
                        fast_fit_resultsGPU.get(),
-                       circle_fit_resultsGPU_,
+                       circle_fit_resultsGPU,
                        offset);
 
     kernelLineFit<4>(tupleMultiplicity_,
@@ -55,7 +55,7 @@ void HelixFitOnGPU::launchRiemannKernelsOnCPU(HitsView const *hv, uint32_t nhits
                      hitsGPU.get(),
                      hits_geGPU.get(),
                      fast_fit_resultsGPU.get(),
-                     circle_fit_resultsGPU_,
+                     circle_fit_resultsGPU,
                      offset);
 
     if (fit5as4_) {
@@ -69,7 +69,7 @@ void HelixFitOnGPU::launchRiemannKernelsOnCPU(HitsView const *hv, uint32_t nhits
                          hitsGPU.get(),
                          hits_geGPU.get(),
                          fast_fit_resultsGPU.get(),
-                         circle_fit_resultsGPU_,
+                         circle_fit_resultsGPU,
                          offset);
 
       kernelLineFit<4>(tupleMultiplicity_,
@@ -79,7 +79,7 @@ void HelixFitOnGPU::launchRiemannKernelsOnCPU(HitsView const *hv, uint32_t nhits
                        hitsGPU.get(),
                        hits_geGPU.get(),
                        fast_fit_resultsGPU.get(),
-                       circle_fit_resultsGPU_,
+                       circle_fit_resultsGPU,
                        offset);
 
     } else {
@@ -93,7 +93,7 @@ void HelixFitOnGPU::launchRiemannKernelsOnCPU(HitsView const *hv, uint32_t nhits
                          hitsGPU.get(),
                          hits_geGPU.get(),
                          fast_fit_resultsGPU.get(),
-                         circle_fit_resultsGPU_,
+                         circle_fit_resultsGPU,
                          offset);
 
       kernelLineFit<5>(tupleMultiplicity_,
@@ -103,7 +103,7 @@ void HelixFitOnGPU::launchRiemannKernelsOnCPU(HitsView const *hv, uint32_t nhits
                        hitsGPU.get(),
                        hits_geGPU.get(),
                        fast_fit_resultsGPU.get(),
-                       circle_fit_resultsGPU_,
+                       circle_fit_resultsGPU,
                        offset);
     }
   }
