@@ -103,10 +103,7 @@ void PixelTrackProducerFromSoA::produce(edm::StreamID streamID,
   
   auto const & httopo = iSetup.getData(ttTopoToken_);
 
-  edm::Handle<reco::BeamSpot> bsHandle;
-  iEvent.getByToken(tBeamSpot_, bsHandle);
-  const auto &bsh = *bsHandle;
-  // std::cout << "beamspot " << bsh.x0() << ' ' << bsh.y0() << ' ' << bsh.z0() << std::endl;
+  const auto &bsh = iEvent.get(tBeamSpot_);
   GlobalPoint bs(bsh.x0(), bsh.y0(), bsh.z0());
 
   auto const &rechits = iEvent.get(cpuHits_);
