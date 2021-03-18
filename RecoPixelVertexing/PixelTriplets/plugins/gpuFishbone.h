@@ -50,7 +50,7 @@ namespace gpuPixelDoublets {
       auto sg = 0;
       for (int32_t ic = 0; ic < s; ++ic) {
         auto& ci = cells[vc[ic]];
-        if (0 == ci.theUsed)
+        if (ci.unused())
           continue;  // for triplets equivalent to next
         if (checkTrack && ci.tracks().empty())
           continue;
@@ -76,10 +76,10 @@ namespace gpuPixelDoublets {
           if (d[ic] != d[jc] && cos12 * cos12 >= 0.99999f * n[ic] * n[jc]) {
             // alligned:  kill farthest  (prefer consecutive layers)
             if (n[ic] > n[jc]) {
-              ci.theDoubletId = -1;
+              ci.kill();
               break;
             } else {
-              cj.theDoubletId = -1;
+              cj.kill();
             }
           }
         }  //cj

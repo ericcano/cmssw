@@ -89,12 +89,12 @@ __global__ void kernel_checkOverflows(HitContainer const *foundNtuplets,
   for (int idx = first, nt = (*nCells); idx < nt; idx += gridDim.x * blockDim.x) {
     auto const &thisCell = cells[idx];
     if (thisCell.outerNeighbors().full())  //++tooManyNeighbors[thisCell.theLayerPairId];
-      printf("OuterNeighbors overflow %d in %d\n", idx, thisCell.theLayerPairId);
+      printf("OuterNeighbors overflow %d in %d\n", idx, thisCell.layerPairId());
     if (thisCell.tracks().full())  //++tooManyTracks[thisCell.theLayerPairId];
-      printf("Tracks overflow %d in %d\n", idx, thisCell.theLayerPairId);
-    if (thisCell.theDoubletId < 0)
+      printf("Tracks overflow %d in %d\n", idx, thisCell.layerPairId());
+    if (thisCell.isKilled())
       atomicAdd(&c.nKilledCells, 1);
-    if (0 == thisCell.theUsed)
+    if (thisCell.unused())
       atomicAdd(&c.nEmptyCells, 1);
     if (0 == hitToTuple->size(thisCell.get_inner_hit_id()) && 0 == hitToTuple->size(thisCell.get_outer_hit_id()))
       atomicAdd(&c.nZeroTrackCells, 1);
@@ -112,7 +112,7 @@ __global__ void kernel_fishboneCleaner(GPUCACell const *cells, uint32_t const *_
   auto first = threadIdx.x + blockIdx.x * blockDim.x;
   for (int idx = first, nt = (*nCells); idx < nt; idx += gridDim.x * blockDim.x) {
     auto const &thisCell = cells[idx];
-    if (thisCell.theDoubletId >= 0)
+    if (!thisCell.isKilled())
       continue;
 
     for (auto it : thisCell.tracks())
@@ -251,8 +251,8 @@ __global__ void kernel_connect(cms::cuda::AtomicPairCounter *apc1,
                           oc.get_inner_detIndex(hh) < caConstants::last_bpix1_detIndex ? dcaCutInnerTriplet : dcaCutOuterTriplet,
                           hardCurvCut)) {  // FIXME tune cuts
         oc.addOuterNeighbor(cellIndex, *cellNeighbors);
-        thisCell.theUsed |= 1;
-        oc.theUsed |= 1;
+        thisCell.setUsedBit(1);
+        oc.setUsedBit(1);
       }
     }  // loop on inner cells
   }    // loop on outer cells
@@ -272,10 +272,10 @@ __global__ void kernel_find_ntuplets(GPUCACell::Hits const *__restrict__ hhp,
   auto first = threadIdx.x + blockIdx.x * blockDim.x;
   for (int idx = first, nt = (*nCells); idx < nt; idx += gridDim.x * blockDim.x) {
     auto const &thisCell = cells[idx];
-    if (thisCell.theDoubletId < 0)
+    if (thisCell.isKilled())
       continue;  // cut by earlyFishbone
 
-    auto pid = thisCell.theLayerPairId;
+    auto pid = thisCell.layerPairId();
     auto doit = minHitsPerNtuplet > 3 ? pid < 3 : pid < 8 || pid > 12;
     if (doit) {
       GPUCACell::TmpTuple stack;
@@ -294,7 +294,7 @@ __global__ void kernel_mark_used(GPUCACell::Hits const *__restrict__ hhp,
   for (int idx = first, nt = (*nCells); idx < nt; idx += gridDim.x * blockDim.x) {
     auto &thisCell = cells[idx];
     if (!thisCell.tracks().empty())
-      thisCell.theUsed |= 2;
+      thisCell.setUsedBit(2);
   }
 }
 

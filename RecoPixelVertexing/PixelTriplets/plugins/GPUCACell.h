@@ -48,9 +48,9 @@ public:
                                        hindex_type outerHitId) {
     theInnerHitId = innerHitId;
     theOuterHitId = outerHitId;
-    theDoubletId = doubletId;
-    theLayerPairId = layerPairId;
-    theUsed = 0;
+    theDoubletId_ = doubletId;
+    theLayerPairId_ = layerPairId;
+    theUsed_ = 0;
 
     // optimization that depends on access pattern
     theInnerZ = hh.zGlobal(innerHitId);
@@ -128,8 +128,8 @@ public:
 
   __device__ void print_cell() const {
     printf("printing cell: %d, on layerPair: %d, innerHitId: %d, outerHitId: %d \n",
-           theDoubletId,
-           theLayerPairId,
+           theDoubletId_,
+           theLayerPairId_,
            theInnerHitId,
            theOuterHitId);
   }
@@ -283,12 +283,12 @@ public:
     // the ntuplets is then saved if the number of hits it contains is greater
     // than a threshold
 
-    tmpNtuplet.push_back_unsafe(theDoubletId);
+    tmpNtuplet.push_back_unsafe(theDoubletId_);
     assert(tmpNtuplet.size() <= 4);
 
     bool last = true;
     for (unsigned int otherCell : outerNeighbors()) {
-      if (cells[otherCell].theDoubletId < 0)
+      if (cells[otherCell].theDoubletId_ < 0)
         continue;  // killed by earlyFishbone
       last = false;
       cells[otherCell].find_ntuplets(
@@ -320,17 +320,24 @@ public:
     tmpNtuplet.pop_back();
     assert(tmpNtuplet.size() < 4);
   }
+  
+  // Cell status management
+  __device__ __forceinline__ void kill() { theDoubletId_ = -1; }
+  __device__ __forceinline__ bool isKilled() const { return theDoubletId_ < 0; }
+
+  __device__ __forceinline__ int16_t layerPairId() const { return theLayerPairId_; }
+
+  __device__ __forceinline__ bool unused() const { return !theUsed_; }
+  __device__ __forceinline__ void setUsedBit (uint16_t bit) { theUsed_ |= bit; }
 
 private:
   CellNeighbors* theOuterNeighbors;
   CellTracks* theTracks;
 
-public:
-  int32_t theDoubletId;
-  int16_t theLayerPairId;
-  uint16_t theUsed;  // tbd
-
-private:
+  int32_t theDoubletId_;
+  int16_t theLayerPairId_;
+  uint16_t theUsed_;  // tbd
+  
   float theInnerZ;
   float theInnerR;
   hindex_type theInnerHitId;
