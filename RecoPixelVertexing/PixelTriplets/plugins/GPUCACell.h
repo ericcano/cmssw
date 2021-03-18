@@ -21,12 +21,12 @@ class GPUCACell {
 public:
   using ptrAsInt = unsigned long long;
 
-  static constexpr auto maxCellsPerHit = CAConstants::maxCellsPerHit;
-  using OuterHitOfCell = CAConstants::OuterHitOfCell;
-  using CellNeighbors = CAConstants::CellNeighbors;
-  using CellTracks = CAConstants::CellTracks;
-  using CellNeighborsVector = CAConstants::CellNeighborsVector;
-  using CellTracksVector = CAConstants::CellTracksVector;
+  static constexpr auto maxCellsPerHit = caConstants::maxCellsPerHit;
+  using OuterHitOfCell = caConstants::OuterHitOfCell;
+  using CellNeighbors = caConstants::CellNeighbors;
+  using CellTracks = caConstants::CellTracks;
+  using CellNeighborsVector = caConstants::CellNeighborsVector;
+  using CellTracksVector = caConstants::CellTracksVector;
 
   using Hits = TrackingRecHit2DSOAView;
   using hindex_type = Hits::hindex_type;
@@ -221,10 +221,10 @@ public:
   }
 
   __device__ inline bool hole0(Hits const& hh, GPUCACell const& innerCell) const {
-    using CAConstants::max_ladder_bpx0;
-    using CAConstants::first_ladder_bpx0;
-    using CAConstants::module_length_bpx0;
-    using CAConstants::module_tolerance_bpx0;
+    using caConstants::max_ladder_bpx0;
+    using caConstants::first_ladder_bpx0;
+    using caConstants::module_length_bpx0;
+    using caConstants::module_tolerance_bpx0;
     int p = innerCell.get_inner_iphi(hh);
     if (p < 0)
       p += std::numeric_limits<unsigned short>::max();
@@ -244,10 +244,10 @@ public:
   }
 
   __device__ inline bool hole4(Hits const& hh, GPUCACell const& innerCell) const {
-    using CAConstants::max_ladder_bpx4;
-    using CAConstants::first_ladder_bpx4;
-    using CAConstants::module_length_bpx4;
-    using CAConstants::module_tolerance_bpx4;
+    using caConstants::max_ladder_bpx4;
+    using caConstants::first_ladder_bpx4;
+    using caConstants::module_length_bpx4;
+    using caConstants::module_tolerance_bpx4;
     int p = get_outer_iphi(hh);
     if (p < 0)
       p += std::numeric_limits<unsigned short>::max();

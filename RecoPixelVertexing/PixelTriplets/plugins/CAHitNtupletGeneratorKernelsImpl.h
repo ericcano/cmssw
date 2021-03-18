@@ -22,15 +22,15 @@
 using HitsOnGPU = TrackingRecHit2DSOAView;
 using HitsOnCPU = TrackingRecHit2DCUDA;
 
-using HitToTuple = CAConstants::HitToTuple;
-using TupleMultiplicity = CAConstants::TupleMultiplicity;
+using HitToTuple = caConstants::HitToTuple;
+using TupleMultiplicity = caConstants::TupleMultiplicity;
 
 using Quality = pixelTrack::Quality;
 using TkSoA = pixelTrack::TrackSoA;
 using HitContainer = pixelTrack::HitContainer;
 
 __global__ void kernel_checkOverflows(HitContainer const *foundNtuplets,
-                                      CAConstants::TupleMultiplicity const *tupleMultiplicity,
+                                      caConstants::TupleMultiplicity const *tupleMultiplicity,
                                       CAHitNtupletGeneratorKernelsGPU::HitToTuple const *hitToTuple,
                                       cms::cuda::AtomicPairCounter *apc,
                                       GPUCACell const *__restrict__ cells,
@@ -60,7 +60,7 @@ __global__ void kernel_checkOverflows(HitContainer const *foundNtuplets,
            apc->get().m,
            apc->get().n,
            nHits);
-    if (apc->get().m < CAConstants::maxNumberOfQuadruplets()) {
+    if (apc->get().m < caConstants::maxNumberOfQuadruplets()) {
       assert(foundNtuplets->size(apc->get().m) == 0);
       assert(foundNtuplets->size() == apc->get().n);
     }
@@ -76,7 +76,7 @@ __global__ void kernel_checkOverflows(HitContainer const *foundNtuplets,
 #endif
 
   if (0 == first) {
-    if (apc->get().m >= CAConstants::maxNumberOfQuadruplets)
+    if (apc->get().m >= caConstants::maxNumberOfQuadruplets)
       printf("Tuples overflow\n");
     if (*nCells >= maxNumberOfDoublets)
       printf("Cells overflow\n");
@@ -303,7 +303,7 @@ __global__ void kernel_mark_used(GPUCACell::Hits const *__restrict__ hhp,
 
 __global__ void kernel_countMultiplicity(HitContainer const *__restrict__ foundNtuplets,
                                          Quality const *__restrict__ quality,
-                                         CAConstants::TupleMultiplicity *tupleMultiplicity) {
+                                         caConstants::TupleMultiplicity *tupleMultiplicity) {
   auto first = blockIdx.x * blockDim.x + threadIdx.x;
   for (int it = first, nt = foundNtuplets->nbins(); it < nt; it += gridDim.x * blockDim.x) {
     auto nhits = foundNtuplets->size(it);
@@ -321,7 +321,7 @@ __global__ void kernel_countMultiplicity(HitContainer const *__restrict__ foundN
 
 __global__ void kernel_fillMultiplicity(HitContainer const *__restrict__ foundNtuplets,
                                         Quality const *__restrict__ quality,
-                                        CAConstants::TupleMultiplicity *tupleMultiplicity) {
+                                        caConstants::TupleMultiplicity *tupleMultiplicity) {
   auto first = blockIdx.x * blockDim.x + threadIdx.x;
   for (int it = first, nt = foundNtuplets->nbins(); it < nt; it += gridDim.x * blockDim.x) {
     auto nhits = foundNtuplets->size(it);

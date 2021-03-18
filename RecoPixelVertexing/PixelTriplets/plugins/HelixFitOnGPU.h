@@ -9,7 +9,7 @@
 
 namespace riemannFit {
   // in case of memory issue can be made smaller
-  constexpr uint32_t maxNumberOfConcurrentFits = CAConstants::maxNumberOfTuples;
+  constexpr uint32_t maxNumberOfConcurrentFits = caConstants::maxNumberOfTuples;
   constexpr uint32_t stride = maxNumberOfConcurrentFits;
   using Matrix3x4d = Eigen::Matrix<double, 3, 4>;
   using Map3x4d = Eigen::Map<Matrix3x4d, 0, Eigen::Stride<3 * stride, stride> >;
@@ -38,7 +38,7 @@ public:
   using Tuples = pixelTrack::HitContainer;
   using OutputSoA = pixelTrack::TrackSoA;
 
-  using TupleMultiplicity = CAConstants::TupleMultiplicity;
+  using TupleMultiplicity = caConstants::TupleMultiplicity;
 
   explicit HelixFitOnGPU(float bf, bool fit5as4) : bField_(bf), fit5as4_(fit5as4) {}
   ~HelixFitOnGPU() { deallocateOnGPU(); }

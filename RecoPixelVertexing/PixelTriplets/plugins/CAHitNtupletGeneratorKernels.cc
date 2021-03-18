@@ -25,12 +25,12 @@ void CAHitNtupletGeneratorKernelsCPU::buildDoublets(HitsOnCPU const &hh, cudaStr
       (GPUCACell::OuterHitOfCell *)malloc(std::max(1U, nhits) * sizeof(GPUCACell::OuterHitOfCell)));
   assert(device_isOuterHitOfCell_.get());
 
-  cellStorage_.reset((unsigned char *)malloc(CAConstants::maxNumOfActiveDoublets * sizeof(GPUCACell::CellNeighbors) +
-                                             CAConstants::maxNumOfActiveDoublets * sizeof(GPUCACell::CellTracks)));
+  cellStorage_.reset((unsigned char *)malloc(caConstants::maxNumOfActiveDoublets * sizeof(GPUCACell::CellNeighbors) +
+                                             caConstants::maxNumOfActiveDoublets * sizeof(GPUCACell::CellTracks)));
   device_theCellNeighborsContainer_ = (GPUCACell::CellNeighbors *)cellStorage_.get();
   device_theCellTracksContainer_ =
       (GPUCACell::CellTracks *)(cellStorage_.get() +
-                                CAConstants::maxNumOfActiveDoublets * sizeof(GPUCACell::CellNeighbors));
+                                caConstants::maxNumOfActiveDoublets * sizeof(GPUCACell::CellNeighbors));
 
   gpuPixelDoublets::initDoublets(device_isOuterHitOfCell_.get(),
                                  nhits,

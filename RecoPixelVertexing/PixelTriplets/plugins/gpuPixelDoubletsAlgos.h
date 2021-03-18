@@ -17,10 +17,10 @@
 
 namespace gpuPixelDoublets {
 
-  using CellNeighbors = CAConstants::CellNeighbors;
-  using CellTracks = CAConstants::CellTracks;
-  using CellNeighborsVector = CAConstants::CellNeighborsVector;
-  using CellTracksVector = CAConstants::CellTracksVector;
+  using CellNeighbors = caConstants::CellNeighbors;
+  using CellTracks = caConstants::CellTracks;
+  using CellNeighborsVector = caConstants::CellNeighborsVector;
+  using CellTracksVector = caConstants::CellTracksVector;
 
   __device__ __forceinline__ void doubletsFromHisto(uint8_t const* __restrict__ layerPairs,
                                                     uint32_t nPairs,
@@ -61,7 +61,7 @@ namespace gpuPixelDoublets {
     // nPairsMax to be optimized later (originally was 64).
     // If it should be much bigger, consider using a block-wide parallel prefix scan,
     // e.g. see  https://nvlabs.github.io/cub/classcub_1_1_warp_scan.html
-    const int nPairsMax = CAConstants::maxNumberOfLayerPairs;
+    const int nPairsMax = caConstants::maxNumberOfLayerPairs;
     assert(nPairs <= nPairsMax);
     __shared__ uint32_t innerLayerCumulativeSize[nPairsMax];
     __shared__ uint32_t ntot;

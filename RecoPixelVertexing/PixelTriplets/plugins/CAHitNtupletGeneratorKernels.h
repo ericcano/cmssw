@@ -26,8 +26,8 @@ namespace cAHitNtupletGenerator {
   using HitsView = TrackingRecHit2DSOAView;
   using HitsOnGPU = TrackingRecHit2DSOAView;
 
-  using HitToTuple = CAConstants::HitToTuple;
-  using TupleMultiplicity = CAConstants::TupleMultiplicity;
+  using HitToTuple = caConstants::HitToTuple;
+  using TupleMultiplicity = caConstants::TupleMultiplicity;
 
   using Quality = pixelTrack::Quality;
   using TkSoA = pixelTrack::TrackSoA;
@@ -152,8 +152,8 @@ public:
   using HitsOnGPU = TrackingRecHit2DSOAView;
   using HitsOnCPU = TrackingRecHit2DHeterogeneous<Traits>;
 
-  using HitToTuple = CAConstants::HitToTuple;
-  using TupleMultiplicity = CAConstants::TupleMultiplicity;
+  using HitToTuple = caConstants::HitToTuple;
+  using TupleMultiplicity = caConstants::TupleMultiplicity;
 
   using Quality = pixelTrack::Quality;
   using TkSoA = pixelTrack::TrackSoA;
@@ -180,10 +180,10 @@ public:
 private:
   // workspace
   unique_ptr<unsigned char[]> cellStorage_;
-  unique_ptr<CAConstants::CellNeighborsVector> device_theCellNeighbors_;
-  CAConstants::CellNeighbors* device_theCellNeighborsContainer_;
-  unique_ptr<CAConstants::CellTracksVector> device_theCellTracks_;
-  CAConstants::CellTracks* device_theCellTracksContainer_;
+  unique_ptr<caConstants::CellNeighborsVector> device_theCellNeighbors_;
+  caConstants::CellNeighbors* device_theCellNeighborsContainer_;
+  unique_ptr<caConstants::CellTracksVector> device_theCellTracks_;
+  caConstants::CellTracks* device_theCellTracksContainer_;
 
   unique_ptr<GPUCACell[]> device_theCells_;
   unique_ptr<GPUCACell::OuterHitOfCell[]> device_isOuterHitOfCell_;

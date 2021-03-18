@@ -24,7 +24,7 @@ using OutputSoA = pixelTrack::TrackSoA;
 
 template <int N>
 __global__ void kernelBLFastFit(Tuples const *__restrict__ foundNtuplets,
-                                CAConstants::TupleMultiplicity const *__restrict__ tupleMultiplicity,
+                                caConstants::TupleMultiplicity const *__restrict__ tupleMultiplicity,
                                 HitsOnGPU const *__restrict__ hhp,
                                 double *__restrict__ phits,
                                 float *__restrict__ phits_ge,
@@ -116,7 +116,7 @@ __global__ void kernelBLFastFit(Tuples const *__restrict__ foundNtuplets,
 }
 
 template <int N>
-__global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ tupleMultiplicity,
+__global__ void kernelBLFit(caConstants::TupleMultiplicity const *__restrict__ tupleMultiplicity,
                             double bField,
                             OutputSoA *results,
                             double *__restrict__ phits,

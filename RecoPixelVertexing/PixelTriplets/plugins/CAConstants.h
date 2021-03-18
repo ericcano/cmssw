@@ -12,7 +12,8 @@
 
 //#define ONLY_PHICUT
 
-namespace CAConstants {
+// Cellular automaton constants
+namespace caConstants {
 
   // constants
 #ifdef ONLY_PHICUT
@@ -73,6 +74,6 @@ namespace CAConstants {
       cms::cuda::OneToManyAssoc<tindex_type, pixelGPUConstants::maxNumberOfHits, 4 * maxTuples>;  // 3.5 should be enough
   using TupleMultiplicity = cms::cuda::OneToManyAssoc<tindex_type, 8, maxTuples>;
 
-}  // namespace CAConstants
+}  // namespace caConstants
 
 #endif  // RecoPixelVertexing_PixelTriplets_plugins_CAConstants_h
