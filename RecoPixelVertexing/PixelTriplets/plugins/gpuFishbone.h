@@ -38,8 +38,8 @@ namespace gpuPixelDoublets {
 
     for (int idy = firstY, nt = nHits; idy < nt; idy += gridDim.y * blockDim.y) {
       auto const& vc = isOuterHitOfCell[idy];
-      auto s = vc.size();
-      if (s < 2)
+      auto size = vc.size();
+      if (size < 2)
         continue;
       // if alligned kill one of the two.
       // in principle one could try to relax the cut (only in r-z?) for jumping-doublets
@@ -48,7 +48,7 @@ namespace gpuPixelDoublets {
       auto yo = c0.outer_y(hh);
       auto zo = c0.outer_z(hh);
       auto sg = 0;
-      for (int32_t ic = 0; ic < s; ++ic) {
+      for (int32_t ic = 0; ic < size; ++ic) {
         auto& ci = cells[vc[ic]];
         if (ci.unused())
           continue;  // for triplets equivalent to next
