@@ -1,5 +1,5 @@
-#ifndef RecoLocalTracker_SiPixelRecHits_plugins_gpuFishbone_h
-#define RecoLocalTracker_SiPixelRecHits_plugins_gpuFishbone_h
+#ifndef RecoPixelVertexing_PixelTriplets_plugins_gpuFishbone_h
+#define RecoPixelVertexing_PixelTriplets_plugins_gpuFishbone_h
 
 #include <algorithm>
 #include <cmath>
@@ -88,4 +88,4 @@ namespace gpuPixelDoublets {
   }
 }  // namespace gpuPixelDoublets
 
-#endif  // RecoLocalTracker_SiPixelRecHits_plugins_gpuFishbone_h
+#endif  // RecoPixelVertexing_PixelTriplets_plugins_gpuFishbone_h
