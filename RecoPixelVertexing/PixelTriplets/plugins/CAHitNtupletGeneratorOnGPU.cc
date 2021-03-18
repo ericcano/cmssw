@@ -176,7 +176,7 @@ PixelTrackHeterogeneous CAHitNtupletGeneratorOnGPU::makeTuplesAsync(TrackingRecH
   auto* soa = tracks.get();
 
   CAHitNtupletGeneratorKernelsGPU kernels(m_params);
-  kernels.counters_ = m_counters;
+  kernels.setCounters(m_counters);
 
   kernels.allocateOnGPU(stream);
 
@@ -203,7 +203,7 @@ PixelTrackHeterogeneous CAHitNtupletGeneratorOnGPU::makeTuples(TrackingRecHit2DC
   assert(soa);
 
   CAHitNtupletGeneratorKernelsCPU kernels(m_params);
-  kernels.counters_ = m_counters;
+  kernels.setCounters(m_counters);
   kernels.allocateOnGPU(nullptr);
 
   kernels.buildDoublets(hits_d, nullptr);

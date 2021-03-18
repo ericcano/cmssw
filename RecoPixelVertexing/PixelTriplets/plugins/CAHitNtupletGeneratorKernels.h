@@ -39,14 +39,14 @@ namespace cAHitNtupletGenerator {
     float chi2MaxPt;  // GeV
     float chi2Scale;
 
-    struct region {
+    struct Region {
       float maxTip;  // cm
       float minPt;   // GeV
       float maxZip;  // cm
     };
 
-    region triplet;
-    region quadruplet;
+    Region triplet;
+    Region quadruplet;
   };
 
   // params
@@ -176,9 +176,10 @@ public:
   void cleanup(cudaStream_t cudaStream);
 
   static void printCounters(Counters const* counters);
+  void setCounters(Counters* counters) { counters_ = counters; }
+private:
   Counters* counters_ = nullptr;
 
-private:
   // workspace
   unique_ptr<unsigned char[]> cellStorage_;
   unique_ptr<caConstants::CellNeighborsVector> device_theCellNeighbors_;
