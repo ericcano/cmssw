@@ -44,9 +44,9 @@ namespace gpuPixelDoublets {
       // if alligned kill one of the two.
       // in principle one could try to relax the cut (only in r-z?) for jumping-doublets
       auto const& c0 = cells[vc[0]];
-      auto xo = c0.get_outer_x(hh);
-      auto yo = c0.get_outer_y(hh);
-      auto zo = c0.get_outer_z(hh);
+      auto xo = c0.outer_x(hh);
+      auto yo = c0.outer_y(hh);
+      auto zo = c0.outer_z(hh);
       auto sg = 0;
       for (int32_t ic = 0; ic < s; ++ic) {
         auto& ci = cells[vc[ic]];
@@ -55,10 +55,10 @@ namespace gpuPixelDoublets {
         if (checkTrack && ci.tracks().empty())
           continue;
         cc[sg] = vc[ic];
-        d[sg] = ci.get_inner_detIndex(hh);
-        x[sg] = ci.get_inner_x(hh) - xo;
-        y[sg] = ci.get_inner_y(hh) - yo;
-        z[sg] = ci.get_inner_z(hh) - zo;
+        d[sg] = ci.inner_detIndex(hh);
+        x[sg] = ci.inner_x(hh) - xo;
+        y[sg] = ci.inner_y(hh) - yo;
+        z[sg] = ci.inner_z(hh) - zo;
         n[sg] = x[sg] * x[sg] + y[sg] * y[sg] + z[sg] * z[sg];
         ++sg;
       }

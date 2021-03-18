@@ -96,7 +96,7 @@ __global__ void kernel_checkOverflows(HitContainer const *foundNtuplets,
       atomicAdd(&c.nKilledCells, 1);
     if (thisCell.unused())
       atomicAdd(&c.nEmptyCells, 1);
-    if (0 == hitToTuple->size(thisCell.get_inner_hit_id()) && 0 == hitToTuple->size(thisCell.get_outer_hit_id()))
+    if (0 == hitToTuple->size(thisCell.inner_hit_id()) && 0 == hitToTuple->size(thisCell.outer_hit_id()))
       atomicAdd(&c.nZeroTrackCells, 1);
   }
 
@@ -220,22 +220,22 @@ __global__ void kernel_connect(cms::cuda::AtomicPairCounter *apc1,
   for (int idx = firstCellIndex, nt = (*nCells); idx < nt; idx += gridDim.y * blockDim.y) {
     auto cellIndex = idx;
     auto &thisCell = cells[idx];
-    auto innerHitId = thisCell.get_inner_hit_id();
+    auto innerHitId = thisCell.inner_hit_id();
     int numberOfPossibleNeighbors = isOuterHitOfCell[innerHitId].size();
     auto vi = isOuterHitOfCell[innerHitId].data();
 
-    auto ri = thisCell.get_inner_r(hh);
-    auto zi = thisCell.get_inner_z(hh);
+    auto ri = thisCell.inner_r(hh);
+    auto zi = thisCell.inner_z(hh);
 
-    auto ro = thisCell.get_outer_r(hh);
-    auto zo = thisCell.get_outer_z(hh);
-    auto isBarrel = thisCell.get_inner_detIndex(hh) < caConstants::last_barrel_detIndex;
+    auto ro = thisCell.outer_r(hh);
+    auto zo = thisCell.outer_z(hh);
+    auto isBarrel = thisCell.inner_detIndex(hh) < caConstants::last_barrel_detIndex;
 
     for (int j = first; j < numberOfPossibleNeighbors; j += stride) {
       auto otherCell = __ldg(vi + j);
       auto &oc = cells[otherCell];
-      auto r1 = oc.get_inner_r(hh);
-      auto z1 = oc.get_inner_z(hh);
+      auto r1 = oc.inner_r(hh);
+      auto z1 = oc.inner_z(hh);
       bool aligned = GPUCACell::areAlignedRZ(
           r1,
           z1,
@@ -248,7 +248,7 @@ __global__ void kernel_connect(cms::cuda::AtomicPairCounter *apc1,
       if (aligned &&
           thisCell.dcaCut(hh,
                           oc,
-                          oc.get_inner_detIndex(hh) < caConstants::last_bpix1_detIndex ? dcaCutInnerTriplet : dcaCutOuterTriplet,
+                          oc.inner_detIndex(hh) < caConstants::last_bpix1_detIndex ? dcaCutInnerTriplet : dcaCutOuterTriplet,
                           hardCurvCut)) {  // FIXME tune cuts
         oc.addOuterNeighbor(cellIndex, *cellNeighbors);
         thisCell.setUsedBit(1);

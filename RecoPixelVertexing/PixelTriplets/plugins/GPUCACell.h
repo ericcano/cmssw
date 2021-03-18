@@ -106,25 +106,25 @@ public:
   __device__ __forceinline__ CellTracks const& tracks() const { return *theTracks; }
   __device__ __forceinline__ CellNeighbors& outerNeighbors() { return *theOuterNeighbors; }
   __device__ __forceinline__ CellNeighbors const& outerNeighbors() const { return *theOuterNeighbors; }
-  __device__ __forceinline__ float get_inner_x(Hits const& hh) const { return hh.xGlobal(theInnerHitId); }
-  __device__ __forceinline__ float get_outer_x(Hits const& hh) const { return hh.xGlobal(theOuterHitId); }
-  __device__ __forceinline__ float get_inner_y(Hits const& hh) const { return hh.yGlobal(theInnerHitId); }
-  __device__ __forceinline__ float get_outer_y(Hits const& hh) const { return hh.yGlobal(theOuterHitId); }
-  __device__ __forceinline__ float get_inner_z(Hits const& hh) const { return theInnerZ; }
+  __device__ __forceinline__ float inner_x(Hits const& hh) const { return hh.xGlobal(theInnerHitId); }
+  __device__ __forceinline__ float outer_x(Hits const& hh) const { return hh.xGlobal(theOuterHitId); }
+  __device__ __forceinline__ float inner_y(Hits const& hh) const { return hh.yGlobal(theInnerHitId); }
+  __device__ __forceinline__ float outer_y(Hits const& hh) const { return hh.yGlobal(theOuterHitId); }
+  __device__ __forceinline__ float inner_z(Hits const& hh) const { return theInnerZ; }
   // { return hh.zGlobal(theInnerHitId); } // { return theInnerZ; }
-  __device__ __forceinline__ float get_outer_z(Hits const& hh) const { return hh.zGlobal(theOuterHitId); }
-  __device__ __forceinline__ float get_inner_r(Hits const& hh) const { return theInnerR; }
+  __device__ __forceinline__ float outer_z(Hits const& hh) const { return hh.zGlobal(theOuterHitId); }
+  __device__ __forceinline__ float inner_r(Hits const& hh) const { return theInnerR; }
   // { return hh.rGlobal(theInnerHitId); } // { return theInnerR; }
-  __device__ __forceinline__ float get_outer_r(Hits const& hh) const { return hh.rGlobal(theOuterHitId); }
+  __device__ __forceinline__ float outer_r(Hits const& hh) const { return hh.rGlobal(theOuterHitId); }
 
-  __device__ __forceinline__ auto get_inner_iphi(Hits const& hh) const { return hh.iphi(theInnerHitId); }
-  __device__ __forceinline__ auto get_outer_iphi(Hits const& hh) const { return hh.iphi(theOuterHitId); }
+  __device__ __forceinline__ auto inner_iphi(Hits const& hh) const { return hh.iphi(theInnerHitId); }
+  __device__ __forceinline__ auto outer_iphi(Hits const& hh) const { return hh.iphi(theOuterHitId); }
 
-  __device__ __forceinline__ float get_inner_detIndex(Hits const& hh) const { return hh.detectorIndex(theInnerHitId); }
-  __device__ __forceinline__ float get_outer_detIndex(Hits const& hh) const { return hh.detectorIndex(theOuterHitId); }
+  __device__ __forceinline__ float inner_detIndex(Hits const& hh) const { return hh.detectorIndex(theInnerHitId); }
+  __device__ __forceinline__ float outer_detIndex(Hits const& hh) const { return hh.detectorIndex(theOuterHitId); }
 
-  constexpr unsigned int get_inner_hit_id() const { return theInnerHitId; }
-  constexpr unsigned int get_outer_hit_id() const { return theOuterHitId; }
+  constexpr unsigned int inner_hit_id() const { return theInnerHitId; }
+  constexpr unsigned int outer_hit_id() const { return theOuterHitId; }
 
   __device__ void print_cell() const {
     printf("printing cell: %d, on layerPair: %d, innerHitId: %d, outerHitId: %d \n",
@@ -145,15 +145,15 @@ public:
     // detIndex of the layerStart for the Phase1 Pixel Detector:
     // [BPX1, BPX2, BPX3, BPX4,  FP1,  FP2,  FP3,  FN1,  FN2,  FN3, LAST_VALID]
     // [   0,   96,  320,  672, 1184, 1296, 1408, 1520, 1632, 1744,       1856]
-    auto ri = get_inner_r(hh);
-    auto zi = get_inner_z(hh);
+    auto ri = inner_r(hh);
+    auto zi = inner_z(hh);
 
-    auto ro = get_outer_r(hh);
-    auto zo = get_outer_z(hh);
+    auto ro = outer_r(hh);
+    auto zo = outer_z(hh);
 
-    auto r1 = otherCell.get_inner_r(hh);
-    auto z1 = otherCell.get_inner_z(hh);
-    auto isBarrel = otherCell.get_outer_detIndex(hh) < caConstants::last_barrel_detIndex;
+    auto r1 = otherCell.inner_r(hh);
+    auto z1 = otherCell.inner_z(hh);
+    auto isBarrel = otherCell.outer_detIndex(hh) < caConstants::last_barrel_detIndex;
     bool aligned = areAlignedRZ(r1,
                                 z1,
                                 ri,
@@ -165,7 +165,7 @@ public:
     return (aligned &&
             dcaCut(hh,
                    otherCell,
-                   otherCell.get_inner_detIndex(hh) < caConstants::last_bpix1_detIndex ? dcaCutInnerTriplet : dcaCutOuterTriplet,
+                   otherCell.inner_detIndex(hh) < caConstants::last_bpix1_detIndex ? dcaCutInnerTriplet : dcaCutOuterTriplet,
                    hardCurvCut));  // FIXME tune cuts
   }
 
@@ -185,14 +185,14 @@ public:
                                 GPUCACell const& otherCell,
                                 const float region_origin_radius_plus_tolerance,
                                 const float maxCurv) const {
-    auto x1 = otherCell.get_inner_x(hh);
-    auto y1 = otherCell.get_inner_y(hh);
+    auto x1 = otherCell.inner_x(hh);
+    auto y1 = otherCell.inner_y(hh);
 
-    auto x2 = get_inner_x(hh);
-    auto y2 = get_inner_y(hh);
+    auto x2 = inner_x(hh);
+    auto y2 = inner_y(hh);
 
-    auto x3 = get_outer_x(hh);
-    auto y3 = get_outer_y(hh);
+    auto x3 = outer_x(hh);
+    auto y3 = outer_y(hh);
 
     CircleEq<float> eq(x1, y1, x2, y2, x3, y3);
 
@@ -223,17 +223,17 @@ public:
     using caConstants::first_ladder_bpx0;
     using caConstants::module_length_bpx0;
     using caConstants::module_tolerance_bpx0;
-    int p = innerCell.get_inner_iphi(hh);
+    int p = innerCell.inner_iphi(hh);
     if (p < 0)
       p += std::numeric_limits<unsigned short>::max();
     p = (max_ladder_bpx0 * p) / std::numeric_limits<unsigned short>::max();
     p %= max_ladder_bpx0;
     auto il = first_ladder_bpx0 + p;
     auto r0 = hh.averageGeometry().ladderR[il];
-    auto ri = innerCell.get_inner_r(hh);
-    auto zi = innerCell.get_inner_z(hh);
-    auto ro = get_outer_r(hh);
-    auto zo = get_outer_z(hh);
+    auto ri = innerCell.inner_r(hh);
+    auto zi = innerCell.inner_z(hh);
+    auto ro = outer_r(hh);
+    auto zo = outer_z(hh);
     auto z0 = zi + (r0 - ri) * (zo - zi) / (ro - ri);
     auto z_in_ladder = std::abs(z0 - hh.averageGeometry().ladderZ[il]);
     auto z_in_module = z_in_ladder - module_length_bpx0 * int(z_in_ladder / module_length_bpx0);
@@ -246,17 +246,17 @@ public:
     using caConstants::first_ladder_bpx4;
     using caConstants::module_length_bpx4;
     using caConstants::module_tolerance_bpx4;
-    int p = get_outer_iphi(hh);
+    int p = outer_iphi(hh);
     if (p < 0)
       p += std::numeric_limits<unsigned short>::max();
     p = (max_ladder_bpx4 * p) / std::numeric_limits<unsigned short>::max();
     p %= max_ladder_bpx4;
     auto il = first_ladder_bpx4 + p;
     auto r4 = hh.averageGeometry().ladderR[il];
-    auto ri = innerCell.get_inner_r(hh);
-    auto zi = innerCell.get_inner_z(hh);
-    auto ro = get_outer_r(hh);
-    auto zo = get_outer_z(hh);
+    auto ri = innerCell.inner_r(hh);
+    auto zi = innerCell.inner_z(hh);
+    auto ro = outer_r(hh);
+    auto zo = outer_z(hh);
     auto z4 = zo + (r4 - ro) * (zo - zi) / (ro - ri);
     auto z_in_ladder = std::abs(z4 - hh.averageGeometry().ladderZ[il]);
     auto z_in_module = z_in_ladder - module_length_bpx4 * int(z_in_ladder / module_length_bpx4);
