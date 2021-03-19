@@ -13,10 +13,10 @@ void HelixFitOnGPU::launchRiemannKernelsOnCPU(HitsView const *hv, uint32_t nhits
 
   for (uint32_t offset = 0; offset < maxNumberOfTuples; offset += maxNumberOfConcurrentFits_) {
     // triplets
-    kernelFastFit<3>(
+    kernel_FastFit<3>(
         tuples_, tupleMultiplicity_, 3, hv, hitsGPU.get(), hits_geGPU.get(), fast_fit_resultsGPU.get(), offset);
 
-    kernelCircleFit<3>(tupleMultiplicity_,
+    kernel_CircleFit<3>(tupleMultiplicity_,
                        3,
                        bField_,
                        hitsGPU.get(),
@@ -25,7 +25,7 @@ void HelixFitOnGPU::launchRiemannKernelsOnCPU(HitsView const *hv, uint32_t nhits
                        circle_fit_resultsGPU,
                        offset);
 
-    kernelLineFit<3>(tupleMultiplicity_,
+    kernel_LineFit<3>(tupleMultiplicity_,
                      3,
                      bField_,
                      outputSoa_,
@@ -36,10 +36,10 @@ void HelixFitOnGPU::launchRiemannKernelsOnCPU(HitsView const *hv, uint32_t nhits
                      offset);
 
     // quads
-    kernelFastFit<4>(
+    kernel_FastFit<4>(
         tuples_, tupleMultiplicity_, 4, hv, hitsGPU.get(), hits_geGPU.get(), fast_fit_resultsGPU.get(), offset);
 
-    kernelCircleFit<4>(tupleMultiplicity_,
+    kernel_CircleFit<4>(tupleMultiplicity_,
                        4,
                        bField_,
                        hitsGPU.get(),
@@ -48,7 +48,7 @@ void HelixFitOnGPU::launchRiemannKernelsOnCPU(HitsView const *hv, uint32_t nhits
                        circle_fit_resultsGPU,
                        offset);
 
-    kernelLineFit<4>(tupleMultiplicity_,
+    kernel_LineFit<4>(tupleMultiplicity_,
                      4,
                      bField_,
                      outputSoa_,
@@ -60,10 +60,10 @@ void HelixFitOnGPU::launchRiemannKernelsOnCPU(HitsView const *hv, uint32_t nhits
 
     if (fit5as4_) {
       // penta
-      kernelFastFit<4>(
+      kernel_FastFit<4>(
           tuples_, tupleMultiplicity_, 5, hv, hitsGPU.get(), hits_geGPU.get(), fast_fit_resultsGPU.get(), offset);
 
-      kernelCircleFit<4>(tupleMultiplicity_,
+      kernel_CircleFit<4>(tupleMultiplicity_,
                          5,
                          bField_,
                          hitsGPU.get(),
@@ -72,7 +72,7 @@ void HelixFitOnGPU::launchRiemannKernelsOnCPU(HitsView const *hv, uint32_t nhits
                          circle_fit_resultsGPU,
                          offset);
 
-      kernelLineFit<4>(tupleMultiplicity_,
+      kernel_LineFit<4>(tupleMultiplicity_,
                        5,
                        bField_,
                        outputSoa_,
@@ -84,10 +84,10 @@ void HelixFitOnGPU::launchRiemannKernelsOnCPU(HitsView const *hv, uint32_t nhits
 
     } else {
       // penta all 5
-      kernelFastFit<5>(
+      kernel_FastFit<5>(
           tuples_, tupleMultiplicity_, 5, hv, hitsGPU.get(), hits_geGPU.get(), fast_fit_resultsGPU.get(), offset);
 
-      kernelCircleFit<5>(tupleMultiplicity_,
+      kernel_CircleFit<5>(tupleMultiplicity_,
                          5,
                          bField_,
                          hitsGPU.get(),
@@ -96,7 +96,7 @@ void HelixFitOnGPU::launchRiemannKernelsOnCPU(HitsView const *hv, uint32_t nhits
                          circle_fit_resultsGPU,
                          offset);
 
-      kernelLineFit<5>(tupleMultiplicity_,
+      kernel_LineFit<5>(tupleMultiplicity_,
                        5,
                        bField_,
                        outputSoa_,

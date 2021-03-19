@@ -19,7 +19,7 @@ using Tuples = pixelTrack::HitContainer;
 using OutputSoA = pixelTrack::TrackSoA;
 
 template <int N>
-__global__ void kernelFastFit(Tuples const *__restrict__ foundNtuplets,
+__global__ void kernel_FastFit(Tuples const *__restrict__ foundNtuplets,
                               caConstants::TupleMultiplicity const *__restrict__ tupleMultiplicity,
                               uint32_t nHits,
                               HitsOnGPU const *__restrict__ hhp,
@@ -84,7 +84,7 @@ __global__ void kernelFastFit(Tuples const *__restrict__ foundNtuplets,
 }
 
 template <int N>
-__global__ void kernelCircleFit(caConstants::TupleMultiplicity const *__restrict__ tupleMultiplicity,
+__global__ void kernel_CircleFit(caConstants::TupleMultiplicity const *__restrict__ tupleMultiplicity,
                                 uint32_t nHits,
                                 double bField,
                                 double *__restrict__ phits,
@@ -125,7 +125,7 @@ __global__ void kernelCircleFit(caConstants::TupleMultiplicity const *__restrict
 }
 
 template <int N>
-__global__ void kernelLineFit(caConstants::TupleMultiplicity const *__restrict__ tupleMultiplicity,
+__global__ void kernel_LineFit(caConstants::TupleMultiplicity const *__restrict__ tupleMultiplicity,
                               uint32_t nHits,
                               double bField,
                               OutputSoA *results,

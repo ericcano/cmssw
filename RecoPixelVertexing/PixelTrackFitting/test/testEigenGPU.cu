@@ -99,7 +99,7 @@ __global__ void kernelBrokenLineFit(double* __restrict__ phits,
 #else
 
 template <int N>
-__global__ void kernelCircleFit(double* __restrict__ phits,
+__global__ void kernel_CircleFit(double* __restrict__ phits,
                                 float* __restrict__ phits_ge,
                                 double* __restrict__ pfast_fit_input,
                                 double B,
@@ -298,7 +298,7 @@ void testFit() {
       riemannFit::circleFit(hits.block(0, 0, 2, N), hits_cov, fast_fit_results, rad, B, true);
 
   // CIRCLE_FIT GPU
-  kernelCircleFit<N><<<Ntracks / 64, 64>>>(hitsGPU, hits_geGPU, fast_fit_resultsGPU, B, circle_fit_resultsGPU);
+  kernel_CircleFit<N><<<Ntracks / 64, 64>>>(hitsGPU, hits_geGPU, fast_fit_resultsGPU, B, circle_fit_resultsGPU);
   cudaDeviceSynchronize();
 
   // LINE_FIT CPU
