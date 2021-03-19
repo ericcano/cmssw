@@ -1,5 +1,5 @@
-#ifndef CUDADataFormatsTrackTrajectoryStateSOA_t_H
-#define CUDADataFormatsTrackTrajectoryStateSOA_t_H
+#ifndef CUDADataFormats_Track_TrajectoryStateSOAT_H
+#define CUDADataFormats_Track_TrajectoryStateSOAT_H
 
 #include <Eigen/Dense>
 #include "HeterogeneousCore/CUDAUtilities/interface/eigenSoA.h"
@@ -56,4 +56,4 @@ struct TrajectoryStateSoAT {
   }
 };
 
-#endif  // CUDADataFormatsTrackTrajectoryStateSOA_t_H
+#endif  // CUDADataFormats_Track_TrajectoryStateSOAT_H

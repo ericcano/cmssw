@@ -14,7 +14,7 @@
 #include "HeterogeneousCore/CUDAUtilities/interface/VecArray.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/cuda_assert.h"
 #include "RecoPixelVertexing/PixelTriplets/interface/CircleEq.h"
-#include "CUDADataFormats/Track/interface/PixelTrackHeterogeneous_t.h"
+#include "CUDADataFormats/Track/interface/PixelTrackHeterogeneousT.h"
 #include "CAConstants.h"
 
 class GPUCACell {

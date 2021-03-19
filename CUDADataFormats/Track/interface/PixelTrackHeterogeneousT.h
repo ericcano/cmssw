@@ -1,7 +1,7 @@
-#ifndef CUDADataFormatsTrackTrackHeterogeneous_t_H
-#define CUDADataFormatsTrackTrackHeterogeneous_t_H
+#ifndef CUDADataFormats_Track_TrackHeterogeneousT_H
+#define CUDADataFormats_Track_TrackHeterogeneousT_H
 
-#include "CUDADataFormats/Track/interface/TrajectoryStateSoA_t.h"
+#include "CUDADataFormats/Track/interface/TrajectoryStateSoAT.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/HistoContainer.h"
 
 #include "CUDADataFormats/Common/interface/HeterogeneousSoA.h"
@@ -71,4 +71,4 @@ namespace pixelTrack {
 
 using PixelTrackHeterogeneous = HeterogeneousSoA<pixelTrack::TrackSoA>;
 
-#endif  // CUDADataFormatsTrackTrackSoA_t_H
+#endif  // CUDADataFormats_Track_TrackHeterogeneousT_H
