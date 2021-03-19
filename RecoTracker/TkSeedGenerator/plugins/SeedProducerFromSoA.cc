@@ -43,15 +43,22 @@ public:
 private:
   void produce(edm::StreamID streamID, edm::Event& iEvent, const edm::EventSetup& iSetup) const override;
 
-  edm::EDGetTokenT<reco::BeamSpot> tBeamSpot_;
-  edm::EDGetTokenT<PixelTrackHeterogeneous> tokenTrack_;
-
+  // Event data tokens
+  const edm::EDGetTokenT<reco::BeamSpot> tBeamSpot_;
+  const edm::EDGetTokenT<PixelTrackHeterogeneous> tokenTrack_;
+  // Event setup tokens
+  const edm::ESGetToken<MagneticField, IdealMagneticFieldRecord> idealMagneticFieldToken_;
+  const edm::ESGetToken<TrackerGeometry, TrackerDigiGeometryRecord> trackerDigiGeometryToken_;
+  const edm::ESGetToken<Propagator, TrackingComponentsRecord> trackerPropagatorToken_;
   int32_t minNumberOfHits_;
 };
 
 SeedProducerFromSoA::SeedProducerFromSoA(const edm::ParameterSet& iConfig)
     : tBeamSpot_(consumes<reco::BeamSpot>(iConfig.getParameter<edm::InputTag>("beamSpot"))),
       tokenTrack_(consumes<PixelTrackHeterogeneous>(iConfig.getParameter<edm::InputTag>("src"))),
+      idealMagneticFieldToken_(esConsumes()),
+      trackerDigiGeometryToken_(esConsumes()),
+      trackerPropagatorToken_(esConsumes(edm::ESInputTag("PropagatorWithMaterial"))),
       minNumberOfHits_(iConfig.getParameter<int>("minNumberOfHits"))
 
 {
@@ -71,19 +78,12 @@ void SeedProducerFromSoA::produce(edm::StreamID streamID, edm::Event& iEvent, co
   // std::cout << "Converting gpu helix to trajectory seed" << std::endl;
   auto result = std::make_unique<TrajectorySeedCollection>();
 
-  edm::ESHandle<MagneticField> fieldESH;
-  iSetup.get<IdealMagneticFieldRecord>().get(fieldESH);
+  auto const &fieldESH = iSetup.getHandle(idealMagneticFieldToken_);
+  auto const &tracker = iSetup.getHandle(trackerDigiGeometryToken_);
+  auto const &dus = tracker->detUnits();
 
-  edm::ESHandle<TrackerGeometry> tracker;
-  iSetup.get<TrackerDigiGeometryRecord>().get(tracker);
-  auto const& dus = tracker->detUnits();
-
-  edm::ESHandle<Propagator> propagatorHandle;
-  iSetup.get<TrackingComponentsRecord>().get("PropagatorWithMaterial", propagatorHandle);
+  auto const &propagatorHandle = iSetup.getHandle(trackerPropagatorToken_);
   const Propagator* propagator = &(*propagatorHandle);
-
-  edm::ESHandle<TrackerTopology> httopo;
-  iSetup.get<TrackerTopologyRcd>().get(httopo);
 
   const auto& bsh = iEvent.get(tBeamSpot_);
   // std::cout << "beamspot " << bsh.x0() << ' ' << bsh.y0() << ' ' << bsh.z0() << std::endl;
