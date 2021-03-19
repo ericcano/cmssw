@@ -1,7 +1,7 @@
 #include <cuda_runtime.h>
 
 #include "CUDADataFormats/Common/interface/Product.h"
-#include "CUDADataFormats/Track/interface/PixelTrackHeterogeneousT.h"
+#include "CUDADataFormats/Track/interface/PixelTrackHeterogeneous.h"
 #include "CUDADataFormats/TrackingRecHit/interface/TrackingRecHit2DHeterogeneous.h"
 #include "CUDADataFormats/Vertex/interface/ZVertexHeterogeneous.h"
 #include "DataFormats/Common/interface/Handle.h"

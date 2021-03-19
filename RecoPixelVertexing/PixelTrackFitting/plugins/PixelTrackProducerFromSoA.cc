@@ -28,7 +28,7 @@
 #include "RecoPixelVertexing/PixelTrackFitting/interface/FitUtils.h"
 
 #include "CUDADataFormats/Common/interface/HostProduct.h"
-#include "CUDADataFormats/Track/interface/PixelTrackHeterogeneousT.h"
+#include "CUDADataFormats/Track/interface/PixelTrackHeterogeneous.h"
 #include "CUDADataFormats/SiPixelCluster/interface/gpuClusteringConstants.h"
 
 #include "storeTracks.h"

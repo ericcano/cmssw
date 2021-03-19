@@ -1,4 +1,4 @@
-#include "CUDADataFormats/Track/interface/PixelTrackHeterogeneousT.h"
+#include "CUDADataFormats/Track/interface/PixelTrackHeterogeneous.h"
 #include "DataFormats/BeamSpot/interface/BeamSpot.h"
 #include "DataFormats/GeometrySurface/interface/Plane.h"
 #include "DataFormats/TrackerCommon/interface/TrackerTopology.h"

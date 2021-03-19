@@ -69,6 +69,4 @@ namespace pixelTrack {
 
 }  // namespace pixelTrack
 
-using PixelTrackHeterogeneous = HeterogeneousSoA<pixelTrack::TrackSoA>;
-
 #endif  // CUDADataFormats_Track_TrackHeterogeneousT_H
