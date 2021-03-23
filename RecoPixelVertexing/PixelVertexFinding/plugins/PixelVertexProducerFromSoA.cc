@@ -23,6 +23,8 @@
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
 
+#undef PIXVERTEX_DEBUG_PRODUCE
+
 class PixelVertexProducerFromSoA : public edm::global::EDProducer<> {
 public:
   using IndToEdm = std::vector<uint16_t>;
@@ -62,12 +64,8 @@ void PixelVertexProducerFromSoA::fillDescriptions(edm::ConfigurationDescriptions
 void PixelVertexProducerFromSoA::produce(edm::StreamID streamID, edm::Event &iEvent, const edm::EventSetup &) const {
   auto vertexes = std::make_unique<reco::VertexCollection>();
 
-  edm::Handle<reco::TrackCollection> trackCollection;
-  iEvent.getByToken(tokenTracks_, trackCollection);
-  auto const &tracks = *(trackCollection.product());
-  edm::Handle<IndToEdm> indToEdmH;
-  iEvent.getByToken(tokenIndToEdm_, indToEdmH);
-  auto const &indToEdm = *indToEdmH;
+  auto const &tracks = iEvent.get(tokenTracks_);
+  auto const &indToEdm = iEvent.get(tokenIndToEdm_);
 
   edm::Handle<reco::BeamSpot> bsHandle;
   iEvent.getByToken(tokenBeamSpot_, bsHandle);
@@ -89,7 +87,9 @@ void PixelVertexProducerFromSoA::produce(edm::StreamID streamID, edm::Event &iEv
 
   int nv = soa.nvFinal;
 
-  // std::cout << "converting " << nv << " vertices " << " from " << indToEdm.size() << " tracks" << std::endl;
+#ifdef PIXVERTEX_DEBUG_PRODUCE
+  std::cout << "converting " << nv << " vertices " << " from " << indToEdm.size() << " tracks" << std::endl;
+#endif // PIXVERTEX_DEBUG_PRODUCE 
 
   std::set<uint16_t> uind;  // fort verifing index consistency
   for (int j = nv - 1; j >= 0; --j) {
@@ -111,7 +111,9 @@ void PixelVertexProducerFromSoA::produce(edm::StreamID streamID, edm::Event &iEv
     }
     auto nt = itrk.size();
     if (nt == 0) {
+#ifdef PIXVERTEX_DEBUG_PRODUCE
       std::cout << "vertex " << i << " with no tracks..." << std::endl;
+#endif // PIXVERTEX_DEBUG_PRODUCE
       continue;
     }
     if (nt < 2) {
@@ -127,6 +129,7 @@ void PixelVertexProducerFromSoA::produce(edm::StreamID streamID, edm::Event &iEv
         edm::LogWarning("PixelVertexProducer") << "oops track " << it << " does not exists on CPU " << k;
         continue;
       }
+      auto trackCollection = iEvent.getHandle(tokenTracks_);
       auto tk = reco::TrackRef(trackCollection, k);
       v.add(reco::TrackBaseRef(tk));
     }
