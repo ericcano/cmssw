@@ -7,6 +7,8 @@
 #include "gpuSortByPt2.h"
 #include "gpuSplitVertices.h"
 
+#undef PIXVERTEX_DEBUG_PRODUCE
+
 namespace gpuVertexFinder {
 
   __global__ void loadTracks(TkSoA const* ptracks, ZVertexSoA* soa, WorkSpace* pws, float ptMin) {
@@ -85,11 +87,15 @@ namespace gpuVertexFinder {
 
 #ifdef __CUDACC__
   ZVertexHeterogeneous Producer::makeAsync(cudaStream_t stream, TkSoA const* tksoa, float ptMin) const {
-    // std::cout << "producing Vertices on GPU" << std::endl;
+#ifdef PIXVERTEX_DEBUG_PRODUCE
+    std::cout << "producing Vertices on GPU" << std::endl;
+#endif // PIXVERTEX_DEBUG_PRODUCE
     ZVertexHeterogeneous vertices(cms::cuda::make_device_unique<ZVertexSoA>(stream));
 #else
   ZVertexHeterogeneous Producer::make(TkSoA const* tksoa, float ptMin) const {
-    // std::cout << "producing Vertices on  CPU" <<    std::endl;
+#ifdef PIXVERTEX_DEBUG_PRODUCE
+    std::cout << "producing Vertices on  CPU" <<    std::endl;
+#endif // PIXVERTEX_DEBUG_PRODUCE
     ZVertexHeterogeneous vertices(std::make_unique<ZVertexSoA>());
 #endif
     assert(tksoa);
@@ -153,7 +159,9 @@ namespace gpuVertexFinder {
     } else if (useIterative_) {
       clusterTracksIterative(soa, ws_d.get(), minT, eps, errmax, chi2max);
     }
-    // std::cout << "found " << (*ws_d).nvIntermediate << " vertices " << std::endl;
+#ifdef PIXVERTEX_DEBUG_PRODUCE
+    std::cout << "found " << (*ws_d).nvIntermediate << " vertices " << std::endl;
+#endif // PIXVERTEX_DEBUG_PRODUCE
     fitVertices(soa, ws_d.get(), 50.);
     // one block per vertex!
     splitVertices(soa, ws_d.get(), 9.f);
