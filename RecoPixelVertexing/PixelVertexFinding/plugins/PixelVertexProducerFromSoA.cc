@@ -65,6 +65,7 @@ void PixelVertexProducerFromSoA::produce(edm::StreamID streamID, edm::Event &iEv
   auto vertexes = std::make_unique<reco::VertexCollection>();
 
   auto tracksHandle = iEvent.getHandle(tokenTracks_);
+  auto tracksSize = tracksHandle->size();
   auto const &indToEdm = iEvent.get(tokenIndToEdm_);
   auto bsHandle = iEvent.getHandle(tokenBeamSpot_);
 
@@ -124,7 +125,7 @@ void PixelVertexProducerFromSoA::produce(edm::StreamID streamID, edm::Event &iEv
     for (auto it : itrk) {
       assert(it < int(indToEdm.size()));
       auto k = indToEdm[it];
-      if (k > tracksHandle->size()) {
+      if (k > tracksSize) {
         edm::LogWarning("PixelVertexProducer") << "oops track " << it << " does not exists on CPU " << k;
         continue;
       }
