@@ -92,6 +92,7 @@ void PixelVertexProducerFromSoA::produce(edm::StreamID streamID, edm::Event &iEv
 #endif // PIXVERTEX_DEBUG_PRODUCE 
 
   std::set<uint16_t> uind;  // fort verifing index consistency
+  auto trackCollection = iEvent.getHandle(tokenTracks_);
   for (int j = nv - 1; j >= 0; --j) {
     auto i = soa.sortInd[j];  // on gpu sorted in ascending order....
     assert(i < nv);
@@ -129,7 +130,6 @@ void PixelVertexProducerFromSoA::produce(edm::StreamID streamID, edm::Event &iEv
         edm::LogWarning("PixelVertexProducer") << "oops track " << it << " does not exists on CPU " << k;
         continue;
       }
-      auto trackCollection = iEvent.getHandle(tokenTracks_);
       auto tk = reco::TrackRef(trackCollection, k);
       v.add(reco::TrackBaseRef(tk));
     }
