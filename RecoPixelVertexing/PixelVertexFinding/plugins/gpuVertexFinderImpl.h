@@ -122,8 +122,8 @@ namespace gpuVertexFinder {
 #ifdef __CUDACC__
     // Running too many thread lead to problems when printf is enabled.
     constexpr int maxThreadsForPrint = 1024 - 256;
-    constexpr int splitBlocks = 1024;
-    constexpr int splitThreadsPerBlock = 128;
+    constexpr int numBlocks = 1024;
+    constexpr int threadsPerBlock = 128;
 
     if (oneKernel_) {
       // implemented only for density clustesrs
@@ -133,7 +133,7 @@ namespace gpuVertexFinder {
       vertexFinderKernel1<<<1, maxThreadsForPrint, 0, stream>>>(soa, ws_d.get(), minT, eps, errmax, chi2max);
       cudaCheck(cudaGetLastError());
       // one block per vertex...
-      splitVerticesKernel<<<splitBlocks, splitThreadsPerBlock, 0, stream>>>(soa, ws_d.get(), 9.f);
+      splitVerticesKernel<<<numBlocks, threadsPerBlock, 0, stream>>>(soa, ws_d.get(), 9.f);
       cudaCheck(cudaGetLastError());
       vertexFinderKernel2<<<1, maxThreadsForPrint, 0, stream>>>(soa, ws_d.get());
 #endif
@@ -149,7 +149,7 @@ namespace gpuVertexFinder {
       fitVerticesKernel<<<1, maxThreadsForPrint, 0, stream>>>(soa, ws_d.get(), 50.);
       cudaCheck(cudaGetLastError());
       // one block per vertex...
-      splitVerticesKernel<<<splitBlocks, splitThreadsPerBlock, 0, stream>>>(soa, ws_d.get(), 9.f);
+      splitVerticesKernel<<<numBlocks, threadsPerBlock, 0, stream>>>(soa, ws_d.get(), 9.f);
       cudaCheck(cudaGetLastError());
       fitVerticesKernel<<<1, maxThreadsForPrint, 0, stream>>>(soa, ws_d.get(), 5000.);
       cudaCheck(cudaGetLastError());
