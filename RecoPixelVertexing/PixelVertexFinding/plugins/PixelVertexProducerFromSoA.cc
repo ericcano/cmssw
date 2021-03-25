@@ -86,8 +86,9 @@ void PixelVertexProducerFromSoA::produce(edm::StreamID streamID, edm::Event &iEv
   int nv = soa.nvFinal;
 
 #ifdef PIXVERTEX_DEBUG_PRODUCE
-  std::cout << "converting " << nv << " vertices " << " from " << indToEdm.size() << " tracks" << std::endl;
-#endif // PIXVERTEX_DEBUG_PRODUCE 
+  std::cout << "converting " << nv << " vertices "
+            << " from " << indToEdm.size() << " tracks" << std::endl;
+#endif  // PIXVERTEX_DEBUG_PRODUCE
 
   std::set<uint16_t> uind;  // fort verifing index consistency
   for (int j = nv - 1; j >= 0; --j) {
@@ -111,7 +112,7 @@ void PixelVertexProducerFromSoA::produce(edm::StreamID streamID, edm::Event &iEv
     if (nt == 0) {
 #ifdef PIXVERTEX_DEBUG_PRODUCE
       std::cout << "vertex " << i << " with no tracks..." << std::endl;
-#endif // PIXVERTEX_DEBUG_PRODUCE
+#endif  // PIXVERTEX_DEBUG_PRODUCE
       continue;
     }
     if (nt < 2) {

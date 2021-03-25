@@ -89,13 +89,13 @@ namespace gpuVertexFinder {
   ZVertexHeterogeneous Producer::makeAsync(cudaStream_t stream, TkSoA const* tksoa, float ptMin) const {
 #ifdef PIXVERTEX_DEBUG_PRODUCE
     std::cout << "producing Vertices on GPU" << std::endl;
-#endif // PIXVERTEX_DEBUG_PRODUCE
+#endif  // PIXVERTEX_DEBUG_PRODUCE
     ZVertexHeterogeneous vertices(cms::cuda::make_device_unique<ZVertexSoA>(stream));
 #else
   ZVertexHeterogeneous Producer::make(TkSoA const* tksoa, float ptMin) const {
 #ifdef PIXVERTEX_DEBUG_PRODUCE
-    std::cout << "producing Vertices on  CPU" <<    std::endl;
-#endif // PIXVERTEX_DEBUG_PRODUCE
+    std::cout << "producing Vertices on  CPU" << std::endl;
+#endif  // PIXVERTEX_DEBUG_PRODUCE
     ZVertexHeterogeneous vertices(std::make_unique<ZVertexSoA>());
 #endif
     assert(tksoa);
@@ -118,7 +118,7 @@ namespace gpuVertexFinder {
     init(soa, ws_d.get());
     loadTracks(tksoa, soa, ws_d.get(), ptMin);
 #endif
-    
+
 #ifdef __CUDACC__
     // Running too many thread lead to problems when printf is enabled.
     constexpr int maxThreadsForPrint = 1024 - 256;
@@ -166,7 +166,7 @@ namespace gpuVertexFinder {
     }
 #ifdef PIXVERTEX_DEBUG_PRODUCE
     std::cout << "found " << (*ws_d).nvIntermediate << " vertices " << std::endl;
-#endif // PIXVERTEX_DEBUG_PRODUCE
+#endif  // PIXVERTEX_DEBUG_PRODUCE
     fitVertices(soa, ws_d.get(), 50.);
     // one block per vertex!
     splitVertices(soa, ws_d.get(), 9.f);

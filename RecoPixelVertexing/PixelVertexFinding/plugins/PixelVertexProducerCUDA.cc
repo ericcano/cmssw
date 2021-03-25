@@ -49,13 +49,13 @@ private:
 PixelVertexProducerCUDA::PixelVertexProducerCUDA(const edm::ParameterSet& conf)
     : onGPU_(conf.getParameter<bool>("onGPU")),
       gpuAlgo_(conf.getParameter<bool>("oneKernel"),
-                conf.getParameter<bool>("useDensity"),
-                conf.getParameter<bool>("useDBSCAN"),
-                conf.getParameter<bool>("useIterative"),
-                conf.getParameter<int>("minT"),
-                conf.getParameter<double>("eps"),
-                conf.getParameter<double>("errmax"),
-                conf.getParameter<double>("chi2max")),
+               conf.getParameter<bool>("useDensity"),
+               conf.getParameter<bool>("useDBSCAN"),
+               conf.getParameter<bool>("useIterative"),
+               conf.getParameter<int>("minT"),
+               conf.getParameter<double>("eps"),
+               conf.getParameter<double>("errmax"),
+               conf.getParameter<double>("chi2max")),
       ptMin_(conf.getParameter<double>("PtMin"))  // 0.5 GeV
 {
   if (onGPU_) {
@@ -91,7 +91,9 @@ void PixelVertexProducerCUDA::fillDescriptions(edm::ConfigurationDescriptions& d
   descriptions.add(label, desc);
 }
 
-void PixelVertexProducerCUDA::produceOnGPU(edm::StreamID streamID, edm::Event& iEvent, const edm::EventSetup& iSetup) const {
+void PixelVertexProducerCUDA::produceOnGPU(edm::StreamID streamID,
+                                           edm::Event& iEvent,
+                                           const edm::EventSetup& iSetup) const {
   edm::Handle<cms::cuda::Product<PixelTrackHeterogeneous>> hTracks;
   iEvent.getByToken(tokenGPUTrack_, hTracks);
 
@@ -103,24 +105,27 @@ void PixelVertexProducerCUDA::produceOnGPU(edm::StreamID streamID, edm::Event& i
   ctx.emplace(iEvent, tokenGPUVertex_, gpuAlgo_.makeAsync(ctx.stream(), tracks, ptMin_));
 }
 
-void PixelVertexProducerCUDA::produceOnCPU(edm::StreamID streamID, edm::Event& iEvent, const edm::EventSetup& iSetup) const {
+void PixelVertexProducerCUDA::produceOnCPU(edm::StreamID streamID,
+                                           edm::Event& iEvent,
+                                           const edm::EventSetup& iSetup) const {
   auto const* tracks = iEvent.get(tokenCPUTrack_).get();
   assert(tracks);
 
-#ifdef PIXVERTEX_DEBUG_PRODUCE 
-  auto const & tsoa = *tracks;
+#ifdef PIXVERTEX_DEBUG_PRODUCE
+  auto const& tsoa = *tracks;
   auto maxTracks = tsoa.stride();
   std::cout << "size of SoA " << sizeof(tsoa) << " stride " << maxTracks << std::endl;
 
   int32_t nt = 0;
   for (int32_t it = 0; it < maxTracks; ++it) {
     auto nHits = tsoa.nHits(it);
-    assert(nHits==int(tsoa.hitIndices.size(it)));
-    if (nHits == 0) break;  // this is a guard: maybe we need to move to nTracks...
+    assert(nHits == int(tsoa.hitIndices.size(it)));
+    if (nHits == 0)
+      break;  // this is a guard: maybe we need to move to nTracks...
     nt++;
   }
   std::cout << "found " << nt << " tracks in cpu SoA for Vertexing at " << tracks << std::endl;
-#endif // PIXVERTEX_DEBUG_PRODUCE
+#endif  // PIXVERTEX_DEBUG_PRODUCE
 
   iEvent.emplace(tokenCPUVertex_, gpuAlgo_.make(tracks, ptMin_));
 }
