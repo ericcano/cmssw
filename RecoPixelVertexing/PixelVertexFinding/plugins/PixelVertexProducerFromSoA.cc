@@ -64,11 +64,9 @@ void PixelVertexProducerFromSoA::fillDescriptions(edm::ConfigurationDescriptions
 void PixelVertexProducerFromSoA::produce(edm::StreamID streamID, edm::Event &iEvent, const edm::EventSetup &) const {
   auto vertexes = std::make_unique<reco::VertexCollection>();
 
-  auto const &tracks = iEvent.get(tokenTracks_);
+  auto tracksHandle = iEvent.getHandle(tokenTracks_);
   auto const &indToEdm = iEvent.get(tokenIndToEdm_);
-
-  edm::Handle<reco::BeamSpot> bsHandle;
-  iEvent.getByToken(tokenBeamSpot_, bsHandle);
+  auto bsHandle = iEvent.getHandle(tokenBeamSpot_);
 
   float x0 = 0, y0 = 0, z0 = 0, dxdz = 0, dydz = 0;
   std::vector<int32_t> itrk;
@@ -92,7 +90,6 @@ void PixelVertexProducerFromSoA::produce(edm::StreamID streamID, edm::Event &iEv
 #endif // PIXVERTEX_DEBUG_PRODUCE 
 
   std::set<uint16_t> uind;  // fort verifing index consistency
-  auto trackCollection = iEvent.getHandle(tokenTracks_);
   for (int j = nv - 1; j >= 0; --j) {
     auto i = soa.sortInd[j];  // on gpu sorted in ascending order....
     assert(i < nv);
@@ -126,11 +123,11 @@ void PixelVertexProducerFromSoA::produce(edm::StreamID streamID, edm::Event &iEv
     for (auto it : itrk) {
       assert(it < int(indToEdm.size()));
       auto k = indToEdm[it];
-      if (k > tracks.size()) {
+      if (k > tracksHandle->size()) {
         edm::LogWarning("PixelVertexProducer") << "oops track " << it << " does not exists on CPU " << k;
         continue;
       }
-      auto tk = reco::TrackRef(trackCollection, k);
+      auto tk = reco::TrackRef(tracksHandle, k);
       v.add(reco::TrackBaseRef(tk));
     }
     itrk.clear();
