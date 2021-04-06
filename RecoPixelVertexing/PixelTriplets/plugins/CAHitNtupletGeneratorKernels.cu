@@ -6,7 +6,7 @@ void CAHitNtupletGeneratorKernelsGPU::fillHitDetIndices(HitsView const *hv, TkSo
   auto numberOfBlocks = (HitContainer::capacity() + blockSize - 1) / blockSize;
 
   kernel_fillHitDetIndices<<<numberOfBlocks, blockSize, 0, cudaStream>>>(
-      &tracks_d->hitIndices, hv, &tracks_d->detIndices);
+      &tracks_d->hitIndices(), hv, &tracks_d->detIndices());
   cudaCheck(cudaGetLastError());
 #ifdef GPU_DEBUG
   cudaDeviceSynchronize();
@@ -17,7 +17,7 @@ void CAHitNtupletGeneratorKernelsGPU::fillHitDetIndices(HitsView const *hv, TkSo
 template <>
 void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *tracks_d, cudaStream_t cudaStream) {
   // these are pointer on GPU!
-  auto *tuples_d = &tracks_d->hitIndices;
+  auto *tuples_d = &tracks_d->hitIndices();
   auto *quality_d = tracks_d->qualityData();
 
   // zero tuples
@@ -222,7 +222,7 @@ void CAHitNtupletGeneratorKernelsGPU::buildDoublets(HitsOnCPU const &hh, cudaStr
 template <>
 void CAHitNtupletGeneratorKernelsGPU::classifyTuples(HitsOnCPU const &hh, TkSoA *tracks_d, cudaStream_t cudaStream) {
   // these are pointer on GPU!
-  auto const *tuples_d = &tracks_d->hitIndices;
+  auto const *tuples_d = &tracks_d->hitIndices();
   auto *quality_d = tracks_d->qualityData();
 
   auto blockSize = 64;
