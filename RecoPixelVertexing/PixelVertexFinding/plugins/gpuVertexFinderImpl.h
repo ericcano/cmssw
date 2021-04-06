@@ -25,7 +25,7 @@ namespace gpuVertexFinder {
     assert(ptracks);
     assert(soa);
     auto const& tracks = *ptracks;
-    auto const& fit = tracks.stateAtBS;
+    auto const& fit = tracks.stateAtBS();
     auto const* quality = tracks.qualityData();
 
     auto first = blockIdx.x * blockDim.x + threadIdx.x;
