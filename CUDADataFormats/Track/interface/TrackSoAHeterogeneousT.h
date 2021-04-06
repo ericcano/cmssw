@@ -19,39 +19,61 @@ public:
   using hindex_type = uint32_t;
   using HitContainer = cms::cuda::OneToManyAssoc<hindex_type, S, 5 * S>;
 
-  // Always check quality is at least loose!
-  // CUDA does not support enums  in __lgc ...
-private:
-  eigenSoA::ScalarSoA<uint8_t, S> quality_;
 
-public:
-  constexpr Quality quality(int32_t i) const { return (Quality)(quality_(i)); }
-  constexpr Quality &quality(int32_t i) { return (Quality &)(quality_(i)); }
-  constexpr Quality const *qualityData() const { return (Quality const *)(quality_.data()); }
-  constexpr Quality *qualityData() { return (Quality *)(quality_.data()); }
+  // quality accessors
+  constexpr Quality quality(int32_t i) const { return reinterpret_cast<Quality>(quality_(i)); }
+  constexpr Quality &quality(int32_t i) { return reinterpret_cast<Quality &>(quality_(i)); }
+  constexpr Quality const *qualityData() const { return reinterpret_cast<Quality const *>(quality_.data()); }
+  constexpr Quality *qualityData() { return reinterpret_cast<Quality *>(quality_.data()); }
 
-  // this is chi2/ndof as not necessarely all hits are used in the fit
-  eigenSoA::ScalarSoA<float, S> chi2;
+  // chi2 accessors
+  __host__ __device__ auto & chi2(int32_t i) { return chi2_(i); }
+  __host__ __device__ auto const chi2(int32_t i) const { return chi2_(i); }
 
-  constexpr int nHits(int i) const { return detIndices.size(i); }
+  // stateAtBS accessors
+  __host__ __device__ auto & stateAtBS() { return stateAtBS_; }
+  __host__ __device__ auto const stateAtBS() const { return stateAtBS_; }
+  // eta accessors
+  __host__ __device__ auto & eta(int32_t i) { return eta_(i); }
+  __host__ __device__ auto const eta(int32_t i) const { return eta_(i); }
+  // pt accessors
+  __host__ __device__ auto & pt(int32_t i) { return pt_(i); }
+  __host__ __device__ auto const pt(int32_t i) const { return pt_(i); }
 
-  // State at the Beam spot
-  // phi,tip,1/pt,cotan(theta),zip
-  TrajectoryStateSoAT<S> stateAtBS;
-  eigenSoA::ScalarSoA<float, S> eta;
-  eigenSoA::ScalarSoA<float, S> pt;
-  constexpr float charge(int32_t i) const { return std::copysign(1.f, stateAtBS.state(i)(2)); }
-  constexpr float phi(int32_t i) const { return stateAtBS.state(i)(0); }
-  constexpr float tip(int32_t i) const { return stateAtBS.state(i)(1); }
-  constexpr float zip(int32_t i) const { return stateAtBS.state(i)(4); }
+  constexpr float charge(int32_t i) const { return std::copysign(1.f, stateAtBS_.state(i)(2)); }
+  constexpr float phi(int32_t i) const { return stateAtBS_.state(i)(0); }
+  constexpr float tip(int32_t i) const { return stateAtBS_.state(i)(1); }
+  constexpr float zip(int32_t i) const { return stateAtBS_.state(i)(4); }
+
+  // hitIndices accessors
+  __host__ __device__ auto & hitIndices() { return hitIndices_; }
+  __host__ __device__ auto const & hitIndices() const { return hitIndices_; }
+
+  // detInndices accessor
+  constexpr int nHits(int i) const { return detIndices_.size(i); }
+  __host__ __device__ auto & detIndices() { return detIndices_; }
+  __host__ __device__ auto const & detIndices() const { return detIndices_; }
 
   // state at the detector of the outermost hit
   // representation to be decided...
   // not yet filled on GPU
   // TrajectoryStateSoA<S> stateAtOuterDet;
+private:
+  // Always check quality is at least loose!
+  // CUDA does not support enums  in __lgc ...
+  eigenSoA::ScalarSoA<uint8_t, S> quality_;
 
-  HitContainer hitIndices;
-  HitContainer detIndices;
+  // this is chi2/ndof as not necessarely all hits are used in the fit
+  eigenSoA::ScalarSoA<float, S> chi2_;
+
+  // State at the Beam spot
+  // phi,tip,1/pt,cotan(theta),zip
+  TrajectoryStateSoAT<S> stateAtBS_;
+  eigenSoA::ScalarSoA<float, S> eta_;
+  eigenSoA::ScalarSoA<float, S> pt_;
+
+  HitContainer hitIndices_;
+  HitContainer detIndices_;
 };
 
 namespace pixelTrack {
