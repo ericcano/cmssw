@@ -21,17 +21,20 @@ __device__ void make_rechit_silicon(unsigned tid,
                                     const float& xmax,
                                     const float& aterm,
                                     const float& cterm) {
-  dst_soa.id_[tid] = src_soa.id_[tid];
-  dst_soa.energy_[tid] = src_soa.amplitude_[tid] * weight * 0.001f * __fdividef(rcorr, cce_correction);
-  dst_soa.time_[tid] = src_soa.jitter_[tid];
+  dst_soa.id[tid] = src_soa.id[tid];
+  dst_soa.energy[tid] = src_soa.amplitude[tid] * weight * 0.001f * __fdividef(rcorr, cce_correction);
+  dst_soa.time[tid] = src_soa.jitter[tid];
 
-  HeterogeneousHGCSiliconDetId detid(src_soa.id_[tid]);
-  dst_soa.flagBits_[tid] = 0 | (0x1 << HGCRecHit::kGood);
-  float son = __fdividef(dst_soa.energy_[tid], sigmaNoiseGeV);
-  float son_norm = fminf(32.f, son) / 32.f * ((1 << 8) - 1);
-  long int son_round = lroundf(son_norm);
+  HeterogeneousHGCSiliconDetId detid(src_soa.id[tid]);
+  dst_soa.flagBits[tid] = 0 | (0x1 << HGCRecHit::kGood);
+
+  dst_soa.sigmaNoise[tid] = sigmaNoiseGeV;
+  // signal over noise (replaced by sigmaNoise)
+  float son = __fdividef(dst_soa.energy[tid], sigmaNoiseGeV);
+  // float son_norm = fminf(32.f, son) / 32.f * ((1 << 8) - 1);
+  // long int son_round = lroundf(son_norm);
   //there is an extra 0.125 factor in HGCRecHit::signalOverSigmaNoise(), which should not affect CPU/GPU comparison
-  dst_soa.son_[tid] = static_cast<uint8_t>(son_round);
+  // dst_soa.son[tid] = static_cast<uint8_t>(son_round);
 
   //get time resolution
   //https://github.com/cms-sw/cmssw/blob/master/RecoLocalCalo/HGCalRecProducers/src/ComputeClusterTime.cc#L50
@@ -43,26 +46,30 @@ __device__ void make_rechit_silicon(unsigned tid,
   */
   float denominator = fminf(fmaxf(son, xmin), xmax);
   float div_ = __fdividef(aterm, denominator);
-  dst_soa.timeError_[tid] = dst_soa.time_[tid] < 0 ? -1 : __fsqrt_rn(div_ * div_ + cterm * cterm);
-  //if dst_soa.time_[tid] < 1 always, then the above conditional expression can be replaced by
-  //dst_soa.timeError_[tid] = fminf( fmaxf( dst_soa.time_[tid]-1, -1 ), sqrt( div_*div_ + cterm*cterm ) )
+  dst_soa.timeError[tid] = dst_soa.time[tid] < 0 ? -1 : __fsqrt_rn(div_ * div_ + cterm * cterm);
+  //if dst_soa.time[tid] < 1 always, then the above conditional expression can be replaced by
+  //dst_soa.timeError[tid] = fminf( fmaxf( dst_soa.time[tid]-1, -1 ), sqrt( div_*div_ + cterm*cterm ) )
   //which is *not* conditional, and thus potentially faster; compare to HGCalRecHitWorkerSimple.cc
 }
 
 __device__ void make_rechit_scintillator(
     unsigned tid, HGCRecHitSoA dst_soa, HGCUncalibRecHitSoA src_soa, const float& weight, const float& sigmaNoiseGeV) {
-  dst_soa.id_[tid] = src_soa.id_[tid];
-  dst_soa.energy_[tid] = src_soa.amplitude_[tid] * weight * 0.001f;
-  dst_soa.time_[tid] = src_soa.jitter_[tid];
+  dst_soa.id[tid] = src_soa.id[tid];
+  dst_soa.energy[tid] = src_soa.amplitude[tid] * weight * 0.001f;
+  dst_soa.time[tid] = src_soa.jitter[tid];
 
-  HeterogeneousHGCScintillatorDetId detid(src_soa.id_[tid]);
-  dst_soa.flagBits_[tid] = 0 | (0x1 << HGCRecHit::kGood);
-  float son = __fdividef(dst_soa.energy_[tid], sigmaNoiseGeV);
-  float son_norm = fminf(32.f, son) / 32.f * ((1 << 8) - 1);
-  long int son_round = lroundf(son_norm);
-  //there is an extra 0.125 factor in HGCRecHit::signalOverSigmaNoise(), which should not affect CPU/GPU comparison
-  dst_soa.son_[tid] = static_cast<uint8_t>(son_round);
-  dst_soa.timeError_[tid] = -1;
+  HeterogeneousHGCScintillatorDetId detid(src_soa.id[tid]);
+  dst_soa.flagBits[tid] = 0 | (0x1 << HGCRecHit::kGood);
+
+  dst_soa.sigmaNoise[tid] = sigmaNoiseGeV;
+  // signal over noise (replaced by sigmaNoise)
+  // float son = __fdividef(dst_soa.energy[tid], sigmaNoiseGeV);
+  // float son_norm = fminf(32.f, son) / 32.f * ((1 << 8) - 1);
+  // long int son_round = lroundf(son_norm);
+  // //there is an extra 0.125 factor in HGCRecHit::signalOverSigmaNoise(), which should not affect CPU/GPU comparison
+  // dst_soa.son[tid] = static_cast<uint8_t>(son_round);
+  
+  dst_soa.timeError[tid] = -1;
 }
 
 __device__ float get_thickness_correction(const int& type,
@@ -90,7 +97,7 @@ __global__ void ee_to_rechit(HGCRecHitSoA dst_soa,
   unsigned tid = blockDim.x * blockIdx.x + threadIdx.x;
 
   for (unsigned i = tid; i < length; i += blockDim.x * gridDim.x) {
-    HeterogeneousHGCSiliconDetId detid(src_soa.id_[i]);
+    HeterogeneousHGCSiliconDetId detid(src_soa.id[i]);
     int32_t layer = detid.layer();
     float weight = get_weight_from_layer(layer, cdata.weights_);
     float rcorr = get_thickness_correction(detid.type(), cdata.rcorr_);
@@ -122,7 +129,7 @@ __global__ void hef_to_rechit(HGCRecHitSoA dst_soa,
     /*Uncomment the lines set to 1. as soon as those factors are centrally defined for the HSi.
 	CUDADataFormats/HGCal/interface/HGCUncalibRecHitsToRecHitsConstants.h maxsizes_constanats will perhaps have to be changed (change some 3's to 6's) 
       */
-    HeterogeneousHGCSiliconDetId detid(src_soa.id_[i]);
+    HeterogeneousHGCSiliconDetId detid(src_soa.id[i]);
     int32_t layer = detid.layer() + cdata.layerOffset_;
     float weight = get_weight_from_layer(layer, cdata.weights_);
     float rcorr = 1.f;  //get_thickness_correction(detid.type(), cdata.rcorr_);
@@ -152,7 +159,7 @@ __global__ void heb_to_rechit(HGCRecHitSoA dst_soa,
   unsigned tid = blockDim.x * blockIdx.x + threadIdx.x;
 
   for (unsigned i = tid; i < length; i += blockDim.x * gridDim.x) {
-    HeterogeneousHGCScintillatorDetId detid(src_soa.id_[i]);
+    HeterogeneousHGCScintillatorDetId detid(src_soa.id[i]);
     int32_t layer = detid.layer() + cdata.layerOffset_;
     float weight = get_weight_from_layer(layer, cdata.weights_);
     float noise = cdata.noise_MIP_;

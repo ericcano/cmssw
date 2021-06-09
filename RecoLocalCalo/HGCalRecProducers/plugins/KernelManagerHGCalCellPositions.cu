@@ -14,11 +14,11 @@ KernelManagerHGCalCellPositions::KernelManagerHGCalCellPositions(const size_t& n
 }
 
 void KernelManagerHGCalCellPositions::fill_positions(
-    const hgcal_conditions::HeterogeneousHEFCellPositionsConditionsESProduct* d_conds) {
+    const hgcal_conditions::HeterogeneousPositionsConditionsESProduct* d_conds) {
   fill_positions_from_detids<<<::nb_celpos_, ::nt_celpos_>>>(d_conds);
 }
 
 void KernelManagerHGCalCellPositions::test_cell_positions(
-    unsigned id, const hgcal_conditions::HeterogeneousHEFCellPositionsConditionsESProduct* d_conds) {
+    unsigned id, const hgcal_conditions::HeterogeneousPositionsConditionsESProduct* d_conds) {
   test<<<::nb_celpos_, ::nt_celpos_>>>(id, d_conds);
 }

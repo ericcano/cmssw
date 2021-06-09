@@ -1,10 +1,11 @@
 #ifndef CUDADAtaFormats_HGCal_HGCRecHitCPUProduct_H
 #define CUDADAtaFormats_HGCal_HGCRecHitCPUProduct_H
 
-#include <cassert>
 #include <numeric>
 
 #include "HeterogeneousCore/CUDAUtilities/interface/host_unique_ptr.h"
+#include "HeterogeneousCore/CUDAUtilities/interface/cuda_assert.h"
+
 #include "CUDADataFormats/HGCal/interface/HGCRecHitSoA.h"
 #include "CUDADataFormats/HGCal/interface/ConstHGCRecHitSoA.h"
 #include "CUDADataFormats/HGCal/interface/HGCUncalibRecHitSoA.h"
@@ -26,25 +27,24 @@ public:
 
   HGCRecHitSoA get() {
     HGCRecHitSoA soa;
-    soa.energy_ = reinterpret_cast<float *>(mem_.get());
-    soa.time_ = soa.energy_ + pad_;
-    soa.timeError_ = soa.time_ + pad_;
-    soa.id_ = reinterpret_cast<uint32_t *>(soa.timeError_ + pad_);
-    soa.flagBits_ = soa.id_ + pad_;
-    soa.son_ = reinterpret_cast<uint8_t *>(soa.flagBits_ + pad_);
-    soa.nbytes_ = size_tot_;
-    soa.nhits_ = nhits_;
-    soa.pad_ = pad_;
+    soa.energy = reinterpret_cast<float *>(mem_.get());    soa.time = soa.energy + pad_;
+    soa.timeError = soa.time + pad_;
+    soa.sigmaNoise = soa.timeError + pad_;
+    soa.id = reinterpret_cast<uint32_t *>(soa.sigmaNoise + pad_);
+    soa.flagBits = soa.id + pad_;
+    soa.nbytes = size_tot_;
+    soa.nhits = nhits_;
+    soa.pad = pad_;
     return soa;
   }
   ConstHGCRecHitSoA get() const {
     ConstHGCRecHitSoA soa;
-    soa.energy_ = reinterpret_cast<float const *>(mem_.get());
-    soa.time_ = soa.energy_ + pad_;
-    soa.timeError_ = soa.time_ + pad_;
-    soa.id_ = reinterpret_cast<uint32_t const *>(soa.timeError_ + pad_);
-    soa.flagBits_ = soa.id_ + pad_;
-    soa.son_ = reinterpret_cast<uint8_t const *>(soa.flagBits_ + pad_);
+    soa.energy = reinterpret_cast<float const *>(mem_.get());
+    soa.time = soa.energy + pad_;
+    soa.timeError = soa.time + pad_;
+    soa.sigmaNoise = soa.timeError + pad_;
+    soa.id = reinterpret_cast<uint32_t const *>(soa.sigmaNoise + pad_);
+    soa.flagBits = soa.id + pad_;
     return soa;
   }
   uint32_t nHits() const { return nhits_; }
@@ -55,8 +55,7 @@ private:
   cms::cuda::host::unique_ptr<std::byte[]> mem_;
   static constexpr std::array<int, memory::npointers::ntypes_hgcrechits_soa> sizes_ = {
       {memory::npointers::float_hgcrechits_soa * sizeof(float),
-       memory::npointers::uint32_hgcrechits_soa * sizeof(uint32_t),
-       memory::npointers::uint8_hgcrechits_soa * sizeof(uint8_t)}};
+       memory::npointers::uint32_hgcrechits_soa * sizeof(uint32_t)}};
   uint32_t pad_;
   uint32_t nhits_;
   uint32_t size_tot_;

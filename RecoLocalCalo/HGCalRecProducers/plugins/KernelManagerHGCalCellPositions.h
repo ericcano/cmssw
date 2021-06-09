@@ -25,8 +25,8 @@ class KernelManagerHGCalCellPositions {
 public:
   KernelManagerHGCalCellPositions(const size_t&);
 
-  void fill_positions(const hgcal_conditions::HeterogeneousHEFCellPositionsConditionsESProduct*);
-  void test_cell_positions(unsigned, const hgcal_conditions::HeterogeneousHEFCellPositionsConditionsESProduct*);
+  void fill_positions(const hgcal_conditions::HeterogeneousPositionsConditionsESProduct*);
+  void test_cell_positions(unsigned, const hgcal_conditions::HeterogeneousPositionsConditionsESProduct*);
 };
 
 #endif  //RecoLocalCalo_HGCalESProducers_KernelManagerHGCalCellPositions_h

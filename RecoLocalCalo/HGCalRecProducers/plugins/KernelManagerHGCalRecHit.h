@@ -44,13 +44,13 @@ public:
 private:
   void transfer_soa_to_device_(const cudaStream_t&);
 
-  uint32_t nhits_;
-  uint32_t pad_;
-  uint32_t nbytes_host_;
-  uint32_t nbytes_device_;
-  HGCUncalibRecHitSoA h_uncalibSoA_, d_uncalibSoA_;
-  HGCRecHitSoA h_calibSoA_, d_calibSoA_;
-  ConstHGCRecHitSoA d_calibConstSoA_;
+  uint32_t mNHits;
+  uint32_t mPad;
+  uint32_t mNBytesHost;
+  uint32_t mNBytesDev;
+  HGCUncalibRecHitSoA mUncalibSoAHost, mUncalibSoADev;
+  HGCRecHitSoA mCalibSoAHost, mCalibSoADev;
+  ConstHGCRecHitSoA mCalibConstSoADev;
 };
 
 #endif  //RecoLocalCalo_HGCalRecProducers_KernelManagerHGCalRecHit_h

@@ -1,6 +1,6 @@
-#include "CondFormats/HGCalObjects/interface/HeterogeneousHGCalHEFCellPositionsConditions.h"
+#include "CondFormats/HGCalObjects/interface/HeterogeneousHGCalPositionsConditions.h"
 
-HeterogeneousHGCalHEFCellPositionsConditions::HeterogeneousHGCalHEFCellPositionsConditions(
+HeterogeneousHGCalPositionsConditions::HeterogeneousHGCalPositionsConditions(
     cpos::HGCalPositionsMapping* cpuPos) {
   //HGCalPositions as defined in hgcal_conditions::positions
   this->sizes_ = calculate_memory_bytes_(cpuPos);
@@ -9,13 +9,13 @@ HeterogeneousHGCalHEFCellPositionsConditions::HeterogeneousHGCalHEFCellPositions
   transfer_data_to_heterogeneous_vars_(cpuPos);
 }
 
-size_t HeterogeneousHGCalHEFCellPositionsConditions::allocate_memory_(const std::vector<size_t>& sz) {
+size_t HeterogeneousHGCalPositionsConditions::allocate_memory_(const std::vector<size_t>& sz) {
   size_t chunk = std::accumulate(sz.begin(), sz.end(), 0);  //total memory required in bytes
   cudaCheck(cudaMallocHost(&this->posmap_.x, chunk));
   return chunk;
 }
 
-void HeterogeneousHGCalHEFCellPositionsConditions::transfer_data_to_heterogeneous_pointers_(
+void HeterogeneousHGCalPositionsConditions::transfer_data_to_heterogeneous_pointers_(
     const std::vector<size_t>& sz, cpos::HGCalPositionsMapping* cpuPos) {
   //store cumulative sum in bytes and convert it to sizes in units of C++ typesHEF, i.e., number if items to be transferred to GPU
   std::vector<size_t> cumsum_sizes(sz.size() + 1, 0);  //starting with zero
@@ -30,7 +30,7 @@ void HeterogeneousHGCalHEFCellPositionsConditions::transfer_data_to_heterogeneou
     else if (cpos::types[i - 1] == cpos::HeterogeneousHGCalPositionsType::Uint32_t)
       types_size = sizeof(uint32_t);
     else
-      throw cms::Exception("HeterogeneousHGCalHEFCellPositionsConditions")
+      throw cms::Exception("HeterogeneousHGCalPositionsConditions")
           << "Wrong HeterogeneousHGCalPositionsMapping type";
     cumsum_sizes[i] /= types_size;
   }
@@ -55,7 +55,7 @@ void HeterogeneousHGCalHEFCellPositionsConditions::transfer_data_to_heterogeneou
         select_pointer_u_(&this->posmap_, j) =
             reinterpret_cast<uint32_t*>(select_pointer_i_(&this->posmap_, jm1) + shift);
       else
-        throw cms::Exception("HeterogeneousHGCalHEFCellPositionsConditions")
+        throw cms::Exception("HeterogeneousHGCalPositionsConditions")
             << "Wrong HeterogeneousHGCalPositionsMapping type";
     }
 
@@ -75,38 +75,41 @@ void HeterogeneousHGCalHEFCellPositionsConditions::transfer_data_to_heterogeneou
           select_pointer_u_(&this->posmap_, j)[index] =
               select_pointer_u_(cpuPos, j - this->number_position_arrays)[index];
         } else
-          throw cms::Exception("HeterogeneousHGCalHEFCellPositionsConditions")
+          throw cms::Exception("HeterogeneousHGCalPositionsConditions")
               << "Wrong HeterogeneousHGCalPositions type";
       }
     }
   }
 }
 
-void HeterogeneousHGCalHEFCellPositionsConditions::transfer_data_to_heterogeneous_vars_(
+void HeterogeneousHGCalPositionsConditions::transfer_data_to_heterogeneous_vars_(
     const cpos::HGCalPositionsMapping* cpuPos) {
   this->posmap_.waferSize = cpuPos->waferSize;
   this->posmap_.sensorSeparation = cpuPos->sensorSeparation;
-  this->posmap_.firstLayer = cpuPos->firstLayer;
-  this->posmap_.lastLayer = cpuPos->lastLayer;
+  this->posmap_.nCellsTot = cpuPos->nCellsTot;
+  this->posmap_.firstLayerSi = cpuPos->firstLayerSi;
+  this->posmap_.firstLayerSci = cpuPos->firstLayerSci;
+  this->posmap_.lastLayerSi = cpuPos->lastLayerSi;
+  this->posmap_.lastLayerSci = cpuPos->lastLayerSci;
   this->posmap_.waferMin = cpuPos->waferMin;
   this->posmap_.waferMax = cpuPos->waferMax;
   this->nelems_posmap_ = cpuPos->detid.size();
 }
 
-std::vector<size_t> HeterogeneousHGCalHEFCellPositionsConditions::calculate_memory_bytes_(
+std::vector<size_t> HeterogeneousHGCalPositionsConditions::calculate_memory_bytes_(
     cpos::HGCalPositionsMapping* cpuPos) {
   size_t npointers = cpos::types.size();
   std::vector<size_t> sizes(npointers);
   for (unsigned int i = 0; i < npointers; ++i) {
-    const unsigned detid_index = 4;
-    const unsigned nlayers_index = 3;
+    const unsigned detid_index = 5;
+    const unsigned nlayers_index = 4;
     if (cpos::types[i] == cpos::HeterogeneousHGCalPositionsType::Float and (i == 0 or i == 1))
       sizes[i] = select_pointer_u_(cpuPos, detid_index)
                      .size();  //x and y position array will have the same size as the detid array
     else if (cpos::types[i] == cpos::HeterogeneousHGCalPositionsType::Float and i == 2)
       sizes[i] = select_pointer_i_(cpuPos, nlayers_index).size();  //z position's size is equal to the #layers
     else if (cpos::types[i] == cpos::HeterogeneousHGCalPositionsType::Float and i > 2)
-      throw cms::Exception("HeterogeneousHGCalHEFCellPositionsConditions")
+      throw cms::Exception("HeterogeneousHGCalPositionsConditions")
           << "Wrong HeterogeneousHGCalPositions type (Float)";
     else if (cpos::types[i] == cpos::HeterogeneousHGCalPositionsType::Int32_t)
       sizes[i] = select_pointer_i_(cpuPos, i - this->number_position_arrays).size();
@@ -130,13 +133,13 @@ std::vector<size_t> HeterogeneousHGCalHEFCellPositionsConditions::calculate_memo
   return this->sizes_;
 }
 
-HeterogeneousHGCalHEFCellPositionsConditions::~HeterogeneousHGCalHEFCellPositionsConditions() {
+HeterogeneousHGCalPositionsConditions::~HeterogeneousHGCalPositionsConditions() {
   cudaCheck(cudaFreeHost(this->posmap_.x));
 }
 
 //I could use template specializations
 //try to use std::variant in the future to avoid similar functions with different return values
-float*& HeterogeneousHGCalHEFCellPositionsConditions::select_pointer_f_(
+float*& HeterogeneousHGCalPositionsConditions::select_pointer_f_(
     cpos::HeterogeneousHGCalPositionsMapping* cpuObject, const unsigned int& item) const {
   switch (item) {
     case 0:
@@ -146,82 +149,85 @@ float*& HeterogeneousHGCalHEFCellPositionsConditions::select_pointer_f_(
     case 2:
       return cpuObject->zLayer;
     default:
-      throw cms::Exception("HeterogeneousHGCalHEFCellPositionsConditions")
+      throw cms::Exception("HeterogeneousHGCalPositionsConditions")
           << "select_pointer_f(heterogeneous): no item (typed " << item << ").";
       return cpuObject->x;
   }
 }
 
-std::vector<float>& HeterogeneousHGCalHEFCellPositionsConditions::select_pointer_f_(
+std::vector<float>& HeterogeneousHGCalPositionsConditions::select_pointer_f_(
     cpos::HGCalPositionsMapping* cpuObject, const unsigned int& item) {
   switch (item) {
     case 0:
       return cpuObject->zLayer;
     default:
-      throw cms::Exception("HeterogeneousHGCalHEFCellPositionsConditions")
+      throw cms::Exception("HeterogeneousHGCalPositionsConditions")
           << "select_pointer_f(non-heterogeneous): no item (typed " << item << ").";
       return cpuObject->zLayer;
   }
 }
 
-int32_t*& HeterogeneousHGCalHEFCellPositionsConditions::select_pointer_i_(
-    cpos::HeterogeneousHGCalPositionsMapping* cpuObject, const unsigned int& item) const {
+int32_t*& HeterogeneousHGCalPositionsConditions::select_pointer_i_(
+									  cpos::HeterogeneousHGCalPositionsMapping* cpuObject, const unsigned int& item) const {
   switch (item) {
-    case 3:
-      return cpuObject->nCellsLayer;
-    case 4:
-      return cpuObject->nCellsWaferUChunk;
-    case 5:
-      return cpuObject->nCellsHexagon;
-    default:
-      throw cms::Exception("HeterogeneousHGCalHEFCellPositionsConditions")
-          << "select_pointer_i(heterogeneous): no item (typed " << item << ").";
-      return cpuObject->nCellsHexagon;
+  case 3:
+    return cpuObject->nCellsSubDet;
+  case 4:
+    return cpuObject->nCellsLayer;
+  case 5:
+    return cpuObject->nCellsWaferUChunk;
+  case 6:
+    return cpuObject->nCellsHexagon;
+  default:
+    throw cms::Exception("HeterogeneousHGCalPositionsConditions")
+      << "select_pointer_i(heterogeneous): no item (typed " << item << ").";
+    return cpuObject->nCellsHexagon;
   }
 }
 
-std::vector<int32_t>& HeterogeneousHGCalHEFCellPositionsConditions::select_pointer_i_(
-    cpos::HGCalPositionsMapping* cpuObject, const unsigned int& item) {
+std::vector<int32_t>& HeterogeneousHGCalPositionsConditions::select_pointer_i_(cpos::HGCalPositionsMapping* cpuObject, const unsigned int& item) {
   switch (item) {
-    case 1:
-      return cpuObject->nCellsLayer;
-    case 2:
-      return cpuObject->nCellsWaferUChunk;
-    case 3:
-      return cpuObject->nCellsHexagon;
-    default:
-      throw cms::Exception("HeterogeneousHGCalHEFCellPositionsConditions")
-          << "select_pointer_i(non-heterogeneous): no item (typed " << item << ").";
-      return cpuObject->nCellsHexagon;
+  case 1:
+    return cpuObject->nCellsSubDet;
+  case 2:
+    return cpuObject->nCellsLayer;
+  case 3:
+    return cpuObject->nCellsWaferUChunk;
+  case 4:
+    return cpuObject->nCellsHexagon;
+  default:
+    throw cms::Exception("HeterogeneousHGCalPositionsConditions")
+      << "select_pointer_i(non-heterogeneous): no item (typed " << item << ").";
+    return cpuObject->nCellsHexagon;
   }
 }
 
-uint32_t*& HeterogeneousHGCalHEFCellPositionsConditions::select_pointer_u_(
+uint32_t*& HeterogeneousHGCalPositionsConditions::select_pointer_u_(
     cpos::HeterogeneousHGCalPositionsMapping* cpuObject, const unsigned int& item) const {
   switch (item) {
-    case 6:
+    case 7:
       return cpuObject->detid;
     default:
-      throw cms::Exception("HeterogeneousHGCalHEFCellPositionsConditions")
+      throw cms::Exception("HeterogeneousHGCalPositionsConditions")
           << "select_pointer_u(heterogeneous): no item (typed " << item << ").";
       return cpuObject->detid;
   }
 }
 
-std::vector<uint32_t>& HeterogeneousHGCalHEFCellPositionsConditions::select_pointer_u_(
+std::vector<uint32_t>& HeterogeneousHGCalPositionsConditions::select_pointer_u_(
     cpos::HGCalPositionsMapping* cpuObject, const unsigned int& item) {
   switch (item) {
-    case 4:
+    case 5:
       return cpuObject->detid;
     default:
-      throw cms::Exception("HeterogeneousHGCalHEFCellPositionsConditions")
+      throw cms::Exception("HeterogeneousHGCalPositionsConditions")
           << "select_pointer_u(non-heterogeneous): no item (typed " << item << ").";
       return cpuObject->detid;
   }
 }
 
-hgcal_conditions::HeterogeneousHEFCellPositionsConditionsESProduct const*
-HeterogeneousHGCalHEFCellPositionsConditions::getHeterogeneousConditionsESProductAsync(cudaStream_t stream) const {
+hgcal_conditions::HeterogeneousPositionsConditionsESProduct const*
+HeterogeneousHGCalPositionsConditions::getHeterogeneousConditionsESProductAsync(cudaStream_t stream) const {
   // cms::cuda::ESProduct<T> essentially holds an array of GPUData objects,
   // one per device. If the data have already been transferred to the
   // current device (or the transfer has been queued), the helper just
@@ -230,14 +236,17 @@ HeterogeneousHGCalHEFCellPositionsConditions::getHeterogeneousConditionsESProduc
   // necessary memory allocations and to queue the transfers.
   auto const& data = gpuData_.dataForCurrentDeviceAsync(stream, [this](GPUData& data, cudaStream_t stream) {
     // Allocate the payload object on pinned host memory.
-    cudaCheck(cudaMallocHost(&data.host, sizeof(hgcal_conditions::HeterogeneousHEFCellPositionsConditionsESProduct)));
+    cudaCheck(cudaMallocHost(&data.host, sizeof(hgcal_conditions::HeterogeneousPositionsConditionsESProduct)));
     // Allocate the payload array(s) on device memory.
     cudaCheck(cudaMalloc(&(data.host->posmap.x), this->chunk_));
     // Complete the host-side information on the payload
     data.host->posmap.waferSize = this->posmap_.waferSize;
     data.host->posmap.sensorSeparation = this->posmap_.sensorSeparation;
-    data.host->posmap.firstLayer = this->posmap_.firstLayer;
-    data.host->posmap.lastLayer = this->posmap_.lastLayer;
+    data.host->posmap.nCellsTot = this->posmap_.nCellsTot;
+    data.host->posmap.firstLayerSi = this->posmap_.firstLayerSi;
+    data.host->posmap.firstLayerSci = this->posmap_.firstLayerSci;
+    data.host->posmap.lastLayerSi = this->posmap_.lastLayerSi;
+    data.host->posmap.lastLayerSci = this->posmap_.lastLayerSci;
     data.host->posmap.waferMax = this->posmap_.waferMax;
     data.host->posmap.waferMin = this->posmap_.waferMin;
     data.host->nelems_posmap = this->nelems_posmap_;
@@ -265,7 +274,7 @@ HeterogeneousHGCalHEFCellPositionsConditions::getHeterogeneousConditionsESProduc
     }
 
     // Allocate the payload object on the device memory.
-    cudaCheck(cudaMalloc(&data.device, sizeof(hgcal_conditions::HeterogeneousHEFCellPositionsConditionsESProduct)));
+    cudaCheck(cudaMalloc(&data.device, sizeof(hgcal_conditions::HeterogeneousPositionsConditionsESProduct)));
 
     // Transfer the payload, first the array(s) ...
     //Important: The transfer does *not* start at posmap.x because the positions are not known in the CPU side!
@@ -281,7 +290,7 @@ HeterogeneousHGCalHEFCellPositionsConditions::getHeterogeneousConditionsESProduc
     // ... and then the payload object
     cudaCheck(cudaMemcpyAsync(data.device,
                               data.host,
-                              sizeof(hgcal_conditions::HeterogeneousHEFCellPositionsConditionsESProduct),
+                              sizeof(hgcal_conditions::HeterogeneousPositionsConditionsESProduct),
                               cudaMemcpyHostToDevice,
                               stream));
 
@@ -295,7 +304,7 @@ HeterogeneousHGCalHEFCellPositionsConditions::getHeterogeneousConditionsESProduc
 }
 
 // Destructor frees all member pointers
-HeterogeneousHGCalHEFCellPositionsConditions::GPUData::~GPUData() {
+HeterogeneousHGCalPositionsConditions::GPUData::~GPUData() {
   if (host != nullptr) {
     cudaCheck(cudaFree(host->posmap.x));
     cudaCheck(cudaFreeHost(host));

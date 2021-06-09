@@ -59,39 +59,24 @@ process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(20) )
 process.options = cms.untracked.PSet(
     wantSummary = cms.untracked.bool( False )) #add option for edmStreams
 
+# Filling positions conditions data
+process.HeterogeneousHGCalPositionsFiller = cms.ESProducer("HeterogeneousHGCalPositionsFiller")
+
 process.load('RecoLocalCalo.HGCalRecProducers.HeterogeneousEERecHitGPU_cfi')
-process.load('RecoLocalCalo.HGCalRecProducers.HeterogeneousEERecHitGPUtoSoA_cfi')
-process.load('RecoLocalCalo.HGCalRecProducers.HeterogeneousEERecHitFromSoA_cfi')
-
-process.load('RecoLocalCalo.HGCalRecProducers.HeterogeneousHEFRecHitGPU_cfi')
-process.load('RecoLocalCalo.HGCalRecProducers.HeterogeneousHEFRecHitGPUtoSoA_cfi')
-process.load('RecoLocalCalo.HGCalRecProducers.HeterogeneousHEFRecHitFromSoA_cfi')
-
-process.load('RecoLocalCalo.HGCalRecProducers.HeterogeneousHEBRecHitGPU_cfi')
-process.load('RecoLocalCalo.HGCalRecProducers.HeterogeneousHEBRecHitGPUtoSoA_cfi')
-process.load('RecoLocalCalo.HGCalRecProducers.HeterogeneousHEBRecHitFromSoA_cfi')
-
-
-#process.HeterogeneousHGCalPositionsFiller = cms.ESProducer("HeterogeneousHGCalPositionsFiller")
-
-
-#process.HGCalRecHits = HGCalRecHit.clone()
+process.load('RecoLocalCalo.HGCalRecProducers.HeterogeneousEMCLUEGPU_cfi')
 
 #process.task = cms.Task( process.HeterogeneousHGCalPositionsFiller, process.HeterogeneousHGCalHEFRecHits )
 #process.task = cms.Task( process.HGCalRecHits, process.HeterogeneousHGCalHEFRecHits )
 
-process.ee_task = cms.Task( process.EERecHitGPUProd, process.EERecHitGPUtoSoAProd, process.EERecHitFromSoAProd )
-process.hef_task = cms.Task( process.HEFRecHitGPUProd, process.HEFRecHitGPUtoSoAProd, process.HEFRecHitFromSoAProd )
-process.heb_task = cms.Task( process.HEBRecHitGPUProd, process.HEBRecHitGPUtoSoAProd, process.HEBRecHitFromSoAProd )
-process.recHits_task = cms.Task( process.ee_task, process.hef_task, process.heb_task )
-process.path = cms.Path( process.recHits_task )
+#process.HGCalRecHits = HGCalRecHit.clone()
 
-outkeeps = ['keep *_EERecHitFromSoAProd_*_*',
-            'keep *_HEFRecHitFromSoAProd_*_*',
-            'keep *_HEBRecHitFromSoAProd_*_*']
 
-process.out = cms.OutputModule( "PoolOutputModule", 
-                                fileName = cms.untracked.string( '/eos/user/b/bfontana/GPUs/GPUs_' + str(F.PU) + '.root'),
-                                outputCommands = cms.untracked.vstring(outkeeps[0], outkeeps[1], outkeeps[2])
-)
-process.outpath = cms.EndPath(process.out)
+process.ee_task = cms.Task( process.EERecHitGPUProd, process.EMCLUEGPUProd )
+
+process.global_task = cms.Task( process.HeterogeneousHGCalPositionsFiller,
+                                process.ee_task )
+process.path = cms.Path( process.global_task )
+
+process.consumer = cms.EDAnalyzer("GenericConsumer",                     
+                                  eventProducts = cms.untracked.vstring('EMCLUEGPUProd',) )
+process.consume_step = cms.EndPath(process.consumer)

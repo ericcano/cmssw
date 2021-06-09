@@ -28,34 +28,34 @@ public:
   HGCUncalibRecHitHost &operator=(HGCUncalibRecHitHost &&) = default;
 
   void defineSoAMemoryLayout_() {
-    soa_.amplitude_ = reinterpret_cast<float *>(ptr_.get());
-    soa_.pedestal_ = soa_.amplitude_ + pad_;
-    soa_.jitter_ = soa_.pedestal_ + pad_;
-    soa_.chi2_ = soa_.jitter_ + pad_;
-    soa_.OOTamplitude_ = soa_.chi2_ + pad_;
-    soa_.OOTchi2_ = soa_.OOTamplitude_ + pad_;
-    soa_.flags_ = reinterpret_cast<uint32_t *>(soa_.OOTchi2_ + pad_);
-    soa_.aux_ = soa_.flags_ + pad_;
-    soa_.id_ = soa_.aux_ + pad_;
-    soa_.aux_ = soa_.flags_ + pad_;
-    soa_.id_ = soa_.aux_ + pad_;
+    soa_.amplitude = reinterpret_cast<float *>(ptr_.get());
+    soa_.pedestal = soa_.amplitude + pad_;
+    soa_.jitter = soa_.pedestal + pad_;
+    soa_.chi2 = soa_.jitter + pad_;
+    soa_.OOTamplitude = soa_.chi2 + pad_;
+    soa_.OOTchi2 = soa_.OOTamplitude + pad_;
+    soa_.flags = reinterpret_cast<uint32_t *>(soa_.OOTchi2 + pad_);
+    soa_.aux = soa_.flags + pad_;
+    soa_.id = soa_.aux + pad_;
+    soa_.aux = soa_.flags + pad_;
+    soa_.id = soa_.aux + pad_;
 
-    soa_.nbytes_ = size_tot_;
-    soa_.nhits_ = nhits_;
-    soa_.pad_ = pad_;
+    soa_.nbytes = size_tot_;
+    soa_.nhits = nhits_;
+    soa_.pad = pad_;
   }
 
   void fillSoA_(const T &c) {
     for (unsigned i(0); i < nhits_; ++i) {
-      soa_.amplitude_[i] = c[i].amplitude();
-      soa_.pedestal_[i] = c[i].pedestal();
-      soa_.jitter_[i] = c[i].jitter();
-      soa_.chi2_[i] = c[i].chi2();
-      soa_.OOTamplitude_[i] = c[i].outOfTimeEnergy();
-      soa_.OOTchi2_[i] = c[i].outOfTimeChi2();
-      soa_.flags_[i] = c[i].flags();
-      soa_.aux_[i] = 0;
-      soa_.id_[i] = c[i].id().rawId();
+      soa_.amplitude[i] = c[i].amplitude();
+      soa_.pedestal[i] = c[i].pedestal();
+      soa_.jitter[i] = c[i].jitter();
+      soa_.chi2[i] = c[i].chi2();
+      soa_.OOTamplitude[i] = c[i].outOfTimeEnergy();
+      soa_.OOTchi2[i] = c[i].outOfTimeChi2();
+      soa_.flags[i] = c[i].flags();
+      soa_.aux[i] = 0;
+      soa_.id[i] = c[i].id().rawId();
     }
   }
 

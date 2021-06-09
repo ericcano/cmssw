@@ -17,17 +17,17 @@ namespace cpos = hgcal_conditions::positions;
 
 // Declare the wrapper ESProduct. The corresponding ESProducer should
 // produce objects of this type.
-class HeterogeneousHGCalHEFCellPositionsConditions {
+class HeterogeneousHGCalPositionsConditions {
 public:
   // Constructor takes the standard CPU ESProduct, and transforms the
   // necessary data to array(s) in pinned host memory
-  HeterogeneousHGCalHEFCellPositionsConditions(cpos::HGCalPositionsMapping*);
+  HeterogeneousHGCalPositionsConditions(cpos::HGCalPositionsMapping*);
 
   // Deallocates all pinned host memory
-  ~HeterogeneousHGCalHEFCellPositionsConditions();
+  ~HeterogeneousHGCalPositionsConditions();
 
   // Function to return the actual payload on the memory of the current device
-  hgcal_conditions::HeterogeneousHEFCellPositionsConditionsESProduct const* getHeterogeneousConditionsESProductAsync(
+  hgcal_conditions::HeterogeneousPositionsConditionsESProduct const* getHeterogeneousConditionsESProductAsync(
       cudaStream_t stream) const;
 
 private:
@@ -63,9 +63,9 @@ private:
     // Destructor should free all member pointers
     ~GPUData();
     // internal pointers are on device, struct itself is on CPU
-    hgcal_conditions::HeterogeneousHEFCellPositionsConditionsESProduct* host = nullptr;
+    hgcal_conditions::HeterogeneousPositionsConditionsESProduct* host = nullptr;
     // internal pounters and struct are on device
-    hgcal_conditions::HeterogeneousHEFCellPositionsConditionsESProduct* device = nullptr;
+    hgcal_conditions::HeterogeneousPositionsConditionsESProduct* device = nullptr;
   };
 
   // Helper that takes care of complexity of transferring the data to

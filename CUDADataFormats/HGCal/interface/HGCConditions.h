@@ -9,77 +9,77 @@
 class HeterogeneousHGCSiliconDetId {
 public:
   constexpr HeterogeneousHGCSiliconDetId(uint32_t id) : id_(id) {}
-  constexpr std::int32_t type() { return (id_ >> kHGCalTypeOffset) & kHGCalTypeMask; }
-  constexpr std::int32_t zside() { return (((id_ >> kHGCalZsideOffset) & kHGCalZsideMask) ? -1 : 1); }
-  constexpr std::int32_t layer() { return (id_ >> kHGCalLayerOffset) & kHGCalLayerMask; }
-  constexpr std::int32_t waferUAbs() { return (id_ >> kHGCalWaferUOffset) & kHGCalWaferUMask; }
-  constexpr std::int32_t waferVAbs() { return (id_ >> kHGCalWaferVOffset) & kHGCalWaferVMask; }
-  constexpr std::int32_t waferU() {
+  constexpr int32_t type() const { return (id_ >> kHGCalTypeOffset) & kHGCalTypeMask; }
+  constexpr int32_t zside() const { return (((id_ >> kHGCalZsideOffset) & kHGCalZsideMask) ? -1 : 1); }
+  constexpr int32_t layer() { return (id_ >> kHGCalLayerOffset) & kHGCalLayerMask; }
+  constexpr int32_t waferUAbs() { return (id_ >> kHGCalWaferUOffset) & kHGCalWaferUMask; }
+  constexpr int32_t waferVAbs() { return (id_ >> kHGCalWaferVOffset) & kHGCalWaferVMask; }
+  constexpr int32_t waferU() {
     return (((id_ >> kHGCalWaferUSignOffset) & kHGCalWaferUSignMask) ? -waferUAbs() : waferUAbs());
   }
-  constexpr std::int32_t waferV() {
+  constexpr int32_t waferV() {
     return (((id_ >> kHGCalWaferVSignOffset) & kHGCalWaferVSignMask) ? -waferVAbs() : waferVAbs());
   }
-  constexpr std::int32_t waferX() { return (-2 * waferU() + waferV()); }
-  constexpr std::int32_t waferY() { return (2 * waferV()); }
-  constexpr std::int32_t cellU() { return (id_ >> kHGCalCellUOffset) & kHGCalCellUMask; }
-  constexpr std::int32_t cellV() { return (id_ >> kHGCalCellVOffset) & kHGCalCellVMask; }
-  constexpr std::int32_t nCellsSide() { return (type() == HGCalFine) ? HGCalFineN : HGCalCoarseN; }
-  constexpr std::int32_t cellX() {
-    const std::int32_t N = nCellsSide();
+  constexpr int32_t waferX() { return (-2 * waferU() + waferV()); }
+  constexpr int32_t waferY() { return (2 * waferV()); }
+  constexpr int32_t cellU() { return (id_ >> kHGCalCellUOffset) & kHGCalCellUMask; }
+  constexpr int32_t cellV() { return (id_ >> kHGCalCellVOffset) & kHGCalCellVMask; }
+  constexpr int32_t nCellsSide() { return (type() == HGCalFine) ? HGCalFineN : HGCalCoarseN; }
+  constexpr int32_t cellX() {
+    const int32_t N = nCellsSide();
     return (3 * (cellV() - N) + 2);
   }
-  constexpr std::int32_t cellY() {
-    const std::int32_t N = nCellsSide();
+  constexpr int32_t cellY() {
+    const int32_t N = nCellsSide();
     return (2 * cellU() - (N + cellV()));
   }
 
 private:
   std::uint32_t id_;
   enum waferType { HGCalFine = 0, HGCalCoarseThin = 1, HGCalCoarseThick = 2 };
-  static constexpr std::int32_t HGCalFineN = 12;
-  static constexpr std::int32_t HGCalCoarseN = 8;
-  static constexpr std::int32_t kHGCalCellUOffset = 0;
-  static constexpr std::int32_t kHGCalCellUMask = 0x1F;
-  static constexpr std::int32_t kHGCalCellVOffset = 5;
-  static constexpr std::int32_t kHGCalCellVMask = 0x1F;
-  static constexpr std::int32_t kHGCalWaferUOffset = 10;
-  static constexpr std::int32_t kHGCalWaferUMask = 0xF;
-  static constexpr std::int32_t kHGCalWaferUSignOffset = 14;
-  static constexpr std::int32_t kHGCalWaferUSignMask = 0x1;
-  static constexpr std::int32_t kHGCalWaferVOffset = 15;
-  static constexpr std::int32_t kHGCalWaferVMask = 0xF;
-  static constexpr std::int32_t kHGCalWaferVSignOffset = 19;
-  static constexpr std::int32_t kHGCalWaferVSignMask = 0x1;
-  static constexpr std::int32_t kHGCalLayerOffset = 20;
-  static constexpr std::int32_t kHGCalLayerMask = 0x1F;
-  static constexpr std::int32_t kHGCalZsideOffset = 25;
-  static constexpr std::int32_t kHGCalZsideMask = 0x1;
-  static constexpr std::int32_t kHGCalTypeOffset = 26;
-  static constexpr std::int32_t kHGCalTypeMask = 0x3;
+  static constexpr int32_t HGCalFineN = 12;
+  static constexpr int32_t HGCalCoarseN = 8;
+  static constexpr int32_t kHGCalCellUOffset = 0;
+  static constexpr int32_t kHGCalCellUMask = 0x1F;
+  static constexpr int32_t kHGCalCellVOffset = 5;
+  static constexpr int32_t kHGCalCellVMask = 0x1F;
+  static constexpr int32_t kHGCalWaferUOffset = 10;
+  static constexpr int32_t kHGCalWaferUMask = 0xF;
+  static constexpr int32_t kHGCalWaferUSignOffset = 14;
+  static constexpr int32_t kHGCalWaferUSignMask = 0x1;
+  static constexpr int32_t kHGCalWaferVOffset = 15;
+  static constexpr int32_t kHGCalWaferVMask = 0xF;
+  static constexpr int32_t kHGCalWaferVSignOffset = 19;
+  static constexpr int32_t kHGCalWaferVSignMask = 0x1;
+  static constexpr int32_t kHGCalLayerOffset = 20;
+  static constexpr int32_t kHGCalLayerMask = 0x1F;
+  static constexpr int32_t kHGCalZsideOffset = 25;
+  static constexpr int32_t kHGCalZsideMask = 0x1;
+  static constexpr int32_t kHGCalTypeOffset = 26;
+  static constexpr int32_t kHGCalTypeMask = 0x3;
 };
 
 class HeterogeneousHGCScintillatorDetId {
 public:
   constexpr HeterogeneousHGCScintillatorDetId(uint32_t id) : id_(id) {}
-  constexpr std::int32_t type() { return (id_ >> kHGCalTypeOffset) & kHGCalTypeMask; }
-  constexpr std::int32_t zside() const { return (((id_ >> kHGCalZsideOffset) & kHGCalZsideMask) ? -1 : 1); }
-  constexpr std::int32_t layer() const { return (id_ >> kHGCalLayerOffset) & kHGCalLayerMask; }
+  constexpr int32_t type() { return (id_ >> kHGCalTypeOffset) & kHGCalTypeMask; }
+  constexpr int32_t zside() const { return (((id_ >> kHGCalZsideOffset) & kHGCalZsideMask) ? -1 : 1); }
+  constexpr int32_t layer() const { return (id_ >> kHGCalLayerOffset) & kHGCalLayerMask; }
 
 private:
-  std::uint32_t id_;
-  static constexpr std::uint32_t kHGCalPhiOffset = 0;
-  static constexpr std::uint32_t kHGCalPhiMask = 0x1FF;
-  static constexpr std::uint32_t kHGCalRadiusOffset = 9;
-  static constexpr std::uint32_t kHGCalRadiusMask = 0xFF;
-  static constexpr std::uint32_t kHGCalLayerOffset = 17;
-  static constexpr std::uint32_t kHGCalLayerMask = 0x1F;
-  static constexpr std::uint32_t kHGCalTriggerOffset = 22;
-  static constexpr std::uint32_t kHGCalTriggerMask = 0x1;
-  static constexpr std::uint32_t kHGCalZsideOffset = 25;
-  static constexpr std::uint32_t kHGCalZsideMask = 0x1;
-  static constexpr std::uint32_t kHGCalTypeOffset = 26;
-  static constexpr std::uint32_t kHGCalTypeMask = 0x3;
+  uint32_t id_;
+  static constexpr uint32_t kHGCalPhiOffset = 0;
+  static constexpr uint32_t kHGCalPhiMask = 0x1FF;
+  static constexpr uint32_t kHGCalRadiusOffset = 9;
+  static constexpr uint32_t kHGCalRadiusMask = 0xFF;
+  static constexpr uint32_t kHGCalLayerOffset = 17;
+  static constexpr uint32_t kHGCalLayerMask = 0x1F;
+  static constexpr uint32_t kHGCalTriggerOffset = 22;
+  static constexpr uint32_t kHGCalTriggerMask = 0x1;
+  static constexpr uint32_t kHGCalZsideOffset = 25;
+  static constexpr uint32_t kHGCalZsideMask = 0x1;
+  static constexpr uint32_t kHGCalTypeOffset = 26;
+  static constexpr uint32_t kHGCalTypeMask = 0x3;
 };
 
 namespace hgcal_conditions {
@@ -140,24 +140,29 @@ namespace hgcal_conditions {
                                                                 HeterogeneousHGCalPositionsType::Float,
                                                                 HeterogeneousHGCalPositionsType::Float,
                                                                 HeterogeneousHGCalPositionsType::Int32_t,
+								HeterogeneousHGCalPositionsType::Int32_t,
                                                                 HeterogeneousHGCalPositionsType::Int32_t,
                                                                 HeterogeneousHGCalPositionsType::Int32_t,
                                                                 HeterogeneousHGCalPositionsType::Uint32_t};
 
     struct HGCalPositionsMapping {
-      std::vector<float> zLayer;                    //z position per layer
-      std::vector<std::int32_t> nCellsLayer;        //#cells per layer
-      std::vector<std::int32_t> nCellsWaferUChunk;  //#cells per U wafer (each in turn including all V wafers)
-      std::vector<std::int32_t> nCellsHexagon;      //#cells per V wafer
-      std::vector<std::uint32_t> detid;
+      std::vector<float> zLayer;               //z position per layer
+      std::vector<int32_t> nCellsSubDet;       //#cells per subdetector
+      std::vector<int32_t> nCellsLayer;        //#cells per layer
+      std::vector<int32_t> nCellsWaferUChunk;  //#cells per U wafer (each in turn including all V wafers)
+      std::vector<int32_t> nCellsHexagon;      //#cells per V wafer
+      std::vector<uint32_t> detid;
       //variables required for calculating the positions (x,y) from the detid in the GPU
       float waferSize;
       float sensorSeparation;
       //variables required for the mapping of detid -> cell in the geometry
-      std::int32_t firstLayer;
-      std::int32_t lastLayer;
-      std::int32_t waferMax;
-      std::int32_t waferMin;
+      int32_t nCellsTot;
+      int32_t firstLayerSi;
+      int32_t firstLayerSci;
+      int32_t lastLayerSi;
+      int32_t lastLayerSci;
+      int32_t waferMax;
+      int32_t waferMin;
     };
 
     struct HeterogeneousHGCalPositionsMapping {
@@ -165,35 +170,33 @@ namespace hgcal_conditions {
       float *x;
       float *y;
       float *zLayer;
-      std::int32_t *nCellsLayer;
-      std::int32_t *nCellsWaferUChunk;
-      std::int32_t *nCellsHexagon;
-      std::uint32_t *detid;
+      int32_t *nCellsSubDet;
+      int32_t *nCellsLayer;
+      int32_t *nCellsWaferUChunk;
+      int32_t *nCellsHexagon;
+      uint32_t *detid;
       //variables required for calculating the positions (x,y) from the detid in the GPU
       float waferSize;
       float sensorSeparation;
       //variables required for the mapping of detid -> cell in the geometry
-      std::int32_t firstLayer;
-      std::int32_t lastLayer;
-      std::int32_t waferMax;
-      std::int32_t waferMin;
+      int32_t nCellsTot;
+      int32_t firstLayerSi;
+      int32_t firstLayerSci;
+      int32_t lastLayerSi;
+      int32_t lastLayerSci;
+      int32_t waferMax;
+      int32_t waferMin;
     };
 
   }  //namespace positions
 
-  struct HeterogeneousEEConditionsESProduct {
-    parameters::HeterogeneousHGCalEEParameters params;
-  };
-  struct HeterogeneousHEFConditionsESProduct {
-    parameters::HeterogeneousHGCalHEFParameters params;
-    //positions::HeterogeneousHGCalPositionsMapping posmap;
-    //size_t nelems_posmap;
-  };
-  struct HeterogeneousHEBConditionsESProduct {
-    parameters::HeterogeneousHGCalHEBParameters params;
-  };
+  // struct HeterogeneousHEFConditionsESProduct {
+  //   parameters::HeterogeneousHGCalHEFParameters params;
+  //   //positions::HeterogeneousHGCalPositionsMapping posmap;
+  //   //size_t nelems_posmap;
+  // };
 
-  struct HeterogeneousHEFCellPositionsConditionsESProduct {
+  struct HeterogeneousPositionsConditionsESProduct {
     positions::HeterogeneousHGCalPositionsMapping posmap;
     std::size_t nelems_posmap;
   };

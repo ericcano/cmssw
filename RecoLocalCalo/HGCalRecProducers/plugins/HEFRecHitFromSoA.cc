@@ -43,14 +43,16 @@ void HEFRecHitFromSoA::convert_soa_data_to_collection_(uint32_t nhits,
                                                        ConstHGCRecHitSoA* h_calibSoA) {
   rechits.reserve(nhits);
   for (uint i = 0; i < nhits; ++i) {
-    DetId id_converted(h_calibSoA->id_[i]);
+    DetId id_converted(h_calibSoA->id[i]);
+    float son = h_calibSoA->energy[i]/h_calibSoA->sigmaNoise[i];
     rechits.emplace_back(id_converted,
-                         h_calibSoA->energy_[i],
-                         h_calibSoA->time_[i],
+                         h_calibSoA->energy[i],
+                         h_calibSoA->time[i],
                          0,
-                         h_calibSoA->flagBits_[i],
-                         h_calibSoA->son_[i],
-                         h_calibSoA->timeError_[i]);
+                         h_calibSoA->flagBits[i],
+                         son,
+                         h_calibSoA->timeError[i]);
+    rechits[i].setSignalOverSigmaNoise(son);
   }
 }
 

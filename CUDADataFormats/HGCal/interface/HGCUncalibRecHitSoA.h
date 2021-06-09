@@ -5,20 +5,20 @@
 
 class HGCUncalibRecHitSoA {
 public:
-  float *amplitude_;     //uncalib rechit amplitude, i.e., the average number of MIPs
-  float *pedestal_;      //reconstructed pedestal
-  float *jitter_;        //reconstructed time jitter
-  float *chi2_;          //chi2 of the pulse
-  float *OOTamplitude_;  //out-of-time reconstructed amplitude
-  float *OOTchi2_;       //out-of-time chi2
-  std::uint32_t *
-      flags_;  //uncalibrechit flags describing its status (DataFormats/HGCRecHit/interface/HGCUncalibRecHit.h); to be propagated to the rechits
-  std::uint32_t *aux_;  //aux word; first 8 bits contain time (jitter) error
-  std::uint32_t *id_;   //uncalibrechit detector id
+  float *amplitude;     //uncalib rechit amplitude, i.e., the average number of MIPs
+  float *pedestal;      //reconstructed pedestal
+  float *jitter;        //reconstructed time jitter
+  float *chi2;          //chi2 of the pulse
+  float *OOTamplitude;  //out-of-time reconstructed amplitude
+  float *OOTchi2;       //out-of-time chi2
+  uint32_t *
+      flags;  //uncalibrechit flags describing its status (DataFormats/HGCRecHit/interface/HGCUncalibRecHit.h); to be propagated to the rechits
+  uint32_t *aux;  //aux word; first 8 bits contain time (jitter) error
+  uint32_t *id;   //uncalibrechit detector id
 
-  std::uint32_t nbytes_;  //number of bytes of the SoA
-  std::uint32_t nhits_;   //number of hits stored in the SoA
-  std::uint32_t pad_;     //pad of memory block (used for warp alignment, slighlty larger than 'nhits_')
+  uint32_t nbytes;  //number of bytes of the SoA
+  uint32_t nhits;   //number of hits stored in the SoA
+  uint32_t pad;     //pad of memory block (used for warp alignment, slighlty larger than 'nhits_')
 };
 
 namespace memory {
