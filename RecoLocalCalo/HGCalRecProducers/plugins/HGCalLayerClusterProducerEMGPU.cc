@@ -73,7 +73,7 @@ void HGCalLayerClusterProducerEMGPU::fillDescriptions(edm::ConfigurationDescript
 }
 
 void HGCalLayerClusterProducerEMGPU::acquire(edm::Event const& event,
-					   edm::EventSetup const& setup,
+					   edm::EventSetup const& es,
 					   edm::WaitingTaskWithArenaHolder w) {
   cms::cuda::ScopedContextAcquire ctx{event.streamID(), std::move(w), ctxState_};
   const auto& eeHits = ctx.get(event, InEEToken);
@@ -82,7 +82,7 @@ void HGCalLayerClusterProducerEMGPU::acquire(edm::Event const& event,
   mClusters = HGCCLUEGPUProduct(nhits, ctx.stream());
 
   //retrieve HGCAL positions conditions data
-  auto hPosConds = setup.getHandle(gpuPositionsTok_);
+  auto hPosConds = es.getHandle(gpuPositionsTok_);
   const auto* gpuPositionsConds = hPosConds->getHeterogeneousConditionsESProductAsync(ctx.stream());
   
   HGCalCLUEAlgoGPUEM algo(mDc, mKappa, mEcut, mOutlierDeltaFactor,

@@ -70,11 +70,13 @@ process.load('RecoLocalCalo.HGCalRecProducers.HeterogeneousEMCLUEGPU_cfi')
 
 #process.HGCalRecHits = HGCalRecHit.clone()
 
-
-process.ee_task = cms.Task( process.EERecHitGPUProd, process.EMCLUEGPUProd )
+process.ee_task = cms.Task( process.EERecHitGPUProd,
+                            #process.EMCLUEGPUProd
+)
 
 process.global_task = cms.Task( process.HeterogeneousHGCalPositionsFiller,
-                                process.ee_task )
+                                process.ee_task
+)
 process.path = cms.Path( process.global_task )
 
 process.consumer = cms.EDAnalyzer("GenericConsumer",                     
