@@ -1,5 +1,5 @@
-#ifndef HGCalCLUEAlgoGPUHAD_h
-#define HGCalCLUEAlgoGPUHAD_h
+#ifndef RecoLocalCalo_HGCalRecProducer_HGCalCLUEAlgoGPUHAD_h
+#define RecoLocalCalo_HGCalRecProducer_HGCalCLUEAlgoGPUHAD_h
 
 #include <math.h>
 #include <limits>
@@ -11,7 +11,6 @@
 #include "RecoLocalCalo/HGCalRecProducers/plugins/HGCalCLUEAlgoGPUBase.h"
 #include "RecoLocalCalo/HGCalRecProducers/interface/LayerTilesGPU.h"
 #include "CUDADataFormats/HGCal/interface/HGCRecHitSoA.h"
-
 
 namespace clue_gpu {
   class HGCCLUEInputSoAHAD {
@@ -54,4 +53,4 @@ class HGCalCLUEAlgoGPUHAD final: public HGCalCLUEAlgoGPUBase {
   void free_device();
 };
 
-#endif // HGCalCLUEAlgoGPUHAD_h
+#endif //RecoLocalCalo_HGCalRecProducer_HGCalCLUEAlgoGPUHAD_h

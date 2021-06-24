@@ -114,6 +114,11 @@ __device__ unsigned map_cell_index(const float& cu, const float& cv, const unsig
   return 99;
 }
 
+__device__
+unsigned get_nlayers_ee(const hgcal_conditions::HeterogeneousPositionsConditionsESProduct* conds) {
+  return conds->posmap.lastLayerEE - conds->posmap.firstLayerEE;
+}
+
 //returns the index of the positions of a specific cell
 //performs several geometry-related shifts, and adds them at the end:
 //   1) number of cells up to the layer being inspected
@@ -129,17 +134,19 @@ __device__ unsigned hash_function(const uint32_t& detid,
   if(basedid.det()==DetId::HGCalEE or basedid.det()==DetId::HGCalHSi)
     {
       HeterogeneousHGCSiliconDetId did(detid);
-      const int32_t cU = did.cellU();
-      const int32_t cV = did.cellV();
+      const bool isEE = basedid.det()==DetId::HGCalEE ? true : false;
+      
       const int32_t wU = did.waferU();
       const int32_t wV = did.waferV();
-      const int32_t ncs = did.nCellsSide();    
       const int32_t l = abs(did.layer());  //remove abs in case both endcaps are considered for x and y
 
-      const unsigned thislayer = l - conds->posmap.firstLayerSi;
-      const unsigned thisUwafer = wU - conds->posmap.waferMin;
-      const unsigned thisVwafer = wV - conds->posmap.waferMin;
-      const unsigned nwafers1D = conds->posmap.waferMax - conds->posmap.waferMin;
+      const unsigned thislayer = isEE ? l - conds->posmap.firstLayerEE
+	: l - conds->posmap.firstLayerHEF; //refers to HEF only, starting one layer after conds->posmap.lastLayerEE
+      const unsigned thisUwafer = isEE ? wU - conds->posmap.waferMinEE : wU - conds->posmap.waferMinHEF;
+      const unsigned thisVwafer = isEE ? wV - conds->posmap.waferMinEE : wV - conds->posmap.waferMinEE;
+
+      const unsigned nwafers1DEE =  conds->posmap.waferMaxEE  - conds->posmap.waferMinEE;
+      const unsigned nwafers1DHEF = conds->posmap.waferMaxHEF - conds->posmap.waferMinHEF;
 
       //layer shift in terms of cell number
       unsigned ncells_up_to_thislayer = 0;
@@ -148,19 +155,24 @@ __device__ unsigned hash_function(const uint32_t& detid,
 
       //waferU shift in terms of cell number
       unsigned ncells_up_to_thisUwafer = 0;
-      unsigned nwaferUchunks_up_to_this_layer = thislayer * nwafers1D;
+      unsigned nwaferUchunks_up_to_this_layer = isEE ? thislayer * nwafers1DEE
+	: get_nlayers_ee(conds) * nwafers1DEE //#waferU chunks in EE
+	+ thislayer * nwafers1DHEF;           //#waferU chunks in HEF
       for (unsigned q = 0; q < thisUwafer; ++q)
 	ncells_up_to_thisUwafer += conds->posmap.nCellsWaferUChunk[nwaferUchunks_up_to_this_layer + q];
 
       //waferV shift in terms of cell number
       unsigned ncells_up_to_thisVwafer = 0;
-      const unsigned nwafers_up_to_thisLayer = thislayer * nwafers1D * nwafers1D;
-      const unsigned nwafers_up_to_thisUwafer = thisUwafer * nwafers1D;
+      const unsigned nwafers_up_to_thisLayer = isEE ? thislayer * nwafers1DEE * nwafers1DEE
+	: get_nlayers_ee(conds) * nwafers1DEE * nwafers1DEE
+	+ thislayer * nwafers1DHEF * nwafers1DHEF;
+      const unsigned nwafers_up_to_thisUwafer = thisUwafer * (isEE ? nwafers1DEE : nwafers1DHEF);
+      
       for (unsigned q = 0; q < thisVwafer; ++q)
 	ncells_up_to_thisVwafer += conds->posmap.nCellsHexagon[nwafers_up_to_thisLayer + nwafers_up_to_thisUwafer + q];
 
       //cell shift in terms of cell number
-      const unsigned cell_shift = map_cell_index(cU, cV, ncs);
+      const unsigned cell_shift = map_cell_index(did.cellU(), did.cellV(), did.nCellsSide());
       shift_total = ncells_up_to_thislayer + ncells_up_to_thisUwafer + ncells_up_to_thisVwafer + cell_shift;
     }
   else if(basedid.det() == DetId::HGCalHSc)

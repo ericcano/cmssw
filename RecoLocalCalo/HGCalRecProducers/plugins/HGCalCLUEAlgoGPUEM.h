@@ -1,5 +1,5 @@
-#ifndef HGCalCLUEAlgoGPUEM_h
-#define HGCalCLUEAlgoGPUEM_h
+#ifndef RecoLocalCalo_HGCalRecProducer_HGCalCLUEAlgoGPUEM_h
+#define RecoLocalCalo_HGCalRecProducer_HGCalCLUEAlgoGPUEM_h
 
 #include <math.h>
 #include <limits>
@@ -43,4 +43,4 @@ private:
   void set_input_SoA_layout(const uint32_t, const cudaStream_t&);
 };
 
-#endif // HGCalCLUEAlgoGPUEM_h
+#endif // RecoLocalCalo_HGCalRecProducer_HGCalCLUEAlgoGPUEM_h

@@ -15,7 +15,7 @@ public:
   explicit HGCCLUEGPUProduct(uint32_t nhits, const cudaStream_t &stream) : nhits_(nhits) {
     size_tot_ = std::accumulate(sizes_.begin(), sizes_.end(), 0);
     pad_ = ((nhits - 1) / 32 + 1) * 32; //align to warp boundary (assumption: warpSize = 32)
-    mem_ = cms::cuda::make_device_unique<std::byte[]>(pad_ * size_tot_, stream);
+    mMemCLUEDev = cms::cuda::make_device_unique<std::byte[]>(pad_ * size_tot_, stream);
   }
   ~HGCCLUEGPUProduct() = default;
 
@@ -26,7 +26,7 @@ public:
 
   HGCCLUESoA get() {
     HGCCLUESoA soa;
-    soa.rho = reinterpret_cast<float *>(mem_.get());
+    soa.rho = reinterpret_cast<float *>(mMemCLUEDev.get());
     soa.delta = soa.rho + pad_;
     soa.nearestHigher = reinterpret_cast<int32_t *>(soa.delta + pad_);
     soa.clusterIndex = soa.nearestHigher + pad_;
@@ -39,7 +39,7 @@ public:
 
   ConstHGCCLUESoA get() const {
     ConstHGCCLUESoA soa;
-    soa.rho = reinterpret_cast<float const*>(mem_.get());
+    soa.rho = reinterpret_cast<float const*>(mMemCLUEDev.get());
     soa.delta = soa.rho + pad_;
     soa.nearestHigher = reinterpret_cast<int32_t const*>(soa.delta + pad_);
     soa.clusterIndex = soa.nearestHigher + pad_;
@@ -55,7 +55,7 @@ public:
   uint32_t nBytes() const { return size_tot_; }
 
 private:
-  cms::cuda::device::unique_ptr<std::byte[]> mem_;
+  cms::cuda::device::unique_ptr<std::byte[]> mMemCLUEDev;
   static constexpr std::array<uint32_t, memory::npointers::ntypes_hgcclue_soa> sizes_ = {
       {memory::npointers::float_hgcclue_soa * sizeof(float),
        memory::npointers::int32_hgcclue_soa * sizeof(uint32_t),

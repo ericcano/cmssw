@@ -1,6 +1,3 @@
-#include <cuda.h>
-#include <cuda_runtime.h>
-
 #include "RecoLocalCalo/HGCalRecProducers/plugins/HGCalCLUEAlgoGPUHAD.h"
 
 void HGCalCLUEAlgoGPUHAD::init_device(uint32_t nhits, const cudaStream_t &stream) {

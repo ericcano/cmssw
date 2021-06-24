@@ -252,7 +252,7 @@ void kernel_assign_clusters( const cms::cuda::VecArray<int,clue_gpu::maxNSeeds>*
         // // pass id to follower
         out.clusterIndex[j] = temp_clusterIndex;
         // push_back follower to localStack
-        localStack[localStackSize] = j;
+        //localStack[localStackSize] = j;
         localStackSize++;
       }
     }

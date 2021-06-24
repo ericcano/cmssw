@@ -29,6 +29,10 @@ uint32_t HGCalCLUEAlgoGPUBase::calculate_padding(uint32_t nhits) {
   return ((nhits - 1) / 32 + 1) * 32;
 }
 
+float HGCalCLUEAlgoGPUBase::calculate_block_multiplicity(unsigned nelements, unsigned nthreads) {
+  return ceil(nelements/static_cast<float>(nthreads));
+}
+
 cms::cuda::device::unique_ptr<std::byte[]>
 HGCalCLUEAlgoGPUBase::allocate_soa_memory_block(uint32_t st, uint32_t nhits, const cudaStream_t &stream) {
   const uint32_t pad = calculate_padding(nhits);

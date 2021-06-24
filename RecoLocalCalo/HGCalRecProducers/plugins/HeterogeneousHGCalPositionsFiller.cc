@@ -10,6 +10,7 @@
 // - For each subdetector loop over all its layers
 // - If the subdetectors is made of silicon:
 //     - Loop over wafer U and V coordinates to get a single wafer
+//       (waferU memory "chunks" contain waferV coordinates)
 //     - Loop over cell U and V coordinates to get a single cell
 //     - Fill detid using HGCSiliconDetId class
 // - If the subdetectors is made of scintillator material:
@@ -22,14 +23,67 @@
 // The CPU-to-GPU transfer is done in the HeterogeneousPositionsConditions class.
 /////////////////////////////////////////////////////////////////////////////////
 
-#include "RecoLocalCalo/HGCalRecProducers/plugins/HeterogeneousHGCalPositionsFiller.h"
+#include <iostream>
+#include <memory>
+#include <numeric>
+#include <cuda_runtime.h>
+
+#include "FWCore/Framework/interface/ESProducer.h"
+#include "FWCore/Utilities/interface/EDGetToken.h"
+#include "FWCore/Utilities/interface/EDPutToken.h"
+#include "FWCore/Framework/interface/ESHandle.h"
+#include "FWCore/Framework/interface/ESTransientHandle.h"
+#include "FWCore/Framework/interface/ModuleFactory.h"
+#include "FWCore/Utilities/interface/InputTag.h"
+#include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/Utilities/interface/Exception.h"
+#include "FWCore/Framework/interface/EventSetup.h"
+#include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
+#include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
+
+#include "Geometry/HGCalGeometry/interface/HGCalGeometry.h"
+#include "Geometry/HGCalCommonData/interface/HGCalDDDConstants.h"
+#include "Geometry/HGCalCommonData/interface/HGCalWaferIndex.h"
+
+#include "CondFormats/HGCalObjects/interface/HeterogeneousHGCalPositionsConditions.h"
+#include "CondFormats/DataRecord/interface/HeterogeneousHGCalPositionsConditionsRecord.h"
+#include "RecoLocalCalo/HGCalRecProducers/plugins/KernelManagerHGCalCellPositions.h"
+#include "CUDADataFormats/HGCal/interface/HGCConditions.h"
+
+class HeterogeneousHGCalPositionsFiller : public edm::ESProducer {
+public:
+  explicit HeterogeneousHGCalPositionsFiller(const edm::ParameterSet&);
+  ~HeterogeneousHGCalPositionsFiller() override;
+  std::unique_ptr<HeterogeneousHGCalPositionsConditions> produce(
+      const HeterogeneousHGCalPositionsConditionsRecord&);
+
+private:
+  edm::ESGetToken<HGCalGeometry, IdealGeometryRecord> mGeomTokEE;
+  edm::ESGetToken<HGCalGeometry, IdealGeometryRecord> mGeomTokHEF;
+  edm::ESGetToken<HGCalGeometry, IdealGeometryRecord> mGeomTokHEB;
+
+  void clear_conditions_();
+  void reserve_conditions_(const HGCalDDDConstants*, const HGCalParameters*,
+			   const HGCalDDDConstants*, const HGCalParameters*,
+			   const HGCalDDDConstants*, const HGCalParameters*);
+  void fill_conditions_silicon_(const HGCalDDDConstants*, const HGCalParameters*,
+				const HGCalDDDConstants*, const HGCalParameters*);
+  void fill_conditions_scintillator_(const HGCalDDDConstants*, const HGCalParameters*);
+
+  hgcal_conditions::positions::HGCalPositionsMapping* mPosmap;
+
+  const HGCalDDDConstants* mDDDEE  = nullptr;
+  const HGCalDDDConstants* mDDDHEF = nullptr;
+  const HGCalDDDConstants* mDDDHEB = nullptr;
+};
 
 HeterogeneousHGCalPositionsFiller::HeterogeneousHGCalPositionsFiller(const edm::ParameterSet& ps) {
-  geomTokEE_ = setWhatProduced(this).consumesFrom<HGCalGeometry, IdealGeometryRecord>(
+  auto cc = setWhatProduced(this, "");
+  mGeomTokEE = cc.consumesFrom<HGCalGeometry, IdealGeometryRecord>(
       edm::ESInputTag{"", "HGCalEESensitive"});
-  geomTokHEF_ = setWhatProduced(this).consumesFrom<HGCalGeometry, IdealGeometryRecord>(
+  mGeomTokHEF = cc.consumesFrom<HGCalGeometry, IdealGeometryRecord>(
       edm::ESInputTag{"", "HGCalHESiliconSensitive"});
-  geomTokHEB_ = setWhatProduced(this).consumesFrom<HGCalGeometry, IdealGeometryRecord>(
+  mGeomTokHEB = cc.consumesFrom<HGCalGeometry, IdealGeometryRecord>(
       edm::ESInputTag{"", "HGCalHEScintillatorSensitive"});
 
   mPosmap = new hgcal_conditions::positions::HGCalPositionsMapping();
@@ -39,7 +93,6 @@ HeterogeneousHGCalPositionsFiller::~HeterogeneousHGCalPositionsFiller() { delete
 
 void HeterogeneousHGCalPositionsFiller::clear_conditions_() {
   mPosmap->zLayer.clear();
-  mPosmap->nCellsSubDet.clear();
   mPosmap->nCellsLayer.clear();
   mPosmap->nCellsWaferUChunk.clear();
   mPosmap->nCellsHexagon.clear();
@@ -57,8 +110,8 @@ void HeterogeneousHGCalPositionsFiller::reserve_conditions_(const HGCalDDDConsta
   const unsigned nsubSi = mDet::NDETS-1; //number of subdetectors made of Silicon (all except HEB)
   
   const std::array<int, mDet::NDETS> nlayers = {{ d[mDet::EE]->lastLayer(true)-d[mDet::EE]->firstLayer()+1,
-						 d[mDet::HEF]->lastLayer(true)-d[mDet::HEF]->firstLayer()+1,
-						 d[mDet::HEB]->lastLayer(true)-d[mDet::HEB]->firstLayer()+1 }};
+						  d[mDet::HEF]->lastLayer(true)-d[mDet::HEF]->firstLayer()+1,
+						  d[mDet::HEB]->lastLayer(true)-d[mDet::HEB]->firstLayer()+1 }};
 
   //store upper estimates for wafer and cell numbers for each subdetector
   std::array<int, nsubSi> upper_estimate_wafer_number_1D;
@@ -81,10 +134,9 @@ void HeterogeneousHGCalPositionsFiller::reserve_conditions_(const HGCalDDDConsta
 	       return std::accumulate(arr.begin(), arr.end(), 0);
 	     };
 
-  const int nLayersTot = acc(nlayers);
-  mPosmap->zLayer.resize(nLayersTot);
-  mPosmap->nCellsSubDet.reserve(nsubSi);
-  mPosmap->nCellsLayer.reserve(nLayersTot);
+  const int nLayersSi = acc(nlayers) - nlayers[mDet::HEB];
+  mPosmap->zLayer.resize(nLayersSi);
+  mPosmap->nCellsLayer.reserve(nLayersSi);
 
   const int nCellsUTot = acc(upper_estimate_wafer_number_1D);
   mPosmap->nCellsWaferUChunk.reserve(nCellsUTot);
@@ -102,20 +154,22 @@ void HeterogeneousHGCalPositionsFiller::reserve_conditions_(const HGCalDDDConsta
   mPosmap->sensorSeparation = static_cast<float>(p[mDet::HEF]->sensorSeparation_);
   assert(p[mDet::EE]->sensorSeparation_ == p[mDet::HEF]->sensorSeparation_);
     
-  mPosmap->firstLayerSi = d[mDet::EE]->firstLayer();
-  assert(mPosmap->firstLayerSi == 1);  //otherwise the loop over the layers has to be changed
-  mPosmap->firstLayerSci = d[mDet::HEB]->firstLayer();
-  assert(mPosmap->firstLayerSci == 1);  //otherwise the loop over the layers has to be changed
+  mPosmap->firstLayerEE  = d[mDet::EE]->firstLayer();
+  mPosmap->firstLayerHEF = d[mDet::HEF]->firstLayer();
+  mPosmap->firstLayerHEB = d[mDet::HEB]->firstLayer();
   
-  mPosmap->lastLayerSi = d[mDet::HEF]->lastLayer(true);
-  mPosmap->lastLayerSci = d[mDet::HEB]->lastLayer(true);
+  mPosmap->lastLayerEE  = d[mDet::EE]->lastLayer(true);
+  mPosmap->lastLayerHEF = d[mDet::HEF]->lastLayer(true);
+  mPosmap->lastLayerHEB = d[mDet::HEB]->lastLayer(true);
   
-  mPosmap->waferMin = d[mDet::EE]->waferMin();
-  assert(d[mDet::EE]->waferMin() == d[mDet::HEF]->waferMin());
-  mPosmap->waferMax = d[mDet::EE]->waferMax();
-  assert(d[mDet::EE]->waferMax() == d[mDet::HEF]->waferMax());
+  mPosmap->waferMinEE  = d[mDet::EE]->waferMin();
+  mPosmap->waferMinHEF = d[mDet::HEF]->waferMin();
+
+  mPosmap->waferMaxEE  = d[mDet::EE]->waferMax();
+  mPosmap->waferMaxHEF = d[mDet::HEF]->waferMax();
 
   //scintillator additional variables missing...
+  // nlayers[mDet::HEB]
 }
 
 void HeterogeneousHGCalPositionsFiller::fill_conditions_silicon_(const HGCalDDDConstants* dEE, const HGCalParameters* pEE,
@@ -124,75 +178,79 @@ void HeterogeneousHGCalPositionsFiller::fill_conditions_silicon_(const HGCalDDDC
   enum mDet { EE, HEF, /*Nose,*/ NDETS };
   const std::array<const HGCalDDDConstants*,NDETS> d = {{ dEE, dHEF /*, dNose*/}};
 
-  auto subfirst = [this](const auto& i) noexcept -> int {
-  		    return i - this->mPosmap->firstLayerSi;
-  		  };
+  auto ee_layer_to_full_layer = [dEE](const auto& i) noexcept -> int {
+				  return i - dEE->firstLayer();
+				};
+  auto hef_layer_to_full_layer = [dEE,dHEF](const auto& i) noexcept -> int {
+				   return i - dHEF->firstLayer() + dEE->lastLayer(true);
+				 };
 
   //fill the CPU position structure from the geometry
-  unsigned sumCellsTot=0, sumCellsSubDet=0, sumCellsLayer, sumCellsWaferUChunk;
+  unsigned sumCellsTot=0, sumCellsLayer=0, sumCellsWaferUChunk=0;
 
   //store detids following a geometry ordering
-  for (int ilayer=mPosmap->firstLayerSi; ilayer<=mPosmap->lastLayerSi; ++ilayer) {
-    sumCellsLayer = 0;
-    mPosmap->zLayer[subfirst(ilayer)] =
-      static_cast<float>(d[mDet::EE]->waferZ(ilayer, true)); //originally a double
-    assert(d[mDet::EE]->waferZ(ilayer, true) == d[mDet::HEF]->waferZ(ilayer, true));
+  for(unsigned x=0; x<d.size(); ++x) {
     
-    for (int iwaferU=mPosmap->waferMin; iwaferU<mPosmap->waferMax; ++iwaferU) {
-      sumCellsWaferUChunk = 0;
+    for (int ilayer=d[x]->firstLayer(); ilayer<=d[x]->lastLayer(true); ++ilayer) {
+      sumCellsLayer = 0;
+      int layeridx = x==mDet::EE ? ee_layer_to_full_layer(ilayer) : hef_layer_to_full_layer(ilayer);
+      mPosmap->zLayer[layeridx] =
+	static_cast<float>(d[x]->waferZ(ilayer, true)); //originally a double
+    
+      for (int iwaferU=d[x]->waferMin(); iwaferU<d[x]->waferMax(); ++iwaferU) {
+	sumCellsWaferUChunk = 0;
 
-      for (int iwaferV=mPosmap->waferMin; iwaferV<mPosmap->waferMax; ++iwaferV) {
-        //0: fine; 1: coarseThin; 2: coarseThick (as defined in DataFormats/ForwardDetId/interface/HGCSiliconDetId.h)
-        int type = d[mDet::EE]->waferType(ilayer, iwaferU, iwaferV);
-	assert(type == d[mDet::HEF]->waferType(ilayer, iwaferU, iwaferV));
-
-        int nCellsHexSide =
-	  d[mDet::EE]->numberCellsHexagon(ilayer, iwaferU, iwaferV, false);
-	assert(nCellsHexSide ==
-	       d[mDet::HEF]->numberCellsHexagon(ilayer, iwaferU, iwaferV, false));
+	for (int iwaferV=d[x]->waferMin(); iwaferV<d[x]->waferMax(); ++iwaferV) {
+	  //0: fine; 1: coarseThin; 2: coarseThick (as defined in DataFormats/ForwardDetId/interface/HGCSiliconDetId.h)
+	  int type = d[x]->waferType(ilayer, iwaferU, iwaferV);
+	  int nCellsHexSide =
+	    d[x]->numberCellsHexagon(ilayer, iwaferU, iwaferV, false);
+	  int nCellsHexTotal =
+	    d[x]->numberCellsHexagon(ilayer, iwaferU, iwaferV, true);
 	
-        int nCellsHexTotal =
-	  d[mDet::EE]->numberCellsHexagon(ilayer, iwaferU, iwaferV, true);
-	assert(nCellsHexTotal ==
-	       d[mDet::HEF]->numberCellsHexagon(ilayer, iwaferU, iwaferV, true));
-	
-        sumCellsLayer += nCellsHexTotal;
-        sumCellsWaferUChunk += nCellsHexTotal;
-        mPosmap->nCellsHexagon.push_back(nCellsHexTotal);
+	  sumCellsLayer += nCellsHexTotal;
+	  sumCellsWaferUChunk += nCellsHexTotal;
+	  mPosmap->nCellsHexagon.push_back(nCellsHexTotal);
 
-        //left side of wafer
-        for (int cellUmax=nCellsHexSide, icellV=0; cellUmax<2*nCellsHexSide and icellV<nCellsHexSide;
-             ++cellUmax, ++icellV) {
-          for (int icellU = 0; icellU <= cellUmax; ++icellU) {
-            HGCSiliconDetId detid_(DetId::HGCalHSi, 1, type, ilayer, iwaferU, iwaferV, icellU, icellV);
-            mPosmap->detid.push_back(detid_.rawId());
-          }
-        }
-        //right side of wafer
-        for (int cellUmin=1, icellV=nCellsHexSide; cellUmin<=nCellsHexSide and icellV<2*nCellsHexSide;
-             ++cellUmin, ++icellV) {
-          for (int icellU = cellUmin; icellU < 2 * nCellsHexSide; ++icellU) {
-            HGCSiliconDetId detid_(DetId::HGCalHSi, 1, type, ilayer, iwaferU, iwaferV, icellU, icellV);
-            mPosmap->detid.push_back(detid_.rawId());
-          }
-        }
+	  //left side of wafer
+	  for (int cellUmax=nCellsHexSide, icellV=0; cellUmax<2*nCellsHexSide and icellV<nCellsHexSide;
+	       ++cellUmax, ++icellV) {
+	    for (int icellU = 0; icellU <= cellUmax; ++icellU) {
+	      HGCSiliconDetId detid_(DetId::HGCalHSi, 1, type, ilayer, iwaferU, iwaferV, icellU, icellV);
+	      mPosmap->detid.push_back(detid_.rawId());
+	    }
+	  }
+	  //right side of wafer
+	  for (int cellUmin=1, icellV=nCellsHexSide; cellUmin<=nCellsHexSide and icellV<2*nCellsHexSide;
+	       ++cellUmin, ++icellV) {
+	    for (int icellU = cellUmin; icellU < 2 * nCellsHexSide; ++icellU) {
+	      HGCSiliconDetId detid_(DetId::HGCalHSi, 1, type, ilayer, iwaferU, iwaferV, icellU, icellV);
+	      mPosmap->detid.push_back(detid_.rawId());
+	    }
+	  }
+	}
+	mPosmap->nCellsWaferUChunk.push_back(sumCellsWaferUChunk);
       }
-      mPosmap->nCellsWaferUChunk.push_back(sumCellsWaferUChunk);
+      sumCellsTot += sumCellsLayer;
+      mPosmap->nCellsLayer.push_back(sumCellsLayer);
     }
-    sumCellsTot += sumCellsLayer;
-    mPosmap->nCellsLayer.push_back(sumCellsLayer);
-    
-    if( ilayer == subfirst(d[mDet::EE]->lastLayer(true)) or
-	ilayer == subfirst(d[mDet::HEF]->lastLayer(true)) ) {
-      mPosmap->nCellsSubDet.push_back(sumCellsSubDet);
-      sumCellsSubDet=0;
-    }
-  }
 
-  mPosmap->nCellsTot = std::accumulate(mPosmap->nCellsSubDet.begin(), mPosmap->nCellsSubDet.end(), 0);
+  } // for(auto &&x : d)
+
+  mPosmap->nCellsTot = sumCellsTot;
 }
 
 void HeterogeneousHGCalPositionsFiller::fill_conditions_scintillator_(const HGCalDDDConstants* d, const HGCalParameters* p) {
+  
+  auto subfirst = [this](const auto& i) noexcept -> int {
+  		    return i - mPosmap->firstLayerHEB;
+  		  };
+
+  //store detids following a geometry ordering
+  for (int ilayer=mPosmap->firstLayerHEB; ilayer<=mPosmap->lastLayerHEB; ++ilayer) {
+    subfirst(ilayer);
+  }
+
 }
 
 std::unique_ptr<HeterogeneousHGCalPositionsConditions> HeterogeneousHGCalPositionsFiller::produce(
@@ -200,13 +258,13 @@ std::unique_ptr<HeterogeneousHGCalPositionsConditions> HeterogeneousHGCalPositio
 
   clear_conditions_();
   
-  auto geomEE = iRecord.getTransientHandle(geomTokEE_);
+  auto geomEE = iRecord.getTransientHandle(mGeomTokEE);
   mDDDEE = &(geomEE->topology().dddConstants());
   
-  auto geomHEF = iRecord.getTransientHandle(geomTokHEF_);
+  auto geomHEF = iRecord.getTransientHandle(mGeomTokHEF);
   mDDDHEF = &(geomHEF->topology().dddConstants());
 
-  auto geomHEB = iRecord.getTransientHandle(geomTokHEB_);
+  auto geomHEB = iRecord.getTransientHandle(mGeomTokHEB);
   mDDDHEB = &(geomHEB->topology().dddConstants());
 
   reserve_conditions_( mDDDEE,  mDDDEE->getParameter(),

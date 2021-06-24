@@ -84,16 +84,20 @@ void HeterogeneousHGCalPositionsConditions::transfer_data_to_heterogeneous_point
 
 void HeterogeneousHGCalPositionsConditions::transfer_data_to_heterogeneous_vars_(
     const cpos::HGCalPositionsMapping* cpuPos) {
-  this->posmap_.waferSize = cpuPos->waferSize;
+  this->posmap_.waferSize        = cpuPos->waferSize;
   this->posmap_.sensorSeparation = cpuPos->sensorSeparation;
-  this->posmap_.nCellsTot = cpuPos->nCellsTot;
-  this->posmap_.firstLayerSi = cpuPos->firstLayerSi;
-  this->posmap_.firstLayerSci = cpuPos->firstLayerSci;
-  this->posmap_.lastLayerSi = cpuPos->lastLayerSi;
-  this->posmap_.lastLayerSci = cpuPos->lastLayerSci;
-  this->posmap_.waferMin = cpuPos->waferMin;
-  this->posmap_.waferMax = cpuPos->waferMax;
-  this->nelems_posmap_ = cpuPos->detid.size();
+  this->posmap_.nCellsTot        = cpuPos->nCellsTot;
+  this->posmap_.firstLayerEE     = cpuPos->firstLayerEE;
+  this->posmap_.firstLayerHEF    = cpuPos->firstLayerHEF;
+  this->posmap_.firstLayerHEB    = cpuPos->firstLayerHEB;
+  this->posmap_.lastLayerEE      = cpuPos->lastLayerEE;
+  this->posmap_.lastLayerHEF     = cpuPos->lastLayerHEF;
+  this->posmap_.lastLayerHEB     = cpuPos->lastLayerHEB;
+  this->posmap_.waferMinEE       = cpuPos->waferMinEE;
+  this->posmap_.waferMinHEF      = cpuPos->waferMinHEF;
+  this->posmap_.waferMaxEE       = cpuPos->waferMaxEE;
+  this->posmap_.waferMaxHEF      = cpuPos->waferMaxHEF;
+  this->nelems_posmap_           = cpuPos->detid.size();
 }
 
 std::vector<size_t> HeterogeneousHGCalPositionsConditions::calculate_memory_bytes_(
@@ -101,8 +105,8 @@ std::vector<size_t> HeterogeneousHGCalPositionsConditions::calculate_memory_byte
   size_t npointers = cpos::types.size();
   std::vector<size_t> sizes(npointers);
   for (unsigned int i = 0; i < npointers; ++i) {
-    const unsigned detid_index = 5;
-    const unsigned nlayers_index = 4;
+    const unsigned detid_index = 4;
+    const unsigned nlayers_index = 3;
     if (cpos::types[i] == cpos::HeterogeneousHGCalPositionsType::Float and (i == 0 or i == 1))
       sizes[i] = select_pointer_u_(cpuPos, detid_index)
                      .size();  //x and y position array will have the same size as the detid array
@@ -171,12 +175,10 @@ int32_t*& HeterogeneousHGCalPositionsConditions::select_pointer_i_(
 									  cpos::HeterogeneousHGCalPositionsMapping* cpuObject, const unsigned int& item) const {
   switch (item) {
   case 3:
-    return cpuObject->nCellsSubDet;
-  case 4:
     return cpuObject->nCellsLayer;
-  case 5:
+  case 4:
     return cpuObject->nCellsWaferUChunk;
-  case 6:
+  case 5:
     return cpuObject->nCellsHexagon;
   default:
     throw cms::Exception("HeterogeneousHGCalPositionsConditions")
@@ -188,12 +190,10 @@ int32_t*& HeterogeneousHGCalPositionsConditions::select_pointer_i_(
 std::vector<int32_t>& HeterogeneousHGCalPositionsConditions::select_pointer_i_(cpos::HGCalPositionsMapping* cpuObject, const unsigned int& item) {
   switch (item) {
   case 1:
-    return cpuObject->nCellsSubDet;
-  case 2:
     return cpuObject->nCellsLayer;
-  case 3:
+  case 2:
     return cpuObject->nCellsWaferUChunk;
-  case 4:
+  case 3:
     return cpuObject->nCellsHexagon;
   default:
     throw cms::Exception("HeterogeneousHGCalPositionsConditions")
@@ -205,7 +205,7 @@ std::vector<int32_t>& HeterogeneousHGCalPositionsConditions::select_pointer_i_(c
 uint32_t*& HeterogeneousHGCalPositionsConditions::select_pointer_u_(
     cpos::HeterogeneousHGCalPositionsMapping* cpuObject, const unsigned int& item) const {
   switch (item) {
-    case 7:
+    case 6:
       return cpuObject->detid;
     default:
       throw cms::Exception("HeterogeneousHGCalPositionsConditions")
@@ -217,7 +217,7 @@ uint32_t*& HeterogeneousHGCalPositionsConditions::select_pointer_u_(
 std::vector<uint32_t>& HeterogeneousHGCalPositionsConditions::select_pointer_u_(
     cpos::HGCalPositionsMapping* cpuObject, const unsigned int& item) {
   switch (item) {
-    case 5:
+    case 4:
       return cpuObject->detid;
     default:
       throw cms::Exception("HeterogeneousHGCalPositionsConditions")
@@ -240,16 +240,20 @@ HeterogeneousHGCalPositionsConditions::getHeterogeneousConditionsESProductAsync(
     // Allocate the payload array(s) on device memory.
     cudaCheck(cudaMalloc(&(data.host->posmap.x), this->chunk_));
     // Complete the host-side information on the payload
-    data.host->posmap.waferSize = this->posmap_.waferSize;
+    data.host->posmap.waferSize        = this->posmap_.waferSize;
     data.host->posmap.sensorSeparation = this->posmap_.sensorSeparation;
-    data.host->posmap.nCellsTot = this->posmap_.nCellsTot;
-    data.host->posmap.firstLayerSi = this->posmap_.firstLayerSi;
-    data.host->posmap.firstLayerSci = this->posmap_.firstLayerSci;
-    data.host->posmap.lastLayerSi = this->posmap_.lastLayerSi;
-    data.host->posmap.lastLayerSci = this->posmap_.lastLayerSci;
-    data.host->posmap.waferMax = this->posmap_.waferMax;
-    data.host->posmap.waferMin = this->posmap_.waferMin;
-    data.host->nelems_posmap = this->nelems_posmap_;
+    data.host->posmap.nCellsTot        = this->posmap_.nCellsTot;
+    data.host->posmap.firstLayerEE     = this->posmap_.firstLayerEE;
+    data.host->posmap.firstLayerHEF    = this->posmap_.firstLayerHEF;
+    data.host->posmap.firstLayerHEB    = this->posmap_.firstLayerHEB;
+    data.host->posmap.lastLayerEE      = this->posmap_.lastLayerEE;
+    data.host->posmap.lastLayerHEF     = this->posmap_.lastLayerHEF;
+    data.host->posmap.lastLayerHEB     = this->posmap_.lastLayerHEB;
+    data.host->posmap.waferMaxEE       = this->posmap_.waferMaxEE;
+    data.host->posmap.waferMaxHEF      = this->posmap_.waferMaxHEF;
+    data.host->posmap.waferMinEE       = this->posmap_.waferMinEE;
+    data.host->posmap.waferMinHEF      = this->posmap_.waferMinHEF;
+    data.host->nelems_posmap           = this->nelems_posmap_;
 
     //(set the pointers of the positions' mapping)
     size_t sfloat = sizeof(float);

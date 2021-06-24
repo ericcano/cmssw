@@ -71,7 +71,7 @@ process.load('RecoLocalCalo.HGCalRecProducers.HeterogeneousEMCLUEGPU_cfi')
 #process.HGCalRecHits = HGCalRecHit.clone()
 
 process.ee_task = cms.Task( process.EERecHitGPUProd,
-                            #process.EMCLUEGPUProd
+                            process.EMCLUEGPUProd
 )
 
 process.global_task = cms.Task( process.HeterogeneousHGCalPositionsFiller,

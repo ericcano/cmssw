@@ -3,7 +3,7 @@
   <class name="edm::Wrapper<cms::cuda::Product<HGCRecHitGPUProduct>>" persistent="false"/>
 
   <class name="HGCRecHitCPUProduct" persistent="false">
-    <field name="mem_" transient="true" />
+    <field name="mMemRecHitHost" transient="true" />
   </class>
   <class name="edm::Wrapper<HGCRecHitCPUProduct>" persistent="false"/>
 
@@ -11,7 +11,7 @@
   <class name="edm::Wrapper<cms::cuda::Product<HGCCLUEGPUProduct>>" persistent="false"/>
 
   <class name="HGCCLUECPUProduct" persistent="false">
-    <field name="mem_" transient="true" />
+    <field name="mMemCLUEHost" transient="true" />
   </class>
   <class name="edm::Wrapper<HGCCLUECPUProduct>" persistent="false"/>
 

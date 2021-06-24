@@ -16,7 +16,7 @@ public:
   explicit HGCRecHitCPUProduct(uint32_t nhits, const cudaStream_t &stream) : nhits_(nhits) {
     size_tot_ = std::accumulate(sizes_.begin(), sizes_.end(), 0);  //this might be done at compile time
     pad_ = ((nhits - 1) / 32 + 1) * 32;                            //align to warp boundary (assumption: warpSize = 32)
-    mem_ = cms::cuda::make_host_unique<std::byte[]>(pad_ * size_tot_, stream);
+    mMemRecHitHost = cms::cuda::make_host_unique<std::byte[]>(pad_ * size_tot_, stream);
   }
   ~HGCRecHitCPUProduct() = default;
 
@@ -27,7 +27,7 @@ public:
 
   HGCRecHitSoA get() {
     HGCRecHitSoA soa;
-    soa.energy = reinterpret_cast<float *>(mem_.get());    soa.time = soa.energy + pad_;
+    soa.energy = reinterpret_cast<float *>(mMemRecHitHost.get());    soa.time = soa.energy + pad_;
     soa.timeError = soa.time + pad_;
     soa.sigmaNoise = soa.timeError + pad_;
     soa.id = reinterpret_cast<uint32_t *>(soa.sigmaNoise + pad_);
@@ -39,7 +39,7 @@ public:
   }
   ConstHGCRecHitSoA get() const {
     ConstHGCRecHitSoA soa;
-    soa.energy = reinterpret_cast<float const *>(mem_.get());
+    soa.energy = reinterpret_cast<float const *>(mMemRecHitHost.get());
     soa.time = soa.energy + pad_;
     soa.timeError = soa.time + pad_;
     soa.sigmaNoise = soa.timeError + pad_;
@@ -52,7 +52,7 @@ public:
   uint32_t nBytes() const { return size_tot_; }
 
 private:
-  cms::cuda::host::unique_ptr<std::byte[]> mem_;
+  cms::cuda::host::unique_ptr<std::byte[]> mMemRecHitHost;
   static constexpr std::array<int, memory::npointers::ntypes_hgcrechits_soa> sizes_ = {
       {memory::npointers::float_hgcrechits_soa * sizeof(float),
        memory::npointers::uint32_hgcrechits_soa * sizeof(uint32_t)}};

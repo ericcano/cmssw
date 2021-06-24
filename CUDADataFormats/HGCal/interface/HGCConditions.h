@@ -142,12 +142,10 @@ namespace hgcal_conditions {
                                                                 HeterogeneousHGCalPositionsType::Int32_t,
 								HeterogeneousHGCalPositionsType::Int32_t,
                                                                 HeterogeneousHGCalPositionsType::Int32_t,
-                                                                HeterogeneousHGCalPositionsType::Int32_t,
                                                                 HeterogeneousHGCalPositionsType::Uint32_t};
 
     struct HGCalPositionsMapping {
       std::vector<float> zLayer;               //z position per layer
-      std::vector<int32_t> nCellsSubDet;       //#cells per subdetector
       std::vector<int32_t> nCellsLayer;        //#cells per layer
       std::vector<int32_t> nCellsWaferUChunk;  //#cells per U wafer (each in turn including all V wafers)
       std::vector<int32_t> nCellsHexagon;      //#cells per V wafer
@@ -157,12 +155,16 @@ namespace hgcal_conditions {
       float sensorSeparation;
       //variables required for the mapping of detid -> cell in the geometry
       int32_t nCellsTot;
-      int32_t firstLayerSi;
-      int32_t firstLayerSci;
-      int32_t lastLayerSi;
-      int32_t lastLayerSci;
-      int32_t waferMax;
-      int32_t waferMin;
+      int32_t firstLayerEE;
+      int32_t firstLayerHEF;
+      int32_t firstLayerHEB;
+      int32_t lastLayerEE;
+      int32_t lastLayerHEF;
+      int32_t lastLayerHEB;
+      int32_t waferMaxEE;
+      int32_t waferMaxHEF;
+      int32_t waferMinEE;
+      int32_t waferMinHEF;
     };
 
     struct HeterogeneousHGCalPositionsMapping {
@@ -170,7 +172,6 @@ namespace hgcal_conditions {
       float *x;
       float *y;
       float *zLayer;
-      int32_t *nCellsSubDet;
       int32_t *nCellsLayer;
       int32_t *nCellsWaferUChunk;
       int32_t *nCellsHexagon;
@@ -180,12 +181,16 @@ namespace hgcal_conditions {
       float sensorSeparation;
       //variables required for the mapping of detid -> cell in the geometry
       int32_t nCellsTot;
-      int32_t firstLayerSi;
-      int32_t firstLayerSci;
-      int32_t lastLayerSi;
-      int32_t lastLayerSci;
-      int32_t waferMax;
-      int32_t waferMin;
+      int32_t firstLayerEE;
+      int32_t firstLayerHEF;
+      int32_t firstLayerHEB;
+      int32_t lastLayerEE;
+      int32_t lastLayerHEF;
+      int32_t lastLayerHEB;
+      int32_t waferMaxEE;
+      int32_t waferMaxHEF;
+      int32_t waferMinEE;
+      int32_t waferMinHEF;
     };
 
   }  //namespace positions

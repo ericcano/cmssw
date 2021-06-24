@@ -36,7 +36,7 @@ class HGCalLayerClusterProducerEMGPU : public edm::stream::EDProducer<edm::Exter
 public:
   HGCalLayerClusterProducerEMGPU(const edm::ParameterSet&);
   ~HGCalLayerClusterProducerEMGPU() override {}
-  static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
+  // static void fillDescriptions(edm::ConfigurationDescriptions& descriptions); 
 
   void acquire(edm::Event const&, edm::EventSetup const&, edm::WaitingTaskWithArenaHolder) override;
   void produce(edm::Event&, const edm::EventSetup&) override;
@@ -57,24 +57,25 @@ HGCalLayerClusterProducerEMGPU::HGCalLayerClusterProducerEMGPU(const edm::Parame
   : mDc(ps.getParameter<double>("dc")),
     mKappa(ps.getParameter<double>("kappa")),
     mEcut(ps.getParameter<double>("ecut")),
-    mOutlierDeltaFactor(ps.getParameter<double>("outlierdeltafactor")),
+    mOutlierDeltaFactor(ps.getParameter<double>("outlierDeltaFactor")),
     gpuPositionsTok_(esConsumes<HeterogeneousHGCalPositionsConditions,
 		     HeterogeneousHGCalPositionsConditionsRecord>()),
     InEEToken{consumes<cms::cuda::Product<HGCRecHitGPUProduct>>(ps.getParameter<edm::InputTag>("HGCEEInputGPU"))},
     OutEEToken{produces<cms::cuda::Product<HGCCLUEGPUProduct>>()}
 {}
 
-void HGCalLayerClusterProducerEMGPU::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
-  // hgcalLayerClusters
-  edm::ParameterSetDescription desc;
+// void HGCalLayerClusterProducerEMGPU::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+//   // hgcalLayerClusters
+//   edm::ParameterSetDescription desc;
 
-  desc.add<edm::InputTag>("HGCEEInputGPU", edm::InputTag("EERecHitGPUProd"));
-  descriptions.add("hgcalLayerClustersGPU", desc);
-}
+//   desc.add<edm::InputTag>("HGCEEInputGPU", edm::InputTag("EERecHitGPUProd"));
+//   descriptions.add("hgcalLayerClustersGPU", desc);
+// }
 
 void HGCalLayerClusterProducerEMGPU::acquire(edm::Event const& event,
 					   edm::EventSetup const& es,
 					   edm::WaitingTaskWithArenaHolder w) {
+  std::cout << "acquire LayerCluster" << std::endl;
   cms::cuda::ScopedContextAcquire ctx{event.streamID(), std::move(w), ctxState_};
   const auto& eeHits = ctx.get(event, InEEToken);
   const unsigned nhits(eeHits.nHits());
@@ -84,15 +85,20 @@ void HGCalLayerClusterProducerEMGPU::acquire(edm::Event const& event,
   //retrieve HGCAL positions conditions data
   auto hPosConds = es.getHandle(gpuPositionsTok_);
   const auto* gpuPositionsConds = hPosConds->getHeterogeneousConditionsESProductAsync(ctx.stream());
-  
+
+  std::cout << "algo" << std::endl;
   HGCalCLUEAlgoGPUEM algo(mDc, mKappa, mEcut, mOutlierDeltaFactor,
 			  mClusters.get());
+  std::cout << "populate" << std::endl;
   algo.populate(eeHits.get(), gpuPositionsConds, ctx.stream());
+  std::cout << "make_clusters" << std::endl;
   algo.make_clusters(nhits, ctx.stream());
+  std::cout << "end" << std::endl;
 }
 
 void HGCalLayerClusterProducerEMGPU::produce(edm::Event& event,
 					     const edm::EventSetup& es) {
+  std::cout << "produce LayerCluster" << std::endl;
   cms::cuda::ScopedContextProduce ctx{ctxState_};
   ctx.emplace(event, OutEEToken, std::move(mClusters));
 }
