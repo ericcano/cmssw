@@ -105,7 +105,7 @@ void kernel_calculate_density( LayerTilesGPU *hist,
       } // end of loop over bins in search box
     }
     
-    out.rho[i] = (float)rhoi;
+    out[i].rho = (float)rhoi;
   }
 } //kernel
 
@@ -133,7 +133,7 @@ void kernel_calculate_distanceToHigher(LayerTilesGPU* hist,
       int layeri = in.layer[i];
       float xi = in.x[i];
       float yi = in.y[i];
-      float rhoi = out.rho[i];
+      float rhoi = out[i].rho;
 
       // get search box 
       int4 search_box = hist[layeri].searchBox(xi-dm, xi+dm, yi-dm, yi+dm);
@@ -155,9 +155,9 @@ void kernel_calculate_distanceToHigher(LayerTilesGPU* hist,
 	      float xj = in.x[j];
 	      float yj = in.y[j];
 	      float dist_ij = std::sqrt((xi-xj)*(xi-xj) + (yi-yj)*(yi-yj));
-	      bool foundHigher = (out.rho[j] > rhoi);
+	      bool foundHigher = (out[j].rho > rhoi);
 	      // in the rare case where rho is the same, use detid
-	      foundHigher = foundHigher || ( (out.rho[j] == rhoi) && (j>i));
+	      foundHigher = foundHigher || ( (out[j].rho == rhoi) && (j>i));
 	      if(foundHigher && dist_ij <= dm) { // definition of N'_{dm}(i)
 		// find the nearest point within N'_{dm}(i)
 		if (dist_ij<deltai) {
@@ -173,8 +173,8 @@ void kernel_calculate_distanceToHigher(LayerTilesGPU* hist,
 
     }
     
-    out.delta[i] = deltai;
-    out.nearestHigher[i] = nearestHigheri;
+    out[i].delta = deltai;
+    out[i].nearestHigher = nearestHigheri;
   }
 } //kernel
 
@@ -194,23 +194,23 @@ void kernel_find_clusters( cms::cuda::VecArray<int,clue_gpu::maxNSeeds>* d_seeds
 
   if (i < numberOfPoints and is_energy_valid(in.energy[i])) {
     // initialize clusterIndex
-    out.clusterIndex[i] = -1;
+    out[i].clusterIndex = -1;
     // determine seed or outlier
-    float deltai = out.delta[i];
-    float rhoi = out.rho[i];
+    float deltai = out[i].delta;
+    float rhoi = out[i].rho;
     float rhoc = kappa * in.sigmaNoise[i];
     bool isSeed = (deltai > dc) && (rhoi >= rhoc);
     bool isOutlier = (deltai > outlierDeltaFactor * dc) && (rhoi < rhoc);
 
     if (isSeed) {
       // set isSeed as 1
-      out.isSeed[i] = 1;
+      out[i].isSeed = 1;
       d_seeds[0].push_back(i); // head of d_seeds
     } else {
       if (!isOutlier) {
-        assert(out.nearestHigher[i] < numberOfPoints);
+        assert(out[i].nearestHigher < numberOfPoints);
         // register as follower of its nearest higher
-        d_followers[out.nearestHigher[i]].push_back(i);  
+        d_followers[out[i].nearestHigher].push_back(i);  
       }
     }
   }
@@ -233,7 +233,7 @@ void kernel_assign_clusters( const cms::cuda::VecArray<int,clue_gpu::maxNSeeds>*
 
     // asgine cluster to seed[idxCls]
     int idxThisSeed = seeds[idxCls];
-    out.clusterIndex[idxThisSeed] = idxCls;
+    out[idxThisSeed].clusterIndex = idxCls;
     // push_back idThisSeed to localStack
     localStack[localStackSize] = idxThisSeed;
     localStackSize++;
@@ -242,7 +242,7 @@ void kernel_assign_clusters( const cms::cuda::VecArray<int,clue_gpu::maxNSeeds>*
       // get last element of localStack
       int idxEndOflocalStack = localStack[localStackSize-1];
 
-      int temp_clusterIndex = out.clusterIndex[idxEndOflocalStack];
+      int temp_clusterIndex = out[idxEndOflocalStack].clusterIndex;
       // pop_back last element of localStack
       localStack[localStackSize-1] = -1;
       localStackSize--;
@@ -250,7 +250,7 @@ void kernel_assign_clusters( const cms::cuda::VecArray<int,clue_gpu::maxNSeeds>*
       // loop over followers of last element of localStack
       for( int j : d_followers[idxEndOflocalStack]){
         // // pass id to follower
-        out.clusterIndex[j] = temp_clusterIndex;
+        out[j].clusterIndex = temp_clusterIndex;
         // push_back follower to localStack
         //localStack[localStackSize] = j;
         localStackSize++;
