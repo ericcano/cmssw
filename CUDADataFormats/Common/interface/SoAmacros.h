@@ -95,9 +95,9 @@ namespace cms::cuda {
 #define _ASSIGN_SOA_COLUMN_OR_SCALAR_IMPL(IS_COLUMN, TYPE, NAME)                                                                    \
   BOOST_PP_CAT(NAME, _) = reinterpret_cast<TYPE *>(curMem);                                                                         \
     BOOST_PP_IIF(IS_COLUMN,                                                                                                         \
-    curMem += ((nElements_ * sizeof(TYPE) / byteAlignment_) + 1) * byteAlignment_;                                                  \
+    curMem += (((nElements_ * sizeof(TYPE) - 1) / byteAlignment_) + 1) * byteAlignment_;                                            \
   ,                                                                                                                                 \
-    curMem += ((sizeof(TYPE) / byteAlignment_) + 1) * byteAlignment_;                                                               \
+    curMem += (((sizeof(TYPE) - 1) / byteAlignment_) + 1) * byteAlignment_;                                                         \
   )
 
 #define _ASSIGN_SOA_COLUMN_OR_SCALAR(R, DATA, TYPE_NAME)                                                                            \
@@ -105,9 +105,9 @@ namespace cms::cuda {
 
 #define _ACCUMULATE_SOA_ELEMENT_IMPL(IS_COLUMN, TYPE, NAME)                                                                         \
   BOOST_PP_IIF(IS_COLUMN,                                                                                                           \
-    ret += ((nElements * sizeof(TYPE) / byteAlignment) + 1) * byteAlignment;                                                        \
+    ret += (((nElements * sizeof(TYPE) - 1) / byteAlignment) + 1) * byteAlignment;                                                  \
   ,                                                                                                                                 \
-    ret += ((sizeof(TYPE) / byteAlignment) + 1) * byteAlignment;                                                                    \
+    ret += (((sizeof(TYPE) - 1) / byteAlignment) + 1) * byteAlignment;                                                              \
   )
 
 #define _ACCUMULATE_SOA_ELEMENT(R, DATA, TYPE_NAME)                                                                                 \
@@ -165,7 +165,7 @@ namespace cms::cuda {
 #define _DECLARE_SOA_ACCESSOR_IMPL(IS_COLUMN, TYPE, NAME)                                                                           \
   SOA_HOST_DEVICE                                                                                                                   \
   BOOST_PP_IIF(IS_COLUMN,                                                                                                           \
-    TYPE* NAME() { return BOOST_PP_CAT(NAME, _); }                                                                                \
+    TYPE* NAME() { return BOOST_PP_CAT(NAME, _); }                                                                                  \
   ,                                                                                                                                 \
     TYPE& NAME() { return * BOOST_PP_CAT(NAME, _); }                                                                                \
   )
@@ -176,7 +176,7 @@ namespace cms::cuda {
 #define _DECLARE_SOA_CONST_ACCESSOR_IMPL(IS_COLUMN, TYPE, NAME)                                                                     \
   SOA_HOST_DEVICE                                                                                                                   \
   BOOST_PP_IIF(IS_COLUMN,                                                                                                           \
-    TYPE const* NAME() const { return BOOST_PP_CAT(NAME, _); }                                                                    \
+    TYPE const* NAME() const { return BOOST_PP_CAT(NAME, _); }                                                                      \
   ,                                                                                                                                 \
     TYPE const& NAME() const { return * BOOST_PP_CAT(NAME, _); }                                                                    \
   )
@@ -188,7 +188,7 @@ namespace cms::cuda {
   BOOST_PP_IIF(IS_COLUMN,                                                                                                           \
     TYPE * BOOST_PP_CAT(NAME, _);                                                                                                   \
   ,                                                                                                                                 \
-    TYPE * BOOST_PP_CAT(NAME, _);                                                                                                     \
+    TYPE * BOOST_PP_CAT(NAME, _);                                                                                                   \
   )
 
 #define _DECLARE_SOA_DATA_MEMBER(R, DATA, TYPE_NAME)                                                                                \
@@ -253,7 +253,7 @@ struct CLASS {                                                                  
     CLASS const& soa_;                                                                                                              \
     const int index_;                                                                                                               \
   };                                                                                                                                \
-                                                                                                                      \
+                                                                                                                                    \
   struct element {                                                                                                                  \
     element(size_t index,                                                                                                           \
       /* Turn Boost PP */                                                                                                           \
