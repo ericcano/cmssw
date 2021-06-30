@@ -4,5 +4,11 @@
     <use name="catch2"/>
     <use name="cuda"/>
   </bin>
-
+  
+  <bin name="testCUDADataFormatsCommon" 
+       file="testRunner.cc, testSoA.cc">
+    <use name="HeterogeneousCore/CUDACore"/>
+    <use name="cuda"/>
+    <use name="cppunit"/>
+  </bin>
 </iftool>
