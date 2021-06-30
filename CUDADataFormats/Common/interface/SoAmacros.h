@@ -1,6 +1,8 @@
 #ifndef CUDADataFormats_Common_SoAmacros_h
 #define CUDADataFormats_Common_SoAmacros_h
 
+#include <stdio.h>
+#include <assert.h>
 #include "boost/preprocessor.hpp"
 
 // CUDA attributes
@@ -10,7 +12,7 @@
 #else
 #define SOA_HOST_ONLY
 #define SOA_HOST_DEVICE
-#endif
+#endif 
 
 namespace cms::cuda {
   // Helper template managing the value within its column
@@ -194,6 +196,12 @@ namespace cms::cuda {
 #define _DECLARE_SOA_DATA_MEMBER(R, DATA, TYPE_NAME)                                                                                \
   BOOST_PP_EXPAND(_DECLARE_SOA_DATA_MEMBER_IMPL TYPE_NAME)
 
+#ifdef DEBUG
+#define _DO_RANGECHECK true
+#else
+#define _DO_RANGECHECK false
+#endif
+
 /*
  * A macro defining a SoA (structure of variable sized arrays variant).
  */
@@ -270,11 +278,16 @@ struct CLASS {                                                                  
                                                                                                                                     \
   /* AoS-like accessor */                                                                                                           \
   SOA_HOST_DEVICE                                                                                                                   \
-  element operator[](size_t index) { return element(index,                                                                          \
-    _ITERATE_ON_VALUE_TYPE_COMMA(_DECLARE_ELEMENT_CONSTR_CALL, ~, _VALUE_TYPE_COLUMN, __VA_ARGS__) );                               \
-    }                                                                                                                               \
-  const element operator[](size_t index) const { return element(index,                                                              \
-    _ITERATE_ON_VALUE_TYPE_COMMA(_DECLARE_ELEMENT_CONSTR_CALL, ~, _VALUE_TYPE_COLUMN, __VA_ARGS__) );                               \
+  element operator[](size_t index) {                                                                                                \
+    rangeCheck(index);                                                                                                              \
+    return element(index,                                                                                                           \
+        _ITERATE_ON_VALUE_TYPE_COMMA(_DECLARE_ELEMENT_CONSTR_CALL, ~, _VALUE_TYPE_COLUMN, __VA_ARGS__) );                           \
+  }                                                                                                                                 \
+                                                                                                                                    \
+  const element operator[](size_t index) const {                                                                                    \
+    rangeCheck(index);                                                                                                              \
+    return element(index,                                                                                                           \
+        _ITERATE_ON_VALUE_TYPE_COMMA(_DECLARE_ELEMENT_CONSTR_CALL, ~, _VALUE_TYPE_COLUMN, __VA_ARGS__) );                           \
   }                                                                                                                                 \
                                                                                                                                     \
   /* accessors */                                                                                                                   \
@@ -285,6 +298,17 @@ struct CLASS {                                                                  
   template <typename T> SOA_HOST_ONLY friend void dump();                                                                           \
                                                                                                                                     \
 private:                                                                                                                            \
+  /* Range checker conditional to the macro _DO_RANGECHECK */                                                                       \
+  SOA_HOST_DEVICE                                                                                                                   \
+  inline void rangeCheck(size_t index) const {                                                                                      \
+    if constexpr (_DO_RANGECHECK) {                                                                                                 \
+      if (index >= nElements_) {                                                                                                    \
+        printf("In " #CLASS "::rangeCheck(): index out of range: %zu with nElements: %zu\n", index, nElements_);                    \
+        assert(false);                                                                                                              \
+      }                                                                                                                             \
+    }                                                                                                                               \
+  }                                                                                                                                 \
+                                                                                                                                    \
   /* data members */                                                                                                                \
   std::byte* mem_;                                                                                                                  \
   size_t nElements_;                                                                                                                \
@@ -293,5 +317,4 @@ private:                                                                        
 }
 
 #endif //CUDADataFormats_Common_SoAmacros_h
-
 
