@@ -127,8 +127,8 @@ void checkSoAAlignment(size_t nElements, size_t byteAlignment, uint32_t bitAlign
   // Allocate a block which is aligned (we need to pass free as the custom free function (to replace delete).
   auto malloc_deleter = [](void * p){free(p);};
   std::unique_ptr<std::byte, decltype(malloc_deleter)> dataBlock(
-    (std::byte*)aligned_alloc(byteAlignment, SoA::computeDataSize(nElements,byteAlignment)),
-     malloc_deleter
+    reinterpret_cast<std::byte*>(aligned_alloc(byteAlignment, SoA::computeDataSize(nElements,byteAlignment))),
+    malloc_deleter
   );
   SoA soa(dataBlock.get(), nElements, byteAlignment);
   checkValuesAlignment(soa, &SoA::element::x, "x", bitAlignment);

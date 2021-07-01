@@ -6,7 +6,7 @@
   </bin>
   
   <bin name="testCUDADataFormatsCommon" 
-       file="testRunner.cc, testSoA.cc">
+       file="testRunner.cc, testSoA.cc testSoAGPU.cu">
     <use name="HeterogeneousCore/CUDACore"/>
     <use name="cuda"/>
     <use name="cppunit"/>

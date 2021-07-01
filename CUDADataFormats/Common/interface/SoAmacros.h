@@ -234,8 +234,8 @@ struct CLASS {                                                                  
     return ret;                                                                                                                     \
   }                                                                                                                                 \
                                                                                                                                     \
-  size_t nElements() { return nElements_; }                                                                                         \
-  size_t byteAlignment() { return byteAlignment_; }                                                                                 \
+  SOA_HOST_DEVICE size_t nElements() { return nElements_; }                                                                         \
+  SOA_HOST_DEVICE size_t byteAlignment() { return byteAlignment_; }                                                                 \
                                                                                                                                     \
   /* Constructor relying on user provided storage */                                                                                \
   CLASS(std::byte* mem, size_t nElements, size_t byteAlignment = defaultAlignment):                                                 \
@@ -284,6 +284,7 @@ struct CLASS {                                                                  
         _ITERATE_ON_VALUE_TYPE_COMMA(_DECLARE_ELEMENT_CONSTR_CALL, ~, _VALUE_TYPE_COLUMN, __VA_ARGS__) );                           \
   }                                                                                                                                 \
                                                                                                                                     \
+SOA_HOST_DEVICE                                                                                                                     \
   const element operator[](size_t index) const {                                                                                    \
     rangeCheck(index);                                                                                                              \
     return element(index,                                                                                                           \
