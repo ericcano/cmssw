@@ -234,8 +234,8 @@ struct CLASS {                                                                  
     return ret;                                                                                                                     \
   }                                                                                                                                 \
                                                                                                                                     \
-  SOA_HOST_DEVICE size_t nElements() { return nElements_; }                                                                         \
-  SOA_HOST_DEVICE size_t byteAlignment() { return byteAlignment_; }                                                                 \
+  SOA_HOST_DEVICE size_t nElements() const { return nElements_; }                                                                   \
+  SOA_HOST_DEVICE size_t byteAlignment() const { return byteAlignment_; }                                                           \
                                                                                                                                     \
   /* Constructor relying on user provided storage */                                                                                \
   CLASS(std::byte* mem, size_t nElements, size_t byteAlignment = defaultAlignment):                                                 \
@@ -263,12 +263,14 @@ struct CLASS {                                                                  
   };                                                                                                                                \
                                                                                                                                     \
   struct element {                                                                                                                  \
+    SOA_HOST_DEVICE                                                                                                                 \
     element(size_t index,                                                                                                           \
       /* Turn Boost PP */                                                                                                           \
       _ITERATE_ON_VALUE_TYPE_COMMA(_DECLARE_ELEMENT_VALUE_ARG, index, _VALUE_TYPE_COLUMN, __VA_ARGS__)                              \
     ):                                                                                                                              \
       _ITERATE_ON_VALUE_TYPE_COMMA(_DECLARE_ELEMENT_VALUE_MEMBER_INITIALISATION, index, _VALUE_TYPE_COLUMN, __VA_ARGS__)            \
        {}                                                                                                                           \
+    SOA_HOST_DEVICE                                                                                                                 \
     element& operator=(const element& other) {                                                                                      \
       _ITERATE_ON_VALUE_TYPE(_DECLARE_ELEMENT_VALUE_COPY, ~, _VALUE_TYPE_COLUMN, __VA_ARGS__)                                       \
       return *this;                                                                                                                 \

@@ -11,4 +11,9 @@
     <use name="cuda"/>
     <use name="cppunit"/>
   </bin>
+
+    <bin name="testMinimumCUDA" 
+       file="testMinimumCUDA.cu">
+    <use name="cuda"/>
+  </bin>
 </iftool>
