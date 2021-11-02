@@ -29,7 +29,7 @@ struct MPIData
 
 int root = 0; 
 int precision = 4;           //default digits after decimal point.
-int sizeVector = 5; //Vector size for adding.
+int sizeVector = 65537; //Vector size for adding.
 
 const std::pair<float, float> nonBlockSend(MPIData& mpiInput);
 void randomGenerator(std::vector<float>& vect);
@@ -112,7 +112,7 @@ int main (int argc, char* argv[])
   MPI::Finalize();
 
 
-    return 0;
+  return 0;
 }
 void randomGenerator(std::vector<float>& vect) 
 {
@@ -165,12 +165,14 @@ void checkingResultsPrintout(std::vector<float>& reference,
                              const std::vector<int>& numberDataSend) {
   float percent{0.0};
   float totalError{0.0};
-  int p{1};
+  [[maybe_unused]] int p{1};
+  size_t errorCount{0};
   for (int j = 0; j < sizeVector; j++) {
-    percent = ((reference[j] - output[j]) / reference[j]) * 100;
+    percent = (abs(reference[j] - output[j]) / reference[j]) * 100;
     totalError += percent;
+    if (percent) errorCount++;
   }
-  
+  /*
     std::cout << "\n-------------------------------------------------------\n";
     std::cout << "| RootSum | WorksSum | Error   | Error %  | Process # |";
     std::cout << "\n-------------------------------------------------------\n";
@@ -182,15 +184,17 @@ void checkingResultsPrintout(std::vector<float>& reference,
       if (j + 1 == displacement[p + 1]) {
         ++p;
       }
-    }
+    }*/
     std::cout << "-------------------------------------------------------\n";
     std::cout << "-Total Error is " << totalError << std::endl;
+    std::cout << "-Error count is " << errorCount << std::endl;
     for (long unsigned int j = 1; j < displacement.size(); j++) {
       std::cout << "Process [" << j << "]"
                 << " Worked On " << numberDataSend[j] << " Data\n";
     }
   
 }
+
 const std::pair<float, float> nonBlockSend(MPIData& mpiInput) 
 {
     std::pair<float, float> returnValue;
@@ -248,15 +252,20 @@ const std::pair<float, float> nonBlockSend(MPIData& mpiInput)
                 &requestWorkerRecv[1]);
   
       MPI_Waitall(2, requestWorkerRecv, MPI_STATUS_IGNORE);
-      
-      std::cout << "vectorWorkers1 : \n";
-      for (long unsigned int i = 0; i < mpiInput.vectorWorkers1.size(); i++) {
-        std::cout <<  mpiInput.vectorWorkers1[i] << std::endl;
-      }
-      std::cout << "vectorWorkers2 : \n";
-      for (long unsigned int i = 0; i < mpiInput.vectorWorkers2.size(); i++) {
-        std::cout <<  mpiInput.vectorWorkers2[i] << std::endl;
-      }
+      // Get the name of the processor
+      char processor_name[MPI_MAX_PROCESSOR_NAME];
+      int name_len;
+      MPI_Get_processor_name(processor_name, &name_len);
+      std::cout << "vectorWorkers1[" << processor_name << "(" << mpiInput.rank << ")] : " 
+              << mpiInput.vectorWorkers1.size() << " elements" << std::endl;
+//      for (long unsigned int i = 0; i < mpiInput.vectorWorkers1.size(); i++) {
+//        std::cout <<  mpiInput.vectorWorkers1[i] << std::endl;
+//      }
+      std::cout << "vectorWorkers2[" << processor_name << "(" << mpiInput.rank << ")] : " 
+              << mpiInput.vectorWorkers2.size() << " elements" << std::endl;
+//      for (long unsigned int i = 0; i < mpiInput.vectorWorkers2.size(); i++) {
+//        std::cout <<  mpiInput.vectorWorkers2[i] << std::endl;
+//      }
       
       ///////////////////////////////////// C U D A //////////////////////////////////
       float *d_vect1, *d_vect2, *d_vect3Gpu; //create pointers for Device.
