@@ -6,5 +6,5 @@
 <bin name="testMPIr" file="testMPIr.cu">
     <use name="openmpi"/>
     <use name="cuda"/>
-    <flags TEST_RUNNER_CMD="mpirun -np 4 testMPI -s 1000 -r 12345 -n 10"/>
+    <flags TEST_RUNNER_CMD="mpirun -np 4 testMPIr -s 1000 -r 12345 -n 10"/>
 </bin>

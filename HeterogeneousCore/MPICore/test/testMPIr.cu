@@ -20,6 +20,7 @@ __global__ void addVectorsGpuNonStrided(float *vect1, float *vect2, float *vect3
   //blockDim.x * gridDim.x gives the number of threads in a grid (in the x direction, in this case).
   int i = blockDim.x*blockIdx.x + threadIdx.x;
   vect3[i] = vect2[i] + vect1[i];
+  if (i<4) printf ("v1,2,3[%d]= %f, %f, %f\n", i, vect1[i], vect2[i], vect3[i]);
 }
 
 // Cuda kernel caller
@@ -43,7 +44,7 @@ void cudaVectorAdd(std::vector<float>& vectorWorkers1, const std::vector<float>&
     
     addVectorsGpuNonStrided<<<blocks,threads>>> (d_vect1, d_vect2, d_vect3Gpu); //call device function to add two vectors and save into vect3Gpu.
     
-    cudaMemcpy(vectorWorkers1.data(), d_vect3Gpu, vectorWorkers1.size() * sizeof (float), cudaMemcpyHostToDevice);
+    cudaMemcpy(vectorWorkers1.data(), d_vect3Gpu, vectorWorkers1.size() * sizeof (float), cudaMemcpyDeviceToHost);
 }
 
 
