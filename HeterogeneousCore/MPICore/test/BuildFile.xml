@@ -13,3 +13,9 @@
     <use name="cuda"/>
     <flags TEST_RUNNER_CMD="mpirun -np 4 testMPIr -s 1000 -r 12345 -n 10"/>
 </bin>
+
+<bin name="testMPImini" file="testMPImini.cu">
+    <use name="openmpi"/>
+    <use name="cuda"/>
+    <flags TEST_RUNNER_CMD="mpirun -np 4 testMPImini"/>
+</bin>
