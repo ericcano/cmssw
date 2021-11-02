@@ -1,6 +1,7 @@
-<bin name="testMPI" file="testMPI.cc">
+<bin name="cudaMPI" file="cudaMPI.cu">
     <use name="openmpi"/>
-    <flags TEST_RUNNER_CMD="mpirun -np 4 testMPI -s 1000 -r 12345 -n 10"/>
+    <use name="cuda"/>
+    <flags TEST_RUNNER_CMD="mpirun -np 2 cudaMPI -s 5 -r 1 -n 1"/>
 </bin>
 
 <bin name="testMPImultihost" file="testMPImultihost.cc">
@@ -18,4 +19,11 @@
     <use name="openmpi"/>
     <use name="cuda"/>
     <flags TEST_RUNNER_CMD="mpirun -np 4 testMPImini"/>
+</bin>
+
+<bin name="testing" file="testing.cu">
+    <use name="openmpi"/>
+    <use name="cuda"/>
+    <use name="cuda-stubs"/>
+    <flags TEST_RUNNER_CMD="mpirun -np 2 testing"/>
 </bin>
