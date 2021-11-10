@@ -40,10 +40,10 @@ generate_SoA_store(SoADeviceOnlyTemplate,
 constexpr size_t byteAlignment =
     128;  // The default alignment for SoA (nVidia GPI cache line size, reflected in CUDA memory allocations).
 
-typedef SoAHostDeviceTemplate<byteAlignment> SoAHostDevice;
-typedef SoADeviceOnlyTemplate<byteAlignment> SoADeviceOnly;
+using SoAHostDevice = SoAHostDeviceTemplate<byteAlignment, AlignmentEnforcement::Enforced>;
+using SoADeviceOnly = SoADeviceOnlyTemplate<byteAlignment, AlignmentEnforcement::Enforced>;
 // A 1 to 1 view of the store (except for unsupported types).
-generate_SoA_view(SoAFullDeviceView,
+generate_SoA_view(SoAFullDeviceViewTemplate,
                   SoA_view_store_list(SoA_view_store(SoAHostDevice, soaHD), SoA_view_store(SoADeviceOnly, soaDO)),
                   SoA_view_value_list(SoA_view_value(soaHD, x),
                                       SoA_view_value(soaHD, y),
@@ -53,6 +53,8 @@ generate_SoA_view(SoAFullDeviceView,
                                       SoA_view_value(soaDO, py),
                                       SoA_view_value(soaDO, count),
                                       SoA_view_value(soaDO, anotherCount)));
+
+using SoAFullDeviceView = SoAFullDeviceViewTemplate<byteAlignment, AlignmentEnforcement::Enforced>;
 
 // Eigen cross product kernel (on store)
 struct crossProduct {
