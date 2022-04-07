@@ -1,4 +1,16 @@
 <lcgdict>
   <class name="HostProduct<uint32_t[]>" persistent="false"/>
   <class name="edm::Wrapper<HostProduct<uint32_t[]>>" persistent="false"/>
+  <class name="FakeSoA" persistent="true"/>
+  <ioread
+    sourceClass="FakeSoA"
+    targetClass="FakeSoA"
+    version="[1-]"
+    source="Int_t size_; uint16_t * a16_; uint32_t * b32_;"
+    target="buffer_"
+    embed="false">
+  <![CDATA[
+    newObj->AllocateAndIoRead(onfile);
+  ]]>
+  </ioread>
 </lcgdict>

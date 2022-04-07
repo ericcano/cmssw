@@ -3,5 +3,6 @@
 
 #include "CUDADataFormats/Common/interface/HostProduct.h"
 #include "DataFormats/Common/interface/Wrapper.h"
+#include "CUDADataFormats/Common/interface/FakeSoA.h"
 
 #endif  // CUDADataFormats_Common_src_classes_h
