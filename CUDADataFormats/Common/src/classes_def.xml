@@ -2,7 +2,7 @@
   <class name="HostProduct<uint32_t[]>" persistent="false"/>
   <class name="edm::Wrapper<HostProduct<uint32_t[]>>" persistent="false"/>
   <class name="cms::soa::BaseLayout"/>
-  <class name="SoALayoutTemplate<128ul, false>">
+  <class name="SoALayoutTemplate<128ul, cms::soa::AlignmentEnforcement::Relaxed>">
     <field name="mem_" comment="!"/> 
     <field name="x_"   comment="[nElements_]"/> 
     <field name="y_"   comment="[nElements_]"/> 

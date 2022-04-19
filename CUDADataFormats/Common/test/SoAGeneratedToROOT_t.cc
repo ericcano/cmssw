@@ -31,7 +31,7 @@ struct SoABufferAndLayout {
     for (size_t i=0; i<view_.soaMetadata().size(); i++) {
       auto vi = view_[i];
       vi.x() = 42 + i;
-      vi.y() = 42 - i;
+      vi.y() = 42 + 3 * i;
       vi.z() = 24 + i;
     }
   }
@@ -41,7 +41,7 @@ struct SoABufferAndLayout {
     for (size_t i=0; i<view_.soaMetadata().size(); i++) {
       auto vi = view_[i];
       if (vi.x() != 42 + i) { std::cout << "x mismatch at i=" << i << "(" << vi.x() << "/" << 42 + i << ")" << std::endl; abort(); }
-      if(vi.y() != 42 - i) { std::cout << "y mismatch at i=" << i << "(" << vi.y() << "/" << 42 - i << ")" << std::endl; abort(); }
+      if(vi.y() != 42 + 3 * i) { std::cout << "y mismatch at i=" << i << "(" << vi.y() << "/" << 42 - i << ")" << std::endl; abort(); }
       if(vi.z() != 24 + i){ std::cout << "x mismatch at i=" << i << "(" << vi.z() << "/" << 24 + i << ")" << std::endl; abort(); }
     }
   }
