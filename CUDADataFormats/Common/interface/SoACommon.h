@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <cassert>
 #include <ostream>
+#include "FWCore/Utilities/interface/typedefs.h"
 
 // CUDA attributes
 #ifdef __CUDACC__
@@ -549,7 +550,10 @@ namespace cms::soa {
   /* Enum parameters allowing templated control of layout/view behaviors */
   /* Alignement enforcement verifies every column is aligned, and 
  * hints the compiler that it can expect column pointers to be aligned */
-  enum class AlignmentEnforcement : bool { Relaxed, Enforced };
+  struct AlignmentEnforcement {
+    static constexpr bool Relaxed = false;
+    static constexpr bool Enforced = true;    
+  };
 
   struct CacheLineSize {
     static constexpr size_t NvidiaGPU = 128;

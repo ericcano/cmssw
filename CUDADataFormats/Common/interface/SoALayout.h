@@ -276,7 +276,7 @@
 // clang-format off
 #define GENERATE_SOA_LAYOUT(CLASS, ...)                                                                                                   \
   template <size_t ALIGNMENT = cms::soa::CacheLineSize::defaultSize,                                                                      \
-            cms::soa::AlignmentEnforcement ALIGNMENT_ENFORCEMENT = cms::soa::AlignmentEnforcement::Relaxed>                               \
+            bool ALIGNMENT_ENFORCEMENT = cms::soa::AlignmentEnforcement::Relaxed>                               \
   struct CLASS: public cms::soa::BaseLayout {                                                                                             \
     /* these could be moved to an external type trait to free up the symbol names */                                                      \
     using self_type = CLASS;                                                                                                              \
@@ -288,9 +288,9 @@
    */                                                                                                                                     \
     constexpr static size_t defaultAlignment = 128;                                                                                       \
     constexpr static size_t byteAlignment = ALIGNMENT;                                                                                    \
-    constexpr static AlignmentEnforcement alignmentEnforcement = ALIGNMENT_ENFORCEMENT;                                                   \
+    constexpr static bool alignmentEnforcement = ALIGNMENT_ENFORCEMENT;                                                   \
     constexpr static size_t conditionalAlignment =                                                                                        \
-        alignmentEnforcement == AlignmentEnforcement::Enforced ? byteAlignment : 0;                                                       \
+        alignmentEnforcement == cms::soa::AlignmentEnforcement::Enforced ? byteAlignment : 0;                                                       \
     /* Those typedefs avoid having commas in macros (which is problematic) */                                                             \
     template <cms::soa::SoAColumnType COLUMN_TYPE, class C>                                                                               \
     using SoAValueWithConf = cms::soa::SoAValue<COLUMN_TYPE, C, conditionalAlignment>;                                                    \
@@ -354,7 +354,7 @@
                                                                                                                                           \
     /* Constructor relying on user provided storage */                                                                                    \
     SOA_HOST_ONLY CLASS(std::byte* mem, size_t nElements) : mem_(mem), nElements_(nElements), byteSize_(0) {                              \
-      if constexpr (alignmentEnforcement == AlignmentEnforcement::Enforced)                                                               \
+      if constexpr (alignmentEnforcement == cms::soa::AlignmentEnforcement::Enforced)                                                               \
         if (reinterpret_cast<intptr_t>(mem) % byteAlignment)                                                                              \
           throw std::out_of_range("In " #CLASS "::" #CLASS ": misaligned buffer");                                                        \
       auto curMem = mem_;                                                                                                                 \
@@ -388,8 +388,8 @@
     }                                                                                                                                     \
                                                                                                                                           \
     /* data members */                                                                                                                    \
-    std::byte* mem_;                                                                                                                      \
-    size_t nElements_;                                                                                                                    \
+    std::byte* mem_;    /*!*/                                                                                                             \
+    cms_int32_t nElements_;                                                                                                                    \
     size_t byteSize_;                                                                                                                     \
     _ITERATE_ON_ALL(_DECLARE_SOA_DATA_MEMBER, ~, __VA_ARGS__)                                                                             \
   };

@@ -1,7 +1,14 @@
 <lcgdict>
   <class name="HostProduct<uint32_t[]>" persistent="false"/>
   <class name="edm::Wrapper<HostProduct<uint32_t[]>>" persistent="false"/>
-  <class name="FakeSoA" persistent="true"/>
+  <class name="cms::soa::BaseLayout"/>
+  <class name="SoALayoutTemplate<128ul, false>">
+    <field name="mem_" comment="!"/> 
+    <field name="x_"   comment="[nElements_]"/> 
+    <field name="y_"   comment="[nElements_]"/> 
+    <field name="z_"   comment="[nElements_]"/> 
+  </class>
+  <class name="FakeSoA"/>
   <ioread
     sourceClass="FakeSoA"
     targetClass="FakeSoA"

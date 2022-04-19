@@ -14,4 +14,11 @@
   <bin file="SoAStreamer_t.cu" name="SoAStreamer_t">
     <use name="root"/>
   </bin>
+
+  <bin file="SoAGeneratedToROOT_t.cc">
+    <use name="eigen"/>
+    <use name="boost"/>
+    <use name="cuda"/>
+    <use name="root"/>
+  </bin>
 </iftool>

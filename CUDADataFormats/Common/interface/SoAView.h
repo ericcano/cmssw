@@ -339,7 +339,7 @@ namespace cms::soa {
 // clang-format off
 #define GENERATE_SOA_VIEW(CLASS, LAYOUTS_LIST, VALUE_LIST)                                                                                  \
   template <size_t ALIGNMENT = cms::soa::CacheLineSize::defaultSize,                                                                        \
-            cms::soa::AlignmentEnforcement ALIGNMENT_ENFORCEMENT = cms::soa::AlignmentEnforcement::Relaxed,                                 \
+            bool ALIGNMENT_ENFORCEMENT = cms::soa::AlignmentEnforcement::Relaxed,                                 \
             cms::soa::RestrictQualify RESTRICT_QUALIFY = cms::soa::RestrictQualify::Disabled,                                               \
             cms::soa::RangeChecking RANGE_CHECKING = cms::soa::RangeChecking::Disabled>                                                     \
   struct CLASS {                                                                                                                            \
@@ -353,7 +353,7 @@ namespace cms::soa {
    */                                                                                                                                       \
     constexpr static size_t defaultAlignment = cms::soa::CacheLineSize::defaultSize;                                                        \
     constexpr static size_t byteAlignment = ALIGNMENT;                                                                                      \
-    constexpr static AlignmentEnforcement alignmentEnforcement = ALIGNMENT_ENFORCEMENT;                                                     \
+    constexpr static bool alignmentEnforcement = ALIGNMENT_ENFORCEMENT;                                                     \
     constexpr static size_t conditionalAlignment =                                                                                          \
         alignmentEnforcement == AlignmentEnforcement::Enforced ? byteAlignment : 0;                                                         \
     constexpr static cms::soa::RestrictQualify restrictQualify = RESTRICT_QUALIFY;                                                          \
@@ -471,7 +471,7 @@ namespace cms::soa {
 // clang-format off
 #define GENERATE_SOA_CONST_VIEW(CLASS, LAYOUTS_LIST, VALUE_LIST)                                                                          \
   template <size_t ALIGNMENT = cms::soa::CacheLineSize::defaultSize,                                                                      \
-            cms::soa::AlignmentEnforcement ALIGNMENT_ENFORCEMENT = cms::soa::AlignmentEnforcement::Relaxed,                               \
+            bool ALIGNMENT_ENFORCEMENT = cms::soa::AlignmentEnforcement::Relaxed,                               \
             cms::soa::RestrictQualify RESTRICT_QUALIFY = cms::soa::RestrictQualify::Enabled,                                              \
             cms::soa::RangeChecking RANGE_CHECKING = cms::soa::RangeChecking::Disabled>                                                   \
   struct CLASS {                                                                                                                          \
@@ -485,7 +485,7 @@ namespace cms::soa {
    */                                                                                                                                     \
     constexpr static size_t defaultAlignment = cms::soa::CacheLineSize::defaultSize;                                                      \
     constexpr static size_t byteAlignment = ALIGNMENT;                                                                                    \
-    constexpr static AlignmentEnforcement alignmentEnforcement = ALIGNMENT_ENFORCEMENT;                                                   \
+    constexpr static bool alignmentEnforcement = ALIGNMENT_ENFORCEMENT;                                                   \
     constexpr static size_t conditionalAlignment =                                                                                        \
         alignmentEnforcement == AlignmentEnforcement::Enforced ? byteAlignment : 0;                                                       \
     constexpr static cms::soa::RestrictQualify restrictQualify = RESTRICT_QUALIFY;                                                        \
