@@ -2,12 +2,25 @@
   <class name="HostProduct<uint32_t[]>" persistent="false"/>
   <class name="edm::Wrapper<HostProduct<uint32_t[]>>" persistent="false"/>
   <class name="cms::soa::BaseLayout"/>
+  <!--<class name="cms::soa::ByteBuffer"/>-->
   <class name="SoALayoutTemplate<128ul, cms::soa::AlignmentEnforcement::Relaxed>">
     <field name="mem_" comment="!"/> 
+    <field name="optionallyOwnedMem_" comment="!"/> 
     <field name="x_"   comment="[nElements_]"/> 
     <field name="y_"   comment="[nElements_]"/> 
     <field name="z_"   comment="[nElements_]"/> 
   </class>
+  <ioread
+    sourceClass="SoALayoutTemplate<128ul, cms::soa::AlignmentEnforcement::Relaxed>"
+    targetClass="SoALayoutTemplate<128ul, cms::soa::AlignmentEnforcement::Relaxed>"
+    version="[1-]"
+    source="Int_t nElements_; double * x_; double * y_; double * z_;"
+    target="mem_"
+    embed="false">
+  <![CDATA[
+    newObj->AllocateAndIoRead(onfile);
+  ]]>
+  </ioread>
   <class name="FakeSoA"/>
   <ioread
     sourceClass="FakeSoA"

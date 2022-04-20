@@ -56,6 +56,27 @@
  *
  */
 
+namespace cms::soa {
+  // A helper unique_ptr like class holding aligned
+  class ByteBuffer {
+  public:
+    ~ByteBuffer() {
+      free(buffer_);
+    }
+    void allocate(size_t alignment, size_t bytes) {
+      if (buffer_) throw std::runtime_error("In ByteBuffer::allocate(): reallocating an already allocated buffer.");
+      if (bytes % alignment) throw std::runtime_error("In ByteBuffer::allocate(): size should be aligned.");
+      buffer_ = reinterpret_cast<std::byte *>(aligned_alloc(alignment, bytes));
+      if (!buffer_) throw std::runtime_error("In ByteBuffer::allocate(): failed to allocated buffer.");
+    }
+    std::byte * get() {
+      return buffer_;
+    }
+  private:
+    std::byte * buffer_ = nullptr;
+  };
+}
+
 // clang-format off
 #define _DECLARE_SOA_STREAM_INFO_IMPL(VALUE_TYPE, CPP_TYPE, NAME)                                                         \
   _SWITCH_ON_TYPE(                                                                                                        \
@@ -249,6 +270,21 @@
 #define _DECLARE_SOA_CONST_ACCESSOR(R, DATA, TYPE_NAME) BOOST_PP_EXPAND(_DECLARE_SOA_CONST_ACCESSOR_IMPL TYPE_NAME)
 
 /**
+ * SoA member ROOT streamer read (column pointers).
+ */
+// clang-format off
+#define _STREAMER_READ_SOA_DATA_MEMBER_IMPL(VALUE_TYPE, CPP_TYPE, NAME)     \
+  _SWITCH_ON_TYPE(VALUE_TYPE, /* Scalar */                            \
+                  /* TODO */        \
+                  , /* Column */                                      \
+                  memcpy(BOOST_PP_CAT(NAME, _), onfile.BOOST_PP_CAT(NAME, _), sizeof(CPP_TYPE) * onfile.nElements_); \
+                  , /* Eigen column */                                \
+                  /* TODO */ )
+// clang-format on
+
+#define _STREAMER_READ_SOA_DATA_MEMBER(R, DATA, TYPE_NAME) BOOST_PP_EXPAND(_STREAMER_READ_SOA_DATA_MEMBER_IMPL TYPE_NAME)
+
+/**
  * SoA class member declaration (column pointers).
  */
 // clang-format off
@@ -384,12 +420,10 @@
       std::cout << "AllocateAndIoRead begin" << std::endl;                                                                                \
       auto buffSize=computeDataSize(nElements_);                         \
       /* aligned_alloc requires an size that is an multiple of the alignment, which computeDataSize provides */ \
-      optionallyOwnedMem_.reset(reinterpret_cast<std::byte*>(aligned_alloc(byteAlignment, buffSize))); \
+      optionallyOwnedMem_.allocate(byteAlignment, buffSize); \
       std::cout << "Buffer=" << optionallyOwnedMem_.get()  << " Buffer first byte after (alloc) =" << optionallyOwnedMem_.get() + buffSize << std::endl; \
       organizeColumnsFromBuffer(); \
-      /* TODO: memcopy columns */ \
-      /*memcpy(a16_, onfile.a16_, sizeof(uint16_t) * onfile.size_); */ \
-      /*memcpy(b32_, onfile.b32_, sizeof(uint32_t) * onfile.size_); */ \
+      _ITERATE_ON_ALL(_STREAMER_READ_SOA_DATA_MEMBER, ~, __VA_ARGS__)                                                                             \
       std::cout << "Skipping IoRead step (TODO)" << std::endl << "AllocateAndIoRead end" << std::endl; \
     }                                                                                                                                     \
                                                                                                                                           \
@@ -411,7 +445,7 @@
                                                                                                                                           \
     /* data members */                                                                                                                    \
     std::byte* mem_;    /*!*/                                                                                                             \
-    std::unique_ptr<std::byte, decltype(::free)*> optionallyOwnedMem_ = std::unique_ptr<std::byte, decltype(::free)*>((std::byte*)nullptr, &::free); \
+    cms::soa::ByteBuffer optionallyOwnedMem_; \
     cms_int32_t nElements_;                                                                                                               \
     size_t byteSize_;                                                                                                                     \
     _ITERATE_ON_ALL(_DECLARE_SOA_DATA_MEMBER, ~, __VA_ARGS__)                                                                             \
