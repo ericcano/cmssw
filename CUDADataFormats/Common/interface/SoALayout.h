@@ -352,10 +352,15 @@
           byteSize_(0),                                                                                                                   \
           _ITERATE_ON_ALL_COMMA(_DECLARE_MEMBER_TRIVIAL_CONSTRUCTION, ~, __VA_ARGS__) {}                                                  \
                                                                                                                                           \
-    /* Constructor relying on user provided storage */                                                                                    \
+    /* Constructor relying on user provided storage (implementation shared with ROOT streamer) */                                                                                    \
     SOA_HOST_ONLY CLASS(std::byte* mem, size_t nElements) : mem_(mem), nElements_(nElements), byteSize_(0) {                              \
+      organizeColumnsFromBuffer(); \
+    } \
+                                                                                                                                          \
+  private: \
+    void organizeColumnsFromBuffer() { \
       if constexpr (alignmentEnforcement == cms::soa::AlignmentEnforcement::Enforced)                                                               \
-        if (reinterpret_cast<intptr_t>(mem) % byteAlignment)                                                                              \
+        if (reinterpret_cast<intptr_t>(mem_) % byteAlignment)                                                                              \
           throw std::out_of_range("In " #CLASS "::" #CLASS ": misaligned buffer");                                                        \
       auto curMem = mem_;                                                                                                                 \
       _ITERATE_ON_ALL(_ASSIGN_SOA_COLUMN_OR_SCALAR, ~, __VA_ARGS__)                                                                       \
@@ -365,10 +370,27 @@
         throw std::out_of_range("In " #CLASS "::" #CLASS ": unexpected end pointer.");                                                    \
     }                                                                                                                                     \
                                                                                                                                           \
+  public: \
     /* Constructor relying on user provided storage */                                                                                    \
     SOA_DEVICE_ONLY CLASS(bool devConstructor, std::byte* mem, size_t nElements) : mem_(mem), nElements_(nElements) {                     \
       auto curMem = mem_;                                                                                                                 \
       _ITERATE_ON_ALL(_ASSIGN_SOA_COLUMN_OR_SCALAR, ~, __VA_ARGS__)                                                                       \
+    }                                                                                                                                     \
+                                                                                                                                          \
+    /* ROOT read streamer */                                                                                                              \
+    template <typename T> \
+    void AllocateAndIoRead(T & onfile) {                                                                                                  \
+      nElements_ = onfile.nElements_; \
+      std::cout << "AllocateAndIoRead begin" << std::endl;                                                                                \
+      auto buffSize=computeDataSize(nElements_);                         \
+      /* aligned_alloc requires an size that is an multiple of the alignment, which computeDataSize provides */ \
+      optionallyOwnedMem_.reset(reinterpret_cast<std::byte*>(aligned_alloc(byteAlignment, buffSize))); \
+      std::cout << "Buffer=" << optionallyOwnedMem_.get()  << " Buffer first byte after (alloc) =" << optionallyOwnedMem_.get() + buffSize << std::endl; \
+      organizeColumnsFromBuffer(); \
+      /* TODO: memcopy columns */ \
+      /*memcpy(a16_, onfile.a16_, sizeof(uint16_t) * onfile.size_); */ \
+      /*memcpy(b32_, onfile.b32_, sizeof(uint32_t) * onfile.size_); */ \
+      std::cout << "Skipping IoRead step (TODO)" << std::endl << "AllocateAndIoRead end" << std::endl; \
     }                                                                                                                                     \
                                                                                                                                           \
     /* dump the SoA internal structure */                                                                                                 \
@@ -389,7 +411,8 @@
                                                                                                                                           \
     /* data members */                                                                                                                    \
     std::byte* mem_;    /*!*/                                                                                                             \
-    cms_int32_t nElements_;                                                                                                                    \
+    std::unique_ptr<std::byte, decltype(::free)*> optionallyOwnedMem_ = std::unique_ptr<std::byte, decltype(::free)*>((std::byte*)nullptr, &::free); \
+    cms_int32_t nElements_;                                                                                                               \
     size_t byteSize_;                                                                                                                     \
     _ITERATE_ON_ALL(_DECLARE_SOA_DATA_MEMBER, ~, __VA_ARGS__)                                                                             \
   };
