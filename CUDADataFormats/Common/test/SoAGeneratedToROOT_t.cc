@@ -51,8 +51,8 @@ struct SoABufferAndLayout {
     std::cout << "size=" << view_.soaMetadata().size() //<<  " buffer=" << view_.soaMetadata().data() 
             << " x=" << view_.soaMetadata().addressOf_x() << " y=" << view_.soaMetadata().addressOf_y() << " (y - x)="
     << reinterpret_cast<std::byte*>(
-            reinterpret_cast<intptr_t>(view_.soaMetadata().addressOf_x()) 
-            - reinterpret_cast<intptr_t>(view_.soaMetadata().addressOf_y()))
+            reinterpret_cast<intptr_t>(view_.soaMetadata().addressOf_y()) 
+            - reinterpret_cast<intptr_t>(view_.soaMetadata().addressOf_x()))
     << " buffer size=" << SoALayout::computeDataSize(view_.soaMetadata().size()) 
     << "(0x" << std::hex << SoALayout::computeDataSize(view_.soaMetadata().size())
     << ")" << std::endl;

@@ -11,7 +11,7 @@ GENERATE_SOA_LAYOUT_AND_VIEW(SoALayoutTemplate,
                              // predefined static scalars
                              // size_t size;
                              // size_t alignment;
-
+        
                              // columns: one value per element
                              SOA_COLUMN(double, x),
                              SOA_COLUMN(double, y),

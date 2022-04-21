@@ -1,8 +1,8 @@
 <lcgdict>
-  <class name="HostProduct<uint32_t[]>" persistent="false"/>
-  <class name="edm::Wrapper<HostProduct<uint32_t[]>>" persistent="false"/>
+  <!--<class name="HostProduct<uint32_t[]>" persistent="false"/>
+  <class name="edm::Wrapper<HostProduct<uint32_t[]>>" persistent="false"/>-->
   <class name="cms::soa::BaseLayout"/>
-  <!--<class name="cms::soa::ByteBuffer"/>-->
+  <class name="cms::soa::ByteBuffer"/>
   <class name="SoALayoutTemplate<128ul, cms::soa::AlignmentEnforcement::Relaxed>">
     <field name="mem_" comment="!"/> 
     <field name="optionallyOwnedMem_" comment="!"/> 

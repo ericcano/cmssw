@@ -421,10 +421,11 @@ namespace cms::soa {
       auto buffSize=computeDataSize(nElements_);                         \
       /* aligned_alloc requires an size that is an multiple of the alignment, which computeDataSize provides */ \
       optionallyOwnedMem_.allocate(byteAlignment, buffSize); \
+      mem_ = optionallyOwnedMem_.get(); \
       std::cout << "Buffer=" << optionallyOwnedMem_.get()  << " Buffer first byte after (alloc) =" << optionallyOwnedMem_.get() + buffSize << std::endl; \
       organizeColumnsFromBuffer(); \
       _ITERATE_ON_ALL(_STREAMER_READ_SOA_DATA_MEMBER, ~, __VA_ARGS__)                                                                             \
-      std::cout << "Skipping IoRead step (TODO)" << std::endl << "AllocateAndIoRead end" << std::endl; \
+      std::cout << "AllocateAndIoRead end" << std::endl; \
     }                                                                                                                                     \
                                                                                                                                           \
     /* dump the SoA internal structure */                                                                                                 \
