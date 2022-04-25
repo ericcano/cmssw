@@ -6,11 +6,13 @@
   <class name="SoALayoutTemplate<128ul, cms::soa::AlignmentEnforcement::Relaxed>">
     <field name="mem_" comment="!"/> 
     <field name="optionallyOwnedMem_" comment="!"/> 
+    <field name="byteSize_" comment="!"/>
     <field name="x_"   comment="[nElements_]"/> 
     <field name="y_"   comment="[nElements_]"/> 
-    <field name="z_"   comment="[nElements_]"/> 
+    <field name="z_"   comment="[nElements_]"/>
+    <field name="soaMetadata()" comment="!"/>
   </class>
-  <ioread
+  <!--<read
     sourceClass="SoALayoutTemplate<128ul, cms::soa::AlignmentEnforcement::Relaxed>"
     targetClass="SoALayoutTemplate<128ul, cms::soa::AlignmentEnforcement::Relaxed>"
     version="[1-]"
@@ -20,7 +22,18 @@
   <![CDATA[
     newObj->AllocateAndIoRead(onfile);
   ]]>
-  </ioread>
+  </read>-->
+  <readraw
+    sourceClass="SoALayoutTemplate<128ul, cms::soa::AlignmentEnforcement::Relaxed>"
+    targetClass="SoALayoutTemplate<128ul, cms::soa::AlignmentEnforcement::Relaxed>"
+    version="[1-]"
+    source="Int_t nElements_; double * x_; double * y_; double * z_;"
+    target="mem_"
+    embed="false">
+  <![CDATA[
+    newObj->AllocateAndIoReadRaw(buffer);
+  ]]>
+  </readraw>
   <class name="FakeSoA"/>
   <ioread
     sourceClass="FakeSoA"

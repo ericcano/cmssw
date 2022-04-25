@@ -428,6 +428,21 @@ namespace cms::soa {
       std::cout << "AllocateAndIoRead end" << std::endl; \
     }                                                                                                                                     \
                                                                                                                                           \
+    /* ROOT raw read streamer */                                                                                                              \
+    template <typename T> \
+    void AllocateAndIoReadRaw(T & onfile) {                                                                                                  \
+      nElements_ = onfile.nElements_; \
+      std::cout << "AllocateAndIoRead begin" << std::endl;                                                                                \
+      auto buffSize=computeDataSize(nElements_);                         \
+      /* aligned_alloc requires an size that is an multiple of the alignment, which computeDataSize provides */ \
+      optionallyOwnedMem_.allocate(byteAlignment, buffSize); \
+      mem_ = optionallyOwnedMem_.get(); \
+      std::cout << "Buffer=" << optionallyOwnedMem_.get()  << " Buffer first byte after (alloc) =" << optionallyOwnedMem_.get() + buffSize << std::endl; \
+      organizeColumnsFromBuffer(); \
+      _ITERATE_ON_ALL(_STREAMER_READ_SOA_DATA_MEMBER, ~, __VA_ARGS__)                                                                             \
+      std::cout << "AllocateAndIoRead end" << std::endl; \
+    }                                                                                                                                     \
+                                                                                                                                          \
     /* dump the SoA internal structure */                                                                                                 \
     template <typename T>                                                                                                                 \
     SOA_HOST_ONLY friend void dump();                                                                                                     \
