@@ -12,7 +12,7 @@
     <field name="z_"   comment="[nElements_]"/>
     <field name="soaMetadata()" comment="!"/>
   </class>
-  <!--<read
+  <read
     sourceClass="SoALayoutTemplate<128ul, cms::soa::AlignmentEnforcement::Relaxed>"
     targetClass="SoALayoutTemplate<128ul, cms::soa::AlignmentEnforcement::Relaxed>"
     version="[1-]"
@@ -22,8 +22,8 @@
   <![CDATA[
     newObj->AllocateAndIoRead(onfile);
   ]]>
-  </read>-->
-  <readraw
+  </read>
+  <!--<readraw
     sourceClass="SoALayoutTemplate<128ul, cms::soa::AlignmentEnforcement::Relaxed>"
     targetClass="SoALayoutTemplate<128ul, cms::soa::AlignmentEnforcement::Relaxed>"
     version="[1-]"
@@ -33,7 +33,7 @@
   <![CDATA[
     newObj->AllocateAndIoReadRaw(buffer);
   ]]>
-  </readraw>
+  </readraw>-->
   <class name="FakeSoA"/>
   <ioread
     sourceClass="FakeSoA"
