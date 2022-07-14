@@ -38,6 +38,10 @@ public:
   // default destructor
   ~PortableCUDADeviceCollection() = default;
 
+  // access the Layout
+  Layout &layout() { return layout_; }
+  Layout const &layout() const { return layout_; }
+
   // access the View
   View &view() { return view_; } 
   ConstView const &view() const { return constView_; } 
