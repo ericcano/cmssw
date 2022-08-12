@@ -133,4 +133,8 @@
     <flags CUDA_FLAGS="-g -DGPU_DEBUG"/>
     <flags CXXFLAGS="-g -DGPU_DEBUG"/>
   </bin>
+  
+  <bin file="ScopedNVTXRange_t.cpp" name="ScopedNVTXRange_t">
+    <flags CXXFLAGS="-g -DGPU_DEBUG"/>
+  </bin>
 </iftool>
