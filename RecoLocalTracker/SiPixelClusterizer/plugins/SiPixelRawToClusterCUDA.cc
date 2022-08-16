@@ -36,6 +36,8 @@
 #include "HeterogeneousCore/CUDAServices/interface/CUDAService.h"
 #include "RecoTracker/Record/interface/CkfComponentsRecord.h"
 
+#include "HeterogeneousCore/CUDAUtilities/interface/ScopedNVTXRange.h"
+
 // local includes
 #include "SiPixelClusterThresholds.h"
 #include "SiPixelRawToClusterGPUKernel.h"
@@ -79,6 +81,9 @@ private:
   const bool useQuality_;
   uint32_t nDigis_;
   const SiPixelClusterThresholds clusterThresholds_;
+
+  ScopedNVTXRange nvtxRange_ = ScopedNVTXRange("SiPixelRawToClusterCUDA");
+  std::unique_ptr<ScopedNVTXRange> nvtxExecutionRange_;
 };
 
 SiPixelRawToClusterCUDA::SiPixelRawToClusterCUDA(const edm::ParameterSet& iConfig)
@@ -132,6 +137,8 @@ void SiPixelRawToClusterCUDA::fillDescriptions(edm::ConfigurationDescriptions& d
 void SiPixelRawToClusterCUDA::acquire(const edm::Event& iEvent,
                                       const edm::EventSetup& iSetup,
                                       edm::WaitingTaskWithArenaHolder waitingTaskHolder) {
+  ScopedNVTXRange aquireNVTSRange("SiPixelRawToClusterCUDA::acquire()");
+  nvtxExecutionRange_ = std::make_unique<ScopedNVTXRange>("SiPixelRawToClusterCUDA-execution");
   cms::cuda::ScopedContextAcquire ctx{iEvent.streamID(), std::move(waitingTaskHolder), ctxState_};
 
   auto hgpuMap = iSetup.getHandle(gpuMapToken_);
@@ -269,6 +276,7 @@ void SiPixelRawToClusterCUDA::acquire(const edm::Event& iEvent,
 }
 
 void SiPixelRawToClusterCUDA::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
+  ScopedNVTXRange produceNVTSRange("SiPixelRawToClusterCUDA::produce()");
   cms::cuda::ScopedContextProduce ctx{ctxState_};
 
   if (nDigis_ == 0) {
@@ -278,6 +286,7 @@ void SiPixelRawToClusterCUDA::produce(edm::Event& iEvent, const edm::EventSetup&
     if (includeErrors_) {
       ctx.emplace(iEvent, digiErrorPutToken_, SiPixelDigiErrorsCUDA{});
     }
+    nvtxExecutionRange_.reset();
     return;
   }
 
@@ -287,6 +296,7 @@ void SiPixelRawToClusterCUDA::produce(edm::Event& iEvent, const edm::EventSetup&
   if (includeErrors_) {
     ctx.emplace(iEvent, digiErrorPutToken_, gpuAlgo_.getErrors());
   }
+  nvtxExecutionRange_.reset();
 }
 
 // define as framework plugin

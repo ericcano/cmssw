@@ -5,10 +5,11 @@
 
 class ScopedNVTXRange {
 public:
-  ScopedNVTXRange(const std::string & label): nvtxRange_(nvtxRangeStartA(label.c_str())) {}
+  ScopedNVTXRange(const std::string& label) : nvtxRange_(nvtxRangeStartA(label.c_str())) {}
   ~ScopedNVTXRange() { nvtxRangeEnd(nvtxRange_); }
+
 private:
   nvtxRangeId_t nvtxRange_;
 };
 
-#endif 
+#endif
