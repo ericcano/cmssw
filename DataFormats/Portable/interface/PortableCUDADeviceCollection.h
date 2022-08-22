@@ -70,10 +70,11 @@ public:
   using Layout1 = LAYOUT1;
   using View = VIEW;
   using ConstView = CONST_VIEW;
-  using Buffer = cms::cuda::host::unique_ptr<std::byte[]>;
+  using Buffer = cms::cuda::device::unique_ptr<std::byte[]>;
 
   PortableCUDADeviceCollection_2layouts() = default;
 
+  /*
   PortableCUDADeviceCollection_2layouts(int32_t elements)
       // allocate pageable host memory
       : buffer_{cms::cuda::make_host_unique<std::byte[]>(Layout0::computeDataSize(elements)+Layout1::computeDataSize(elements))},
@@ -85,15 +86,16 @@ public:
     assert(reinterpret_cast<uintptr_t>(buffer_.get()) % Layout0::alignment == 0);
     assert(reinterpret_cast<uintptr_t>(layout0_.metadata().nextByte()) % Layout1::alignment == 0);
   }
+  */
 
   PortableCUDADeviceCollection_2layouts(int32_t elements, cudaStream_t stream)
       // allocate pinned host memory, accessible by the current device
-      : buffer_{cms::cuda::make_host_unique<std::byte[]>(Layout0::computeDataSize(elements)+Layout1::computeDataSize(elements), stream)},
+      : buffer_{cms::cuda::make_device_unique<std::byte[]>(Layout0::computeDataSize(elements)+Layout1::computeDataSize(elements), stream)},
         layout0_{buffer_.get(), elements},
         layout1_{layout0_.metadata().nextByte(), elements},
         view_{layout0_, layout1_},
         constView_{layout0_, layout1_} {
-    // CUDA pinned host memory uses a default alignment of at least 128 bytes
+    // CUDA device memory uses a default alignment of at least 128 bytes
     assert(reinterpret_cast<uintptr_t>(buffer_.get()) % Layout0::alignment == 0);
     assert(reinterpret_cast<uintptr_t>(layout0_.metadata().nextByte()) % Layout1::alignment == 0);
   }
