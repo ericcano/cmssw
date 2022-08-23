@@ -106,7 +106,7 @@ namespace gpuPixelRecHits {
       // one thread per "digi"
       auto first = clusters.moduleStart(1 + blockIdx.x) + threadIdx.x;
       for (int i = first; i < numElements; i += blockDim.x) {
-        auto id = digis.moduleInd(i);
+        auto id = digis.moduleId(i);
         if (id == invalidModuleId)
           continue;  // not valid
         if (id != me)
@@ -129,7 +129,7 @@ namespace gpuPixelRecHits {
 
       auto pixmx = cpeParams->detParams(me).pixmx;
       for (int i = first; i < numElements; i += blockDim.x) {
-        auto id = digis.moduleInd(i);
+        auto id = digis.moduleId(i);
         if (id == invalidModuleId)
           continue;  // not valid
         if (id != me)
