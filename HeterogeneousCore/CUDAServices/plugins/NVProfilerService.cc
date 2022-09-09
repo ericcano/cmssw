@@ -614,7 +614,11 @@ void NVProfilerService::preModuleBeginStream(edm::StreamContext const& sc, edm::
     auto mid = mcc.moduleDescription()->id();
     auto const& label = mcc.moduleDescription()->moduleLabel();
     auto const& msg = label + " begin stream";
-    assert(stream_modules_[sid][mid] == nvtxInvalidRangeId);
+//    if (sid >= stream_modules_.size()) std::cerr << "In NVProfilerService::preModuleBeginStream(): sid out of range: sid=" << sid << " size()=" << stream_modules_.size() << std::endl;
+//    if (mid >= stream_modules_[sid].size()) std::cerr << "In NVProfilerService::preModuleBeginStream(): mid out of range: mid=" << mid << " size()=" << stream_modules_[sid].size() << std::endl;
+    if (sid >= stream_modules_.size()) stream_modules_.resize(sid+1);
+    if (mid >= stream_modules_[sid].size()) stream_modules_[sid].resize(mid+1, nvtxInvalidRangeId);
+    assert(stream_modules_.at(sid).at(mid) == nvtxInvalidRangeId);
     stream_modules_[sid][mid] = nvtxDomainRangeStartColor(stream_domain_[sid], msg.c_str(), labelColor(label));
   }
 }
@@ -634,7 +638,7 @@ void NVProfilerService::preModuleEndStream(edm::StreamContext const& sc, edm::Mo
     auto mid = mcc.moduleDescription()->id();
     auto const& label = mcc.moduleDescription()->moduleLabel();
     auto const& msg = label + " end stream";
-    assert(stream_modules_[sid][mid] == nvtxInvalidRangeId);
+    assert(stream_modules_.at(sid).at(mid) == nvtxInvalidRangeId);
     stream_modules_[sid][mid] = nvtxDomainRangeStartColor(stream_domain_[sid], msg.c_str(), labelColor(label));
   }
 }
