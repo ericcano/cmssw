@@ -82,8 +82,8 @@ private:
   uint32_t nDigis_;
   const SiPixelClusterThresholds clusterThresholds_;
 
-  ScopedNVTXRange nvtxRange_ = ScopedNVTXRange("SiPixelRawToClusterCUDA");
-  std::unique_ptr<ScopedNVTXRange> nvtxExecutionRange_;
+  //ScopedNVTXRange nvtxRange_ = ScopedNVTXRange("SiPixelRawToClusterCUDA");
+  //std::unique_ptr<ScopedNVTXRange> nvtxExecutionRange_;
 };
 
 SiPixelRawToClusterCUDA::SiPixelRawToClusterCUDA(const edm::ParameterSet& iConfig)
@@ -137,10 +137,11 @@ void SiPixelRawToClusterCUDA::fillDescriptions(edm::ConfigurationDescriptions& d
 void SiPixelRawToClusterCUDA::acquire(const edm::Event& iEvent,
                                       const edm::EventSetup& iSetup,
                                       edm::WaitingTaskWithArenaHolder waitingTaskHolder) {
-  ScopedNVTXRange aquireNVTSRange("SiPixelRawToClusterCUDA::acquire()");
-  nvtxExecutionRange_ = std::make_unique<ScopedNVTXRange>("SiPixelRawToClusterCUDA-execution");
+  //ScopedNVTXRange aquireNVTSRange("SiPixelRawToClusterCUDA::acquire()");
+  //nvtxExecutionRange_ = std::make_unique<ScopedNVTXRange>("SiPixelRawToClusterCUDA-execution");
   cms::cuda::ScopedContextAcquire ctx{iEvent.streamID(), std::move(waitingTaskHolder), ctxState_};
 
+  ScopedNVTXRange setupNVTSRange("SiPixelRawToClusterCUDA::acquire()::setup");
   auto hgpuMap = iSetup.getHandle(gpuMapToken_);
   if (hgpuMap->hasQuality() != useQuality_) {
     throw cms::Exception("LogicError")
@@ -158,6 +159,7 @@ void SiPixelRawToClusterCUDA::acquire(const edm::Event& iEvent,
   const unsigned char* gpuModulesToUnpack;
 
   if (regions_) {
+    ScopedNVTXRange regionsNVTSRange("SiPixelRawToClusterCUDA::acquire()::regions");
     regions_->run(iEvent, iSetup);
     LogDebug("SiPixelRawToCluster") << "region2unpack #feds: " << regions_->nFEDs();
     LogDebug("SiPixelRawToCluster") << "region2unpack #modules (BPIX,EPIX,total): " << regions_->nBarrelModules() << " "
@@ -165,10 +167,13 @@ void SiPixelRawToClusterCUDA::acquire(const edm::Event& iEvent,
     modulesToUnpackRegional = hgpuMap->getModToUnpRegionalAsync(*(regions_->modulesToUnpack()), ctx.stream());
     gpuModulesToUnpack = modulesToUnpackRegional.get();
   } else {
+    ScopedNVTXRange allNVTSRange("SiPixelRawToClusterCUDA::acquire()::all");
     gpuModulesToUnpack = hgpuMap->getModToUnpAllAsync(ctx.stream());
   }
 
+  setupNVTSRange.end();
   // initialize cabling map or update if necessary
+  ScopedNVTXRange cablingNVTSRange("SiPixelRawToClusterCUDA::acquire()::cabling");
   if (recordWatcher_.check(iSetup)) {
     // cabling map, which maps online address (fed->link->ROC->local pixel) to offline (DetId->global pixel)
     auto cablingMap = iSetup.getTransientHandle(cablingMapToken_);
@@ -182,6 +187,8 @@ void SiPixelRawToClusterCUDA::acquire(const edm::Event& iEvent,
 
   errors_.clear();
 
+  cablingNVTSRange.end();
+  ScopedNVTXRange unpackNVTSRange("SiPixelRawToClusterCUDA::acquire()::unpack");
   // GPU specific: Data extraction for RawToDigi GPU
   unsigned int wordCounter = 0;
   unsigned int fedCounter = 0;
@@ -248,18 +255,19 @@ void SiPixelRawToClusterCUDA::acquire(const edm::Event& iEvent,
     wordCounter += (ew - bw);
 
   }  // end of for loop
-
+  unpackNVTSRange.end();
   nDigis_ = wordCounter;
 
   if (nDigis_ == 0)
     return;
-
+  ScopedNVTXRange initNVTSRange("SiPixelRawToClusterCUDA::acquire()::init");
   // copy the FED data to a single cpu buffer
   pixelgpudetails::SiPixelRawToClusterGPUKernel::WordFedAppender wordFedAppender(nDigis_, ctx.stream());
   for (uint32_t i = 0; i < fedIds_.size(); ++i) {
     wordFedAppender.initializeWordFed(fedIds_[i], index[i], start[i], words[i]);
   }
-
+  initNVTSRange.end();
+  ScopedNVTXRange kernelsNVTSRange("SiPixelRawToClusterCUDA::acquire()::kernels");
   gpuAlgo_.makeClustersAsync(isRun2_,
                              clusterThresholds_,
                              gpuMap,
@@ -276,7 +284,7 @@ void SiPixelRawToClusterCUDA::acquire(const edm::Event& iEvent,
 }
 
 void SiPixelRawToClusterCUDA::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
-  ScopedNVTXRange produceNVTSRange("SiPixelRawToClusterCUDA::produce()");
+  //ScopedNVTXRange produceNVTSRange("SiPixelRawToClusterCUDA::produce()");
   cms::cuda::ScopedContextProduce ctx{ctxState_};
 
   if (nDigis_ == 0) {
@@ -286,7 +294,7 @@ void SiPixelRawToClusterCUDA::produce(edm::Event& iEvent, const edm::EventSetup&
     if (includeErrors_) {
       ctx.emplace(iEvent, digiErrorPutToken_, SiPixelDigiErrorsCUDA{});
     }
-    nvtxExecutionRange_.reset();
+    //nvtxExecutionRange_.reset();
     return;
   }
 
@@ -296,7 +304,7 @@ void SiPixelRawToClusterCUDA::produce(edm::Event& iEvent, const edm::EventSetup&
   if (includeErrors_) {
     ctx.emplace(iEvent, digiErrorPutToken_, gpuAlgo_.getErrors());
   }
-  nvtxExecutionRange_.reset();
+  //nvtxExecutionRange_.reset();
 }
 
 // define as framework plugin

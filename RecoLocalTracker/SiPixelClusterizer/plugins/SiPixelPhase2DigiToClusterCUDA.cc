@@ -71,8 +71,8 @@ private:
   const bool includeErrors_;
   const SiPixelClusterThresholds clusterThresholds_;
 
-  ScopedNVTXRange nvtxRange_ = ScopedNVTXRange("SiPixelPhase2DigiToClusterCUDA");
-  std::unique_ptr<ScopedNVTXRange> nvtxExecutionRange_;
+  //ScopedNVTXRange nvtxRange_ = ScopedNVTXRange("SiPixelPhase2DigiToClusterCUDA");
+  //std::unique_ptr<ScopedNVTXRange> nvtxExecutionRange_;
 };
 
 SiPixelPhase2DigiToClusterCUDA::SiPixelPhase2DigiToClusterCUDA(const edm::ParameterSet& iConfig)
@@ -101,8 +101,8 @@ void SiPixelPhase2DigiToClusterCUDA::fillDescriptions(edm::ConfigurationDescript
 void SiPixelPhase2DigiToClusterCUDA::acquire(const edm::Event& iEvent,
                                              const edm::EventSetup& iSetup,
                                              edm::WaitingTaskWithArenaHolder waitingTaskHolder) {
-  ScopedNVTXRange aquireNVTSRange("SiPixelPhase2DigiToClusterCUDA::acquire()");
-  nvtxExecutionRange_ = std::make_unique<ScopedNVTXRange>("SiPixelPhase2DigiToClusterCUDA-execution");
+  //ScopedNVTXRange aquireNVTSRange("SiPixelPhase2DigiToClusterCUDA::acquire()");
+  //nvtxExecutionRange_ = std::make_unique<ScopedNVTXRange>("SiPixelPhase2DigiToClusterCUDA-execution");
   cms::cuda::ScopedContextAcquire ctx{iEvent.streamID(), std::move(waitingTaskHolder), ctxState_};
 
   auto const& input = iEvent.get(pixelDigiToken_);
@@ -150,7 +150,7 @@ void SiPixelPhase2DigiToClusterCUDA::acquire(const edm::Event& iEvent,
 }
 
 void SiPixelPhase2DigiToClusterCUDA::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
-  ScopedNVTXRange produceNVTSRange("SiPixelRawToClusterCUDA::produce()");
+  //ScopedNVTXRange produceNVTSRange("SiPixelRawToClusterCUDA::produce()");
   cms::cuda::ScopedContextProduce ctx{ctxState_};
 
   auto tmp = gpuAlgo_.getResults();
@@ -159,7 +159,7 @@ void SiPixelPhase2DigiToClusterCUDA::produce(edm::Event& iEvent, const edm::Even
   if (includeErrors_) {
     ctx.emplace(iEvent, digiErrorPutToken_, gpuAlgo_.getErrors());
   }
-  nvtxExecutionRange_.reset();
+  //nvtxExecutionRange_.reset();
 }
 
 // define as framework plugin
