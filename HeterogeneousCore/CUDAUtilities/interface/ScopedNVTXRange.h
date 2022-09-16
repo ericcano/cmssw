@@ -1,4 +1,5 @@
 #ifndef HeterogeneousCore_CUDAUtilities_interface_ScopedNVTXRange_h
+#define HeterogeneousCore_CUDAUtilities_interface_ScopedNVTXRange_h 
 
 #include <nvToolsExt.h>
 #include <string>

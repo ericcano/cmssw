@@ -46,6 +46,8 @@
 #include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/deviceAllocatorStatus.h"
 
+#include "HeterogeneousCore/CUDAUtilities/interface/ScopedNVTXRange.h"
+
 /// CUB namespace
 namespace notcub {
 
@@ -334,6 +336,7 @@ namespace notcub {
         size_t bytes,                          ///< [in] Minimum number of bytes for the allocation
         cudaStream_t active_stream = nullptr)  ///< [in] The stream to be associated with this allocation
     {
+      ScopedNVTXRange nvtxDevAlloc("CachingDeviceAllocator::DeviceAllocate()");
       // CMS: use RAII instead of (un)locking explicitly
       std::unique_lock<std::mutex> mutex_locker(mutex, std::defer_lock);
       *d_ptr = nullptr;
@@ -554,6 +557,7 @@ namespace notcub {
      * streams when all prior work submitted to \p active_stream has completed.
      */
     cudaError_t DeviceFree(int device, void *d_ptr) {
+      ScopedNVTXRange nvtxDevAlloc("CachingDeviceAllocator::DeviceFree()");
       int entrypoint_device = INVALID_DEVICE_ORDINAL;
       cudaError_t error = cudaSuccess;
       // CMS: use RAII instead of (un)locking explicitly
