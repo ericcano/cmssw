@@ -45,6 +45,8 @@
 
 #include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
 
+#include "HeterogeneousCore/CUDAUtilities/interface/ScopedNVTXRange.h"
+
 /// CUB namespace
 namespace notcub {
 
@@ -314,6 +316,7 @@ namespace notcub {
         size_t bytes,                          ///< [in] Minimum number of bytes for the allocation
         cudaStream_t active_stream = nullptr)  ///< [in] The stream to be associated with this allocation
     {
+      ScopedNVTXRange nvtxDevAlloc("CachingHostAllocator::HostAllocate()");
       std::unique_lock<std::mutex> mutex_locker(mutex, std::defer_lock);
       *d_ptr = nullptr;
       int device = INVALID_DEVICE_ORDINAL;
@@ -495,6 +498,7 @@ namespace notcub {
      * Once freed, the allocation becomes available immediately for reuse.
      */
     cudaError_t HostFree(void *d_ptr) {
+      ScopedNVTXRange nvtxDevAlloc("CachingHostAllocator::HostFree()");
       int entrypoint_device = INVALID_DEVICE_ORDINAL;
       cudaError_t error = cudaSuccess;
 
