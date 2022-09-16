@@ -32,6 +32,8 @@
 // local includes
 #include "SiPixelRawToClusterGPUKernel.h"
 
+#include "HeterogeneousCore/CUDAUtilities/interface/ScopedNVTXRange.h"
+
 namespace pixelgpudetails {
 
   __device__ bool isBarrel(uint32_t rawId) {
@@ -541,14 +543,17 @@ namespace pixelgpudetails {
 #endif
 
     // since wordCounter != 0 we're not allocating 0 bytes,
+    ScopedNVTXRange allocNVTSRange("SiPixelRawToClusterGPUKernel::makeClustersAsync()::alloc");
     digis_d = SiPixelDigisCUDA(wordCounter, stream);
     if (includeErrors) {
       digiErrors_d = SiPixelDigiErrorsCUDA(wordCounter, std::move(errors), stream);
     }
     clusters_d = SiPixelClustersCUDA(phase1PixelTopology::numberOfModules, stream);
 
+    allocNVTSRange.end();
     // Begin Raw2Digi block
     {
+      ScopedNVTXRange allocNVTSRange("SiPixelRawToClusterGPUKernel::makeClustersAsync()::Raw2Digi block");
       const int threadsPerBlock = 512;
       const int blocks = (wordCounter + threadsPerBlock - 1) / threadsPerBlock;  // fill it all
 
@@ -592,6 +597,7 @@ namespace pixelgpudetails {
 
     {
       // clusterizer ...
+      ScopedNVTXRange allocNVTSRange("SiPixelRawToClusterGPUKernel::makeClustersAsync()::clusterizer");
       using namespace gpuClustering;
       int threadsPerBlock = 256;
       int blocks = (std::max(int(wordCounter), int(phase1PixelTopology::numberOfModules)) + threadsPerBlock - 1) /
