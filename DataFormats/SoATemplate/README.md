@@ -1,4 +1,4 @@
-# Structure of array (SoA) generation
+  # Structure of array (SoA) generation
 
 The two header files [`SoALayout.h`](SoALayout.h) and [`SoAView.h`](SoAView.h) define preprocessor macros that
 allow generating SoA classes. The SoA classes generate multiple, aligned column from a memory buffer. The memory

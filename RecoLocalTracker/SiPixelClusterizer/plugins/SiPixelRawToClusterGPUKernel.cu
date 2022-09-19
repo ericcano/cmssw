@@ -559,15 +559,20 @@ namespace pixelgpudetails {
 
       assert(0 == wordCounter % 2);
       // wordCounter is the total no of words in each event to be trasfered on device
+      ScopedNVTXRange allocNVTSR2Dmd("SiPixelRawToClusterGPUKernel::makeClustersAsync()::Raw2Digi block::make_device");
       auto word_d = cms::cuda::make_device_unique<uint32_t[]>(wordCounter, stream);
       auto fedId_d = cms::cuda::make_device_unique<uint8_t[]>(wordCounter, stream);
+      allocNVTSR2Dmd.end();
 
+      ScopedNVTXRange allocNVTSR2Dmcp("SiPixelRawToClusterGPUKernel::makeClustersAsync()::Raw2Digi block::memcpy");
       cudaCheck(
           cudaMemcpyAsync(word_d.get(), wordFed.word(), wordCounter * sizeof(uint32_t), cudaMemcpyDefault, stream));
       cudaCheck(cudaMemcpyAsync(
           fedId_d.get(), wordFed.fedId(), wordCounter * sizeof(uint8_t) / 2, cudaMemcpyDefault, stream));
+      allocNVTSR2Dmcp.end();
 
       // Launch rawToDigi kernel
+      ScopedNVTXRange allocNVTSR2DKL("SiPixelRawToClusterGPUKernel::makeClustersAsync()::Raw2Digi block::kernel launch");
       RawToDigi_kernel<<<blocks, threadsPerBlock, 0, stream>>>(
           cablingMap,
           modToUnp,
@@ -588,7 +593,9 @@ namespace pixelgpudetails {
 #ifdef GPU_DEBUG
       cudaCheck(cudaStreamSynchronize(stream));
 #endif
+       allocNVTSR2DKL.end();
 
+      ScopedNVTXRange allocNVTSR2De("SiPixelRawToClusterGPUKernel::makeClustersAsync()::Raw2Digi block::error");
       if (includeErrors) {
         digiErrors_d.copyErrorToHostAsync(stream);
       }
