@@ -316,7 +316,7 @@ namespace notcub {
         size_t bytes,                          ///< [in] Minimum number of bytes for the allocation
         cudaStream_t active_stream = nullptr)  ///< [in] The stream to be associated with this allocation
     {
-      ScopedNVTXRange nvtxDevAlloc("CachingHostAllocator::HostAllocate()");
+      ScopedNVTXRange nvtxHostAlloc("CachingHostAllocator::HostAllocate()");
       std::unique_lock<std::mutex> mutex_locker(mutex, std::defer_lock);
       *d_ptr = nullptr;
       int device = INVALID_DEVICE_ORDINAL;
@@ -338,6 +338,7 @@ namespace notcub {
         search_key.bin = INVALID_BIN;
         search_key.bytes = bytes;
       } else {
+        ScopedNVTXRange nvtxHostAllocSearch("CachingHostAllocator::HostAllocate()::Search");
         // Search for a suitable cached allocation: lock
         mutex_locker.lock();
 
@@ -397,6 +398,7 @@ namespace notcub {
 
       // Allocate the block if necessary
       if (!found) {
+        ScopedNVTXRange nvtxHostAllocNotFound("CachingHostAllocator::HostAllocate()::NotFound");
         // Attempt to allocate
         // TODO: eventually support allocation flags
         if ((error = cudaHostAlloc(&search_key.d_ptr, search_key.bytes, cudaHostAllocDefault)) ==
