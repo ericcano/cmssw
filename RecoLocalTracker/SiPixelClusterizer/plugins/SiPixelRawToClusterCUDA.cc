@@ -257,6 +257,9 @@ void SiPixelRawToClusterCUDA::acquire(const edm::Event& iEvent,
   }  // end of for loop
   unpackNVTSRange.end();
   nDigis_ = wordCounter;
+  std::string nvxtVal = "value-SiPixelRawToClusterCUDAWordCounter=";
+  nvxtVal += std::to_string(wordCounter);
+  ScopedNVTXRange(nvxtVal).end();
 
   if (nDigis_ == 0)
     return;
