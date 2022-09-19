@@ -363,6 +363,7 @@ namespace notcub {
         search_key.bin = INVALID_BIN;
         search_key.bytes = bytes;
       } else {
+        ScopedNVTXRange nvtxDevAllocSearch("CachingDeviceAllocator::DeviceAllocate()::Search");
         // Search for a suitable cached allocation: lock
         mutex_locker.lock();
 
@@ -419,6 +420,7 @@ namespace notcub {
 
       // Allocate the block if necessary
       if (!found) {
+        ScopedNVTXRange nvtxDevAllocNotFound("CachingDeviceAllocator::DeviceAllocate()::NotFound");
         // Set runtime's current device to specified device (entrypoint may not be set)
         if (device != entrypoint_device) {
           // CMS: throw exception on error
