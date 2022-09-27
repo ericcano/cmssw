@@ -355,6 +355,12 @@ namespace notcub {
       search_key.bytesRequested = bytes;  // CMS
       search_key.associated_stream = active_stream;
       NearestPowerOf(search_key.bin, search_key.bytes, bin_growth, bytes);
+      std::string nvxtBytes = "value-CachingDeviceAllocatorBytes=";
+      std::string nvxtBin = "value-CachingDeviceAllocatorBin=";
+      nvxtBytes += std::to_string(bytes);
+      nvxtBin += std::to_string(search_key.bin);
+      ScopedNVTXRange(nvxtBytes).end();
+      ScopedNVTXRange(nvxtBin).end();
 
       if (search_key.bin > max_bin) {
         // Bin is greater than our maximum bin: allocate the request
