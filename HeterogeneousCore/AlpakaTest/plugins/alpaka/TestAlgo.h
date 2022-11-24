@@ -9,6 +9,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   class TestAlgo {
   public:
     void fill(Queue& queue, portabletest::TestDeviceCollection& collection, double xvalue = 0.) const;
+    void fillMulti(Queue& queue, portabletest::TestDeviceMultiCollection& collection, double xvalue = 0.) const;
   };
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE

@@ -1,4 +1,16 @@
 <lcgdict>
   <class name="portabletest::TestSoA"/>
   <class name="portabletest::TestSoA::View"/>
+
+  <class name="portabletest::TestSoA2">
+    <field name="mem_" comment="!"/>
+    <field name="byteSize_" comment="!"/>
+    <field name="x2_" comment="[elements_]"/>
+    <field name="y2_" comment="[elements_]"/>
+    <field name="z2_" comment="[elements_]"/>
+    <field name="id2_" comment="[elements_]"/>
+    <field name="m2_" comment="[m2ElementsWithPadding_]"/>
+    <field name="r2_" comment="[scalar_]"/>
+  </class>
+  <class name="portabletest::TestSoA2::View"/>
 </lcgdict>
