@@ -90,7 +90,7 @@ public:
 
   static int32_t computeDataSize(const SizesArray& sizes) {
     int32_t ret = 0;
-    constexpr_for<0, membersCount, 1>(
+    constexpr_for<0, membersCount>(
         [&sizes, &ret](auto i) { ret += TypeResolver::template Resolver<i>::type::computeDataSize(sizes[i]); });
     return ret;
   }
@@ -99,10 +99,10 @@ public:
       : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(device, computeDataSize(sizes))},
         impl_{buffer_->data(), sizes} {
     // Alpaka set to a default alignment of 128 bytes defining ALPAKA_DEFAULT_HOST_MEMORY_ALIGNMENT=128
-    constexpr_for<0, membersCount, 1>(
+    constexpr_for<0, membersCount>(
         [&](auto i) { assert(reinterpret_cast<uintptr_t>(buffer_->data()) % Layout<i>::alignment == 0); });
     constexpr auto alignment = Layout<0>::alignment;
-    constexpr_for<1, membersCount, 1>([&alignment](auto i) { static_assert(alignment == Layout<i>::alignment); });
+    constexpr_for<1, membersCount>([&alignment](auto i) { static_assert(alignment == Layout<i>::alignment); });
   }
 
   template <typename TQueue, typename = std::enable_if_t<cms::alpakatools::is_queue_v<TQueue>>>
@@ -110,10 +110,10 @@ public:
       : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(queue, computeDataSize(sizes))},
         impl_{buffer_->data(), sizes} {
     // Alpaka set to a default alignment of 128 bytes defining ALPAKA_DEFAULT_HOST_MEMORY_ALIGNMENT=128
-    constexpr_for<0, membersCount, 1>(
+    constexpr_for<0, membersCount>(
         [&](auto i) { assert(reinterpret_cast<uintptr_t>(buffer_->data()) % Layout<i>::alignment == 0); });
     constexpr auto alignment = Layout<0>::alignment;
-    constexpr_for<1, membersCount, 1>([&alignment](auto i) { static_assert(alignment == Layout<i>::alignment); });
+    constexpr_for<1, membersCount>([&alignment](auto i) { static_assert(alignment == Layout<i>::alignment); });
   }
 
   // non-copyable
@@ -207,7 +207,7 @@ public:
   // Extract the sizes array
   SizesArray sizes() const {
     SizesArray ret;
-    constexpr_for<0, membersCount, 1>([&](auto i) { ret[i] = get<i>().layout_.metadata().size(); });
+    constexpr_for<0, membersCount>([&](auto i) { ret[i] = get<i>().layout_.metadata().size(); });
     return ret;
   }
 
