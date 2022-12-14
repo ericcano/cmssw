@@ -1,113 +1,98 @@
-
 #ifndef DataFormats_Portable_interface_PortableCollectionCommon_h
 #define DataFormats_Portable_interface_PortableCollectionCommon_h
 
-template <auto Start, auto End, auto Inc, class F>
+#include <cstddef>
+#include <type_traits>
+
+// Note: if there are other uses for this, it could be moved to a central place
+template <std::size_t Start, std::size_t End, std::size_t Inc = 1, typename F>
 constexpr void constexpr_for(F&& f) {
   if constexpr (Start < End) {
-    f(std::integral_constant<decltype(Start), Start>());
-    constexpr_for<Start + Inc, End, Inc>(f);
+    f(std::integral_constant<std::size_t, Start>());
+    constexpr_for<Start + Inc, End, Inc>(std::forward<F>(f));
   }
 }
 
-template <std::size_t idx, typename T>
-struct CollectionLeaf {
-  CollectionLeaf() = default;
-  CollectionLeaf(std::byte* buffer, int32_t elements) : layout_(buffer, elements), view_(layout_) {}
-  template <std::size_t N>
-  CollectionLeaf(std::byte* buffer, std::array<int32_t, N> sizes) : layout_(buffer, sizes[idx]), view_(layout_) {
-    static_assert(N > idx);
-  }
-  using Layout = T;
-  using View = typename Layout::View;
-  using ConstView = typename Layout::ConstView;
-  Layout layout_;  //
-  View view_;      //!
-};
+namespace portablecollection {
 
-template <std::size_t idx, typename T0, typename T1, typename T2, typename T3, typename T4>
-struct CollectionImpl : public CollectionLeaf<idx, T0>, public CollectionImpl<idx + 1, T1, T2, T3, T4, void> {
-  CollectionImpl() = default;
-  CollectionImpl(std::byte* buffer, int32_t elements) : CollectionLeaf<idx, T0>(buffer, elements) {}
-
-  template <size_t N>
-  CollectionImpl(std::byte* buffer, std::array<int32_t, N> sizes)
-      : CollectionLeaf<idx, T0>(buffer, sizes),
-        CollectionImpl<idx + 1, T1, T2, T3, T4, void>(CollectionLeaf<idx, T0>::layout_.metadata().nextByte(), sizes) {}
-};
-
-// This should work, but does not due to a GCC bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85282
-// Workaround implementation below
-/*
-template <typename T0, typename T1, typename T2, typename T3, typename T4>
-struct CollectionTypeResolver{
-  template <std::size_t idx>
-  struct Resolver{
-    static_assert(idx != 0);
-    using type = typename CollectionTypeResolver<T1, T2, T3, T4, void>::template Resolver<idx - 1>::type;
+  template <std::size_t Idx, typename T>
+  struct CollectionLeaf {
+    CollectionLeaf() = default;
+    CollectionLeaf(std::byte* buffer, int32_t elements) : layout_(buffer, elements), view_(layout_) {}
+    template <std::size_t N>
+    CollectionLeaf(std::byte* buffer, std::array<int32_t, N> const& sizes)
+        : layout_(buffer, sizes[Idx]), view_(layout_) {
+      static_assert(N > Idx);
+    }
+    using Layout = T;
+    using View = typename Layout::View;
+    using ConstView = typename Layout::ConstView;
+    Layout layout_;  //
+    View view_;      //!
   };
 
-  template <>
-  struct Resolver<0>{
-    using type = T0;
-  };
-};
-*/
+  template <std::size_t Idx, typename T, typename... Args>
+  struct CollectionImpl : public CollectionLeaf<Idx, T>, public CollectionImpl<Idx + 1, Args..., void> {
+    CollectionImpl() = default;
+    CollectionImpl(std::byte* buffer, int32_t elements) : CollectionLeaf<Idx, T>(buffer, elements) {}
 
-template <typename T0, typename T1, typename T2, typename T3, typename T4>
-struct CollectionTypeResolver {
-  template <std::size_t idx, class = void>
-  struct Resolver {
-    static_assert(idx != 0);
-    using type = typename CollectionTypeResolver<T1, T2, T3, T4, void>::template Resolver<idx - 1>::type;
+    template <std::size_t N>
+    CollectionImpl(std::byte* buffer, std::array<int32_t, N> const& sizes)
+        : CollectionLeaf<Idx, T>(buffer, sizes),
+          CollectionImpl<Idx + 1, Args..., void>(CollectionLeaf<Idx, T>::layout_.metadata().nextByte(), sizes) {}
   };
 
-  template <std::size_t idx>
-  struct Resolver<idx, std::enable_if_t<idx == 0>> {
-    using type = T0;
-  };
-};
-
-template <typename T, typename T0, typename T1 = void, typename T2 = void, typename T3 = void, typename T4 = void>
-static constexpr size_t CollectionTypeCount = (std::is_same<T0, T>::value ? 1 : 0) +
-                                              (std::is_same<T1, T>::value ? 1 : 0) +
-                                              (std::is_same<T2, T>::value ? 1 : 0) +
-                                              (std::is_same<T3, T>::value ? 1 : 0) +
-                                              (std::is_same<T4, T>::value ? 1 : 0);
-
-template <typename T0, typename T1 = void, typename T2 = void, typename T3 = void, typename T4 = void>
-static constexpr size_t CollectionMembersCount = (std::is_same<T0, void>::value ? 0 : 1) +
-                                                 (std::is_same<T1, void>::value ? 0 : 1) +
-                                                 (std::is_same<T2, void>::value ? 0 : 1) +
-                                                 (std::is_same<T3, void>::value ? 0 : 1) +
-                                                 (std::is_same<T4, void>::value ? 0 : 1);
-
-template <typename T0, typename T1 = void, typename T2 = void, typename T3 = void, typename T4 = void>
-struct CollectionIdxResolver {
-  template <typename T, class = void>
-  struct Resolver {
-    static_assert(CollectionTypeCount<T, T0, T1, T2, T3, T4> == 1);
-    static_assert(not std::is_same<T, T0>::value);
-    static constexpr std::size_t idx = 1 + CollectionIdxResolver<T1, T2, T3, T4, void>::template Resolver<T>::idx;
+  template <std::size_t Idx>
+  struct CollectionImpl<Idx, void, void, void, void, void> {
+    CollectionImpl() = default;
+    template <std::size_t N>
+    CollectionImpl(std::byte* buffer, std::array<int32_t, N> const& sizes) {
+      static_assert(N == Idx);
+    }
   };
 
-  template <typename T>
-  struct Resolver<T, std::enable_if_t<std::is_same<T, T0>::value>> {
-    static_assert(CollectionTypeCount<T, T0, T1, T2, T3, T4> == 1);
-    static_assert(std::is_same<T, T0>::value);
-    static constexpr std::size_t idx = 0;
+  template <typename... Args>
+  struct Collections : public CollectionImpl<0, Args...> {};
+
+  // return the type at the Idx position in Args...
+  template <std::size_t Idx, typename... Args>
+  using TypeResolver = typename std::tuple_element<Idx, std::tuple<Args...>>::type;
+
+  // count how many times the type T occurs in Args...
+  template <typename T, typename... Args>
+  inline constexpr std::size_t typeCount = ((std::is_same<T, Args>::value ? 1 : 0) + ...);
+
+  // count the non-void elements of Args...
+  template <typename... Args>
+  inline constexpr std::size_t membersCount = sizeof...(Args) - typeCount<void, Args...>;
+
+  // if the type T occurs in Tuple, TupleTypeIndex has a static member value with the corresponding index;
+  // otherwise there is no such data  member.
+  template <typename T, typename Tuple>
+  struct TupleTypeIndex {};
+
+  template <typename T, typename... Args>
+  struct TupleTypeIndex<T, std::tuple<T, Args...>> {
+    static_assert(typeCount<T, Args...> == 0, "the requested type appears more than once among the arguments");
+    static constexpr std::size_t value = 0;
   };
-};
 
-template <std::size_t idx>
-struct CollectionImpl<idx, void, void, void, void, void> {
-  CollectionImpl() = default;
-  template <size_t N>
-  CollectionImpl(std::byte* buffer, std::array<int32_t, N> sizes) {
-    static_assert(N == idx);
-  }
-};
+  template <typename T, typename U, typename... Args>
+  struct TupleTypeIndex<T, std::tuple<U, Args...>> {
+    static_assert(not std::is_same_v<T, U>);
+    static_assert(typeCount<T, Args...> == 1, "the requested type does not appear among the arguments");
+    static constexpr std::size_t value = 1 + TupleTypeIndex<T, std::tuple<Args...>>::value;
+  };
 
-// TODO: namespace this
+  // if the type T occurs in Args..., TypeIndex has a static member value with the corresponding index;
+  // otherwise there is no such data  member.
+  template <typename T, typename... Args>
+  using TypeIndex = TupleTypeIndex<T, std::tuple<Args...>>;
+
+  // return the index where the type T occurs in Args...
+  template <typename T, typename... Args>
+  inline constexpr std::size_t typeIndex = TypeIndex<T, Args...>::value;
+
+}  // namespace portablecollection
 
 #endif  // DataFormats_Portable_interface_PortableCollectionCommon_h
