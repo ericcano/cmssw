@@ -219,7 +219,7 @@ public:
     constexpr_for<0, members_>(
         [&sizes, &impl](auto i) { sizes[i] = static_cast<Leaf<i> const&>(impl).layout_.metadata().size(); });
     new (newObj) PortableHostCollection(sizes, cms::alpakatools::host());
-    constexpr_for<0, members_>([&sizes, &newObj, &impl](auto i) {
+    constexpr_for<0, members_>([&newObj, &impl](auto i) {
       static_cast<Leaf<i>&>(newObj->impl_).layout_.ROOTReadStreamer(static_cast<Leaf<i> const&>(impl).layout_);
     });
   }
