@@ -8,8 +8,6 @@
 #include "DataFormats/SoATemplate/interface/SoALayout.h"
 #include "DataFormats/SoATemplate/interface/SoAView.h"
 
-#include <iostream>
-
 namespace portabletest {
 
   using Matrix = Eigen::Matrix<double, 3, 6>;
