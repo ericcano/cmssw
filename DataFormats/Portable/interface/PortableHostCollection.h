@@ -212,16 +212,20 @@ public:
   }
 
   // part of the ROOT read streamer
-  static void ROOTReadStreamer(PortableHostCollection* newObj, Implementation const& impl) {
+  static void ROOTReadStreamer(PortableHostCollection* newObj, Implementation const& onfileImpl) {
     newObj->~PortableHostCollection();
     // use the global "host" object returned by cms::alpakatools::host()
     std::array<int32_t, members_> sizes;
-    constexpr_for<0, members_>(
-        [&sizes, &impl](auto i) { sizes[i] = static_cast<Leaf<i> const&>(impl).layout_.metadata().size(); });
-    new (newObj) PortableHostCollection(sizes, cms::alpakatools::host());
-    constexpr_for<0, members_>([&newObj, &impl](auto i) {
-      static_cast<Leaf<i>&>(newObj->impl_).layout_.ROOTReadStreamer(static_cast<Leaf<i> const&>(impl).layout_);
+    constexpr_for<0, members_>([&sizes, &onfileImpl](auto i) {
+      sizes[i] = static_cast<Leaf<i> const&>(onfileImpl).layout_.metadata().size();
     });
+    new (newObj) PortableHostCollection(sizes, cms::alpakatools::host());
+    constexpr_for<0, members_>([&newObj, &onfileImpl](auto i) {
+      static_cast<Leaf<i>&>(newObj->impl_).layout_.ROOTReadStreamer(static_cast<Leaf<i> const&>(onfileImpl).layout_);
+    });
+    // TODO: freeing of onfileImpl (as will be part of:
+    //  Fix memory leaks in PortableHostCollection deserialization #40492
+    // )
   }
 
 private:
