@@ -11,7 +11,7 @@
 #include "DataFormats/Portable/interface/PortableCollectionCommon.h"
 
 // generic SoA-based product in host memory
-template <typename T0, typename T1 = void, typename T2 = void, typename T3 = void, typename T4 = void>
+template <typename T0, typename T1 = void, typename T2 = void, typename T3 = void, typename T4 = void, typename T5 = void>
 class PortableHostCollection {
   // Make sure void is not interleaved with other types.
   static_assert(not std::is_same<T3, void>::value or std::is_same<T4, void>::value);
@@ -19,22 +19,22 @@ class PortableHostCollection {
   static_assert(not std::is_same<T1, void>::value or std::is_same<T2, void>::value);
 
   template <typename T>
-  static constexpr std::size_t count_t_ = portablecollection::typeCount<T, T0, T1, T2, T3, T4>;
+  static constexpr std::size_t count_t_ = portablecollection::typeCount<T, T0, T1, T2, T3, T4, T5>;
 
   template <typename T>
-  static constexpr std::size_t index_t_ = portablecollection::typeIndex<T, T0, T1, T2, T3, T4>;
+  static constexpr std::size_t index_t_ = portablecollection::typeIndex<T, T0, T1, T2, T3, T4, T5>;
 
-  static constexpr std::size_t members_ = portablecollection::membersCount<T0, T1, T2, T3, T4>;
+  static constexpr std::size_t members_ = portablecollection::membersCount<T0, T1, T2, T3, T4, T5>;
 
 public:
   using Buffer = cms::alpakatools::host_buffer<std::byte[]>;
   using ConstBuffer = cms::alpakatools::const_host_buffer<std::byte[]>;
-  using Implementation = portablecollection::CollectionImpl<0, T0, T1, T2, T3, T4>;
+  using Implementation = portablecollection::CollectionImpl<0, T0, T1, T2, T3, T4, T5>;
 
   using SizesArray = std::array<int32_t, members_>;
 
   template <std::size_t Idx = 0, typename = std::enable_if_t<(members_ > Idx)>>
-  using Layout = portablecollection::TypeResolver<Idx, T0, T1, T2, T3, T4>;
+  using Layout = portablecollection::TypeResolver<Idx, T0, T1, T2, T3, T4, T5>;
   template <std::size_t Idx = 0, typename = std::enable_if_t<(members_ > Idx)>>
   using View = typename Layout<Idx>::View;
   template <std::size_t Idx = 0, typename = std::enable_if_t<(members_ > Idx)>>

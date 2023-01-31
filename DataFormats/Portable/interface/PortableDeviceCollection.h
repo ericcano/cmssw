@@ -17,6 +17,7 @@ template <typename TDev,
           typename T2 = void,
           typename T3 = void,
           typename T4 = void,
+          typename T5 = void,
           typename = std::enable_if_t<cms::alpakatools::is_device_v<TDev>>>
 class PortableDeviceCollection {
   static_assert(not std::is_same_v<TDev, alpaka_common::DevHost>,
@@ -27,22 +28,22 @@ class PortableDeviceCollection {
   static_assert(not std::is_same<T1, void>::value or std::is_same<T2, void>::value);
 
   template <typename T>
-  static constexpr std::size_t count_t_ = portablecollection::typeCount<T, T0, T1, T2, T3, T4>;
+  static constexpr std::size_t count_t_ = portablecollection::typeCount<T, T0, T1, T2, T3, T4, T5>;
 
   template <typename T>
-  static constexpr std::size_t index_t_ = portablecollection::typeIndex<T, T0, T1, T2, T3, T4>;
+  static constexpr std::size_t index_t_ = portablecollection::typeIndex<T, T0, T1, T2, T3, T4, T5>;
 
-  static constexpr std::size_t members_ = portablecollection::membersCount<T0, T1, T2, T3, T4>;
+  static constexpr std::size_t members_ = portablecollection::membersCount<T0, T1, T2, T3, T4, T5>;
 
 public:
   using Buffer = cms::alpakatools::device_buffer<TDev, std::byte[]>;
   using ConstBuffer = cms::alpakatools::const_device_buffer<TDev, std::byte[]>;
-  using Implementation = portablecollection::CollectionImpl<0, T0, T1, T2, T3, T4>;
+  using Implementation = portablecollection::CollectionImpl<0, T0, T1, T2, T3, T4, T5>;
 
   using SizesArray = std::array<int32_t, members_>;
 
   template <std::size_t Idx = 0, typename = std::enable_if_t<(members_ > Idx)>>
-  using Layout = portablecollection::TypeResolver<Idx, T0, T1, T2, T3, T4>;
+  using Layout = portablecollection::TypeResolver<Idx, T0, T1, T2, T3, T4, T5>;
   template <std::size_t Idx = 0, typename = std::enable_if_t<(members_ > Idx)>>
   using View = typename Layout<Idx>::View;
   template <std::size_t Idx = 0, typename = std::enable_if_t<(members_ > Idx)>>

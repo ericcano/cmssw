@@ -43,7 +43,7 @@ namespace portablecollection {
   };
 
   template <std::size_t Idx>
-  struct CollectionImpl<Idx, void, void, void, void, void> {
+  struct CollectionImpl<Idx, void, void, void, void, void, void> {
     CollectionImpl() = default;
     template <std::size_t N>
     CollectionImpl(std::byte* buffer, std::array<int32_t, N> const& sizes) {

@@ -12,6 +12,7 @@ namespace traits {
             typename T2 = void,
             typename T3 = void,
             typename T4 = void,
+            typename T5 = void,
             typename = std::enable_if_t<cms::alpakatools::is_device_v<TDev>>>
   class PortableCollectionTrait;
 
@@ -24,7 +25,8 @@ template <typename TDev,
           typename T2 = void,
           typename T3 = void,
           typename T4 = void,
+          typename T5 = void,
           typename = std::enable_if_t<cms::alpakatools::is_device_v<TDev>>>
-using PortableCollection = typename traits::PortableCollectionTrait<TDev, T0, T1, T2, T3, T4>::CollectionType;
+using PortableCollection = typename traits::PortableCollectionTrait<TDev, T0, T1, T2, T3, T4, T5>::CollectionType;
 
 #endif  // DataFormats_Portable_interface_PortableCollection_h
