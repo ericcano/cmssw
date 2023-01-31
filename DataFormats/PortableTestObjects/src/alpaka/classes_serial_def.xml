@@ -1,12 +1,4 @@
 <lcgdict>
-  <class name="portabletest::TestHostCollection::Implementation"/>
-  <class name="portablecollection::CollectionImpl<1,void,void,void,void,void>"/>
-  <class name="portablecollection::CollectionLeaf<0,portabletest::TestSoALayout<128,false> >"/>
-  <class name="portablecollection::CollectionImpl<2,void,void,void,void,void>"/>
-  <class name="portablecollection::CollectionImpl<1,portabletest::TestSoALayout2<128,false>,void,void,void,void>"/>
-  <class name="portablecollection::CollectionImpl<0,portabletest::TestSoALayout<128,false>,portabletest::TestSoALayout2<128,false>,void,void,void>"/>
-  <class name="portablecollection::CollectionLeaf<1,portabletest::TestSoALayout2<128,false> >"/>
-  <class name="portabletest::TestHostCollection"/>
   <read
     sourceClass="portabletest::TestHostCollection"
     targetClass="portabletest::TestHostCollection"
@@ -19,7 +11,6 @@
   ]]>
   </read>
 
-  <class name="portabletest::TestHostMultiCollection"/>
   <read
     sourceClass="portabletest::TestHostMultiCollection"
     targetClass="portabletest::TestHostMultiCollection"
