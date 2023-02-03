@@ -102,15 +102,15 @@ namespace ROOT {
   namespace Meta {
     namespace Selection {
       namespace portablecollection {
-        template <std::size_t Idx, typename T, typename... Args> 
+        template <std::size_t Idx, typename T, typename... Args>
         // This is enough to cover all the cases of CollectionImpl which has no members...
-        class CollectionImpl: KeepFirstTemplateArguments<0> {};
+        class CollectionImpl : KeepFirstTemplateArguments<0> {};
 
         template <std::size_t Idx, typename T>
         class CollectionLeaf {};
-      }
-    }
-  }
-}
+      }  // namespace portablecollection
+    }    // namespace Selection
+  }      // namespace Meta
+}  // namespace ROOT
 
 #endif  // DataFormats_Portable_interface_PortableCollectionCommon_h
