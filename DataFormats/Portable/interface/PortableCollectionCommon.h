@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <type_traits>
+#include <array>
 
 #include <RootMetaSelection.h>
 
@@ -104,7 +105,6 @@ namespace ROOT {
         template <std::size_t Idx, typename T, typename... Args> 
         // This is enough to cover all the cases of CollectionImpl which has no members...
         class CollectionImpl: KeepFirstTemplateArguments<0> {};
-        class c0: CollectionImpl<0, void> {};
 
         template <std::size_t Idx, typename T>
         class CollectionLeaf {};
