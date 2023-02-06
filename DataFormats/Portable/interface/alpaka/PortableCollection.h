@@ -40,7 +40,7 @@ namespace cms::alpakatools {
   struct CopyToHost<PortableDeviceCollection<TDevice, T0, T1, T2, T3, T4>> {
     template <typename TQueue>
     static auto copyAsync(TQueue& queue, PortableDeviceCollection<TDevice, T0, T1, T2, T3, T4> const& srcData) {
-      PortableHostCollection<TLayout> dstData(srcData.sizes(), queue);
+      PortableHostCollection<T0, T1, T2, T3, T4> dstData(srcData.sizes(), queue);
       alpaka::memcpy(queue, dstData.buffer(), srcData.buffer());
       return dstData;
     }

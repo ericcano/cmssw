@@ -69,6 +69,7 @@ private:
     return static_cast<Leaf<index_t_<T>>&>(impl_);
   }
 
+  template <typename T>
   Leaf<index_t_<T>> const& get() const {
     return static_cast<Leaf<index_t_<T>> const&>(impl_);
   }
@@ -91,31 +92,12 @@ public:
     // Alpaka set to a default alignment of 128 bytes defining ALPAKA_DEFAULT_HOST_MEMORY_ALIGNMENT=128
     assert(reinterpret_cast<uintptr_t>(buffer_->data()) % Layout<>::alignment == 0);
     static_assert(members_ == 1);
+  }
 
   static int32_t computeDataSize(const SizesArray& sizes) {
     int32_t ret = 0;
     constexpr_for<0, members_>([&sizes, &ret](auto i) { ret += Layout<i>::computeDataSize(sizes[i]); });
     return ret;
-  }
-
-public:
-  PortableDeviceCollection() = default;
-
-  PortableDeviceCollection(int32_t elements, TDev const& device)
-      // allocate device memory
-      : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(device, Layout<>::computeDataSize(elements))},
-        impl_{buffer_->data(), elements} {
-    assert(reinterpret_cast<uintptr_t>(buffer_->data()) % Layout<>::alignment == 0);
-    static_assert(members_ == 1);
-  }
-
-  template <typename TQueue, typename = std::enable_if_t<cms::alpakatools::is_queue_v<TQueue>>>
-  PortableDeviceCollection(int32_t elements, TQueue const& queue)
-      // allocate device memory asynchronously on the given work queue
-      : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(queue, Layout<>::computeDataSize(elements))},
-        impl_{buffer_->data(), elements} {
-    assert(reinterpret_cast<uintptr_t>(buffer_->data()) % Layout<>::alignment == 0);
-    static_assert(members_ == 1);
   }
 
   PortableDeviceCollection(const SizesArray& sizes, TDev const& device)
@@ -128,7 +110,7 @@ public:
     constexpr_for<1, members_>([&alignment](auto i) { static_assert(alignment == Layout<i>::alignment); });
   }
 
-  template <typename TQueue, typename = std::enable_if_t<cms::alpakatools::is_queue_v<TQueue>>>
+  template <typename TQueue, typename = std::enable_if_t<alpaka::isQueue<TQueue>>>
   PortableDeviceCollection(const SizesArray& sizes, TQueue const& queue)
       // allocate device memory asynchronously on the given work queue
       : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(queue, computeDataSize(sizes))},

@@ -100,8 +100,9 @@ public:
   TestAlpakaAnalyzer(edm::ParameterSet const& config)
       : source_{config.getParameter<edm::InputTag>("source")},
         token_{consumes(source_)},
+        tokenMulti_{consumes(source_)},
         expectSize_(config.getParameter<int>("expectSize")) {}
-        tokenMulti_{consumes(source_)} {}
+
 
   void analyze(edm::Event const& event, edm::EventSetup const&) override {
     portabletest::TestHostCollection const& product = event.get(token_);

@@ -20,7 +20,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   public:
     template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
     ALPAKA_FN_ACC void operator()(TAcc const& acc,
-                                  portabletest::TestDeviceCollection::View view,
+                                  portabletest::TestDeviceCollection::View<> view,
                                   double xvalue) const {
       // global index of the thread within the grid
       const int32_t thread = alpaka::getIdx<alpaka::Grid, alpaka::Threads>(acc)[0u];
@@ -40,7 +40,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   class TestAlgoMultiKernel {
   public:
-    template <typename TAcc, typename = std::enable_if_t<is_accelerator_v<TAcc>>>
+    template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
     ALPAKA_FN_ACC void operator()(TAcc const& acc,
                                   portabletest::TestDeviceMultiCollection::View<1> view,
                                   double xvalue) const {
