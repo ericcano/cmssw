@@ -7,7 +7,7 @@ namespace traits {
 
   // trait for a generic SoA-based product
   template <typename TDev,
-            typename T0, 
+            typename T0,
             typename T1 = void,
             typename T2 = void,
             typename T3 = void,

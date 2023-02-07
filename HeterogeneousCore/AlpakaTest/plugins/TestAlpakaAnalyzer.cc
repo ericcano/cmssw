@@ -103,7 +103,6 @@ public:
         tokenMulti_{consumes(source_)},
         expectSize_(config.getParameter<int>("expectSize")) {}
 
-
   void analyze(edm::Event const& event, edm::EventSetup const&) override {
     portabletest::TestHostCollection const& product = event.get(token_);
     auto const& view = product.const_view();

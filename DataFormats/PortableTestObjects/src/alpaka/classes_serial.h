@@ -15,4 +15,4 @@ namespace ROOT::Meta::Selection {
     class TestHostCollection : KeepFirstTemplateArguments<1> {};
     class TestHostMultiCollection : KeepFirstTemplateArguments<2> {};
   }  // namespace portabletest
-}    // namespace Selection
+}  // namespace ROOT::Meta::Selection

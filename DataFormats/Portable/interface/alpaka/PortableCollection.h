@@ -1,4 +1,4 @@
-  #ifndef DataFormats_Portable_interface_alpaka_PortableDeviceCollection_h
+#ifndef DataFormats_Portable_interface_alpaka_PortableDeviceCollection_h
 #define DataFormats_Portable_interface_alpaka_PortableDeviceCollection_h
 
 #include <optional>
