@@ -12,7 +12,7 @@ namespace ROOT::Meta::Selection {
     class CL1_TestHostMultiCollection : CollectionLeaf<1, portabletest::TestSoALayout2<128, false>> {};
   }  // namespace portablecollection
   namespace portabletest {
-    class TestHostCollection : KeepFirstTemplateArguments<1> {};
-    class TestHostMultiCollection : KeepFirstTemplateArguments<2> {};
+    //class TestHostCollection : KeepFirstTemplateArguments<1> {};
+    //class TestHostMultiCollection : KeepFirstTemplateArguments<2> {};
   }  // namespace portabletest
 }  // namespace ROOT::Meta::Selection

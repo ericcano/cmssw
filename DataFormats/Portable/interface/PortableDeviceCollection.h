@@ -13,43 +13,40 @@
 #include "DataFormats/Portable/interface/PortableCollectionCommon.h"
 
 // generic SoA-based product in device memory
-template <typename TDev,
-          typename T0,
-          typename T1 = void,
-          typename T2 = void,
-          typename T3 = void,
-          typename T4 = void,
-          typename = std::enable_if_t<alpaka::isDevice<TDev>>>
+template <typename TDev, typename T0, typename... Args>
 class PortableDeviceCollection {
+  //static_assert(alpaka::isDevice<TDev>);
   static_assert(not std::is_same_v<TDev, alpaka_common::DevHost>,
                 "Use PortableHostCollection<T> instead of PortableDeviceCollection<T, DevHost>");
-  // Make sure void is not interleaved with other types.
-  static_assert(not std::is_same<T3, void>::value or std::is_same<T4, void>::value);
-  static_assert(not std::is_same<T2, void>::value or std::is_same<T3, void>::value);
-  static_assert(not std::is_same<T1, void>::value or std::is_same<T2, void>::value);
 
   template <typename T>
-  static constexpr std::size_t count_t_ = portablecollection::typeCount<T, T0, T1, T2, T3, T4>;
+  static constexpr std::size_t count_t_ = portablecollection::typeCount<T, T0, Args...>;
 
   template <typename T>
-  static constexpr std::size_t index_t_ = portablecollection::typeIndex<T, T0, T1, T2, T3, T4>;
+  static constexpr std::size_t index_t_ = portablecollection::typeIndex<T, T0, Args...>;
 
-  static constexpr std::size_t members_ = portablecollection::membersCount<T0, T1, T2, T3, T4>;
+  static constexpr std::size_t members_ = sizeof...(Args) + 1;
 
 public:
   using Buffer = cms::alpakatools::device_buffer<TDev, std::byte[]>;
   using ConstBuffer = cms::alpakatools::const_device_buffer<TDev, std::byte[]>;
-  using Implementation = portablecollection::CollectionImpl<0, T0, T1, T2, T3, T4>;
+  using Implementation = portablecollection::CollectionImpl<0, T0, Args...>;
 
   using SizesArray = std::array<int32_t, members_>;
 
-  template <std::size_t Idx = 0, typename = std::enable_if_t<(members_ > Idx)>>
-  using Layout = portablecollection::TypeResolver<Idx, T0, T1, T2, T3, T4>;
-  template <std::size_t Idx = 0, typename = std::enable_if_t<(members_ > Idx)>>
-  using View = typename Layout<Idx>::View;
-  template <std::size_t Idx = 0, typename = std::enable_if_t<(members_ > Idx)>>
-  using ConstView = typename Layout<Idx>::ConstView;
-
+  template <std::size_t Idx = 0>
+  using Layout = portablecollection::TypeResolver<Idx, T0, Args...>;
+  
+  //template <std::size_t Idx = 0>
+  //using View = typename Layout<Idx>::View;
+  // Workaround for flaky expansion of tempaltes by nvcc (expanding with "Args" instead of "Args...
+  template< std::size_t Idx = 0UL> using View = typename std::tuple_element< Idx, std::tuple< T0, Args...> > ::type::View;
+  
+  //template <std::size_t Idx = 0>
+  //using ConstView = typename Layout<Idx>::ConstView;
+  // Workaround for flaky expansion of tempaltes by nvcc (expanding with "Args" instead of "Args..."
+  template< std::size_t Idx = 0UL> using ConstView = typename std::tuple_element< Idx, std::tuple< T0, Args...> > ::type::ConstView;
+  
 private:
   template <std::size_t Idx>
   using Leaf = portablecollection::CollectionLeaf<Idx, Layout<Idx>>;

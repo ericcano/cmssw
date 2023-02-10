@@ -16,47 +16,92 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
 #if defined ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED
   // ... or any other CPU-based accelerators
-  template <typename T0, typename T1 = void, typename T2 = void, typename T3 = void, typename T4 = void>
-  using PortableCollection = ::PortableHostCollection<T0, T1, T2, T3, T4>;
+  template <typename T0>
+  using PortableCollection = ::PortableHostCollectionImpl<T0>;
+
+  template <typename T0, typename T1>
+  using PortableCollection2 = ::PortableHostCollectionImpl<T0, T1>;
+  
+  template <typename T0, typename T1, typename T2>
+  using PortableCollection3 = ::PortableHostCollectionImpl<T0, T1, T2>;
+  
 #else
-  template <typename T0, typename T1 = void, typename T2 = void, typename T3 = void, typename T4 = void>
-  using PortableCollection = ::PortableDeviceCollection<Device, T0, T1, T2, T3, T4>;
+//  template <typename T0>
+//  struct PortableCollection: public ::PortableDeviceCollection<Device, T0> {
+//    using ::PortableDeviceCollection<Device, T0>::PortableDeviceCollection;
+//  };
+
+  template <typename T0>
+  using PortableCollection = ::PortableDeviceCollection<Device, T0>;
+  
+  template <typename T0, typename T1>
+  using PortableCollection2 = ::PortableDeviceCollection<Device, T0, T1>;
+
+  template <typename T0, typename T1, typename T2>
+  using PortableCollection3 = ::PortableDeviceCollection<Device, T0, T1, T2>;
+  
+
 #endif  // ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
 namespace traits {
-
-  // specialise the trait for the device provided by the ALPAKA_ACCELERATOR_NAMESPACE
-  template <typename T0, typename T1, typename T2, typename T3, typename T4>
-  class PortableCollectionTrait<ALPAKA_ACCELERATOR_NAMESPACE::Device, T0, T1, T2, T3, T4> {
-    using CollectionType = ALPAKA_ACCELERATOR_NAMESPACE::PortableCollection<T0, T1, T2, T3, T4>;
+// specialise the trait for the device provided by the ALPAKA_ACCELERATOR_NAMESPACE
+#if defined ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED
+  template <typename T0, typename... Args>
+  class PortableCollectionTrait<ALPAKA_ACCELERATOR_NAMESPACE::Device, T0, Args...> {
+    using CollectionType = ::PortableHostCollection<T0, Args...>;
   };
+#else
+  template <typename T0, typename... Args>
+  class PortableCollectionTrait<ALPAKA_ACCELERATOR_NAMESPACE::Device, T0, Args...> {
+    using CollectionType = ::PortableDeviceCollection<ALPAKA_ACCELERATOR_NAMESPACE::Device, T0, Args...>;
+  };
+#endif
 
 }  // namespace traits
 
 namespace cms::alpakatools {
-  template <typename TDevice, typename T0, typename T1, typename T2, typename T3, typename T4>
-  struct CopyToHost<PortableDeviceCollection<TDevice, T0, T1, T2, T3, T4>> {
+  template <typename TDevice, typename T0, typename... Args>
+  struct CopyToHost<PortableDeviceCollection<TDevice, T0, Args...>> {
     template <typename TQueue>
-    static auto copyAsync(TQueue& queue, PortableDeviceCollection<TDevice, T0, T1, T2, T3, T4> const& srcData) {
-      PortableHostCollection<T0, T1, T2, T3, T4> dstData(srcData.sizes(), queue);
+    static auto copyAsync(TQueue& queue, PortableDeviceCollection<TDevice, T0, Args...> const& srcData) {
+      PortableHostCollectionImpl<T0, Args...> dstData(srcData.sizes(), queue);
       alpaka::memcpy(queue, dstData.buffer(), srcData.buffer());
       return dstData;
     }
   };
 
-  template <typename T0, typename T1, typename T2, typename T3, typename T4>
-  struct CopyToDevice<PortableHostCollection<T0, T1, T2, T3, T4>> {
+  template <typename T0, typename... Args>
+  struct CopyToDevice<PortableHostCollectionImpl<T0, Args...>> {
     template <typename TQueue>
-    static auto copyAsync(TQueue& queue, PortableHostCollection<T0, T1, T2, T3, T4> const& srcData) {
+    static auto copyAsync(TQueue& queue, PortableHostCollectionImpl<T0, Args...> const& srcData) {
       using TDevice = typename alpaka::trait::DevType<TQueue>::type;
-      PortableDeviceCollection<TDevice, T0, T1, T2, T3, T4> dstData(srcData.sizes(), queue);
+      PortableDeviceCollection<TDevice, T0, Args...> dstData(srcData.sizes(), queue);
       alpaka::memcpy(queue, dstData.buffer(), srcData.buffer());
       return dstData;
     }
   };
 
+  
+//#if defined ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED
+//  /*template <typename T0> 
+//  struct CopyToDevice<ALPAKA_ACCELERATOR_NAMESPACE::PortableCollection<T0>>: public CopyToDevice<PortableHostCollectionImpl<T0>>
+//  {};    */
+//#else
+//  template <typename T0> 
+//  struct CopyToHost<ALPAKA_ACCELERATOR_NAMESPACE::PortableCollection<T0>>: 
+//  public CopyToHost<::PortableDeviceCollection<ALPAKA_ACCELERATOR_NAMESPACE::Device, T0>> {
+//    using CopyToHost<::PortableDeviceCollection<ALPAKA_ACCELERATOR_NAMESPACE::Device, T0>>::CopyToHost;
+//  };/*
+//    template <typename TQueue>
+//    static auto copyAsync(TQueue& queue, PortableDeviceCollection<TDevice, T0> const& srcData) {
+//      PortableHostCollectionImpl<T0, Args...> dstData(srcData.sizes(), queue);
+//      alpaka::memcpy(queue, dstData.buffer(), srcData.buffer());
+//      return dstData;
+//  };*/
+//#endif
+  
 }  // namespace cms::alpakatools
 
 #endif  // DataFormats_Portable_interface_alpaka_PortableDeviceCollection_h

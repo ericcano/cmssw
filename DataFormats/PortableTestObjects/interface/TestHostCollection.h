@@ -9,7 +9,7 @@ namespace portabletest {
   // SoA with x, y, z, id fields in host memory
   using TestHostCollection = PortableHostCollection<TestSoA>;
 
-  using TestHostMultiCollection = PortableHostCollection<TestSoA, TestSoA2>;
+  using TestHostMultiCollection = PortableHostCollection2<TestSoA, TestSoA2>;
 
 }  // namespace portabletest
 

@@ -39,8 +39,8 @@ process.testProducer = SwitchProducerCUDA(
         testProducerCpu = cms.VPSet(cms.PSet(type = cms.string('*')))
     ),
     cuda = cms.EDAlias(
-       testProducerCuda = cms.VPSet(cms.PSet(type = cms.string('128falseportabletestTestSoALayoutvoidvoidvoidvoidPortableHostCollection')),
-                                    cms.PSet(type = cms.string('128falseportabletestTestSoALayout128falseportabletestTestSoALayout2voidvoidvoidPortableHostCollection'))
+       testProducerCuda = cms.VPSet(cms.PSet(type = cms.string('128falseportabletestTestSoALayoutPortableHostCollectionImpl')),
+                                    cms.PSet(type = cms.string('128falseportabletestTestSoALayout128falseportabletestTestSoALayout2PortableHostCollectionImpl'))
                                    )
 
     )

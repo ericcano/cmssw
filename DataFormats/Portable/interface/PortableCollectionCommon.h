@@ -25,32 +25,36 @@ namespace portablecollection {
     template <std::size_t N>
     CollectionLeaf(std::byte* buffer, std::array<int32_t, N> const& sizes)
         : layout_(buffer, sizes[Idx]), view_(layout_) {
-      static_assert(N > Idx);
+      static_assert(N >= Idx);
     }
     using Layout = T;
     using View = typename Layout::View;
     using ConstView = typename Layout::ConstView;
     Layout layout_;  //
     View view_;      //!
+    // Make sure types are not void.
+    static_assert(not std::is_same<T, void>::value);
   };
-
+  
   template <std::size_t Idx, typename T, typename... Args>
-  struct CollectionImpl : public CollectionLeaf<Idx, T>, public CollectionImpl<Idx + 1, Args..., void> {
+  struct CollectionImpl : public CollectionLeaf<Idx, T>, public CollectionImpl<Idx + 1, Args...> {
     CollectionImpl() = default;
     CollectionImpl(std::byte* buffer, int32_t elements) : CollectionLeaf<Idx, T>(buffer, elements) {}
 
     template <std::size_t N>
     CollectionImpl(std::byte* buffer, std::array<int32_t, N> const& sizes)
         : CollectionLeaf<Idx, T>(buffer, sizes),
-          CollectionImpl<Idx + 1, Args..., void>(CollectionLeaf<Idx, T>::layout_.metadata().nextByte(), sizes) {}
+          CollectionImpl<Idx + 1, Args...>(CollectionLeaf<Idx, T>::layout_.metadata().nextByte(), sizes) {}
   };
 
-  template <std::size_t Idx>
-  struct CollectionImpl<Idx, void, void, void, void, void> {
+  template <std::size_t Idx, typename T>
+  struct CollectionImpl<Idx, T>: public CollectionLeaf<Idx, T> {
     CollectionImpl() = default;
+    CollectionImpl(std::byte* buffer, int32_t elements) : CollectionLeaf<Idx, T>(buffer, elements) {}
+
     template <std::size_t N>
-    CollectionImpl(std::byte* buffer, std::array<int32_t, N> const& sizes) {
-      static_assert(N == Idx);
+    CollectionImpl(std::byte* buffer, std::array<int32_t, N> const& sizes) : CollectionLeaf<Idx, T>(buffer, sizes) {
+      static_assert(N == Idx + 1);
     }
   };
 
@@ -63,11 +67,11 @@ namespace portablecollection {
 
   // count how many times the type T occurs in Args...
   template <typename T, typename... Args>
-  inline constexpr std::size_t typeCount = ((std::is_same<T, Args>::value ? 1 : 0) + ...);
+  inline constexpr std::size_t typeCount = ((std::is_same<T, Args>::value ? 1 : 0) + ... + 0);
 
   // count the non-void elements of Args...
   template <typename... Args>
-  inline constexpr std::size_t membersCount = sizeof...(Args) - typeCount<void, Args...>;
+  inline constexpr std::size_t membersCount = sizeof...(Args);
 
   // if the type T occurs in Tuple, TupleTypeIndex has a static member value with the corresponding index;
   // otherwise there is no such data  member.

@@ -1,4 +1,5 @@
 <lcgdict>
+  <class name="portabletest::TestHostCollection"/>
   <read
     sourceClass="portabletest::TestHostCollection"
     targetClass="portabletest::TestHostCollection"
@@ -8,9 +9,11 @@
     embed="false">
   <![CDATA[
     portabletest::TestHostCollection::ROOTReadStreamer(newObj, onfile.impl_);
+    std::cout << "Hi 1 !" << std::endl;
   ]]>
   </read>
 
+  <class name="portabletest::TestHostMultiCollection"/>
   <read
     sourceClass="portabletest::TestHostMultiCollection"
     targetClass="portabletest::TestHostMultiCollection"
@@ -20,6 +23,7 @@
     embed="false">
   <![CDATA[
     portabletest::TestHostMultiCollection::ROOTReadStreamer(newObj, onfile.impl_);
+    std::cout << "Hi 2 !" << std::endl;
   ]]>
   </read>
 
