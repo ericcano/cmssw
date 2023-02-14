@@ -35,7 +35,7 @@ namespace portablecollection {
     // Make sure types are not void.
     static_assert(not std::is_same<T, void>::value);
   };
-  
+
   template <std::size_t Idx, typename T, typename... Args>
   struct CollectionImpl : public CollectionLeaf<Idx, T>, public CollectionImpl<Idx + 1, Args...> {
     CollectionImpl() = default;
@@ -48,7 +48,7 @@ namespace portablecollection {
   };
 
   template <std::size_t Idx, typename T>
-  struct CollectionImpl<Idx, T>: public CollectionLeaf<Idx, T> {
+  struct CollectionImpl<Idx, T> : public CollectionLeaf<Idx, T> {
     CollectionImpl() = default;
     CollectionImpl(std::byte* buffer, int32_t elements) : CollectionLeaf<Idx, T>(buffer, elements) {}
 

@@ -4,11 +4,11 @@
     sourceClass="portabletest::TestHostCollection"
     targetClass="portabletest::TestHostCollection"
     version="[1-]"
-    source="portabletest::TestHostCollection::Implementation impl_;"
-    target="buffer_,impl_"
+    source="portabletest::TestSoA layout_;"
+    target="buffer_,layout_,view_"
     embed="false">
   <![CDATA[
-    portabletest::TestHostCollection::ROOTReadStreamer(newObj, onfile.impl_);
+    portabletest::TestHostCollection::ROOTReadStreamer(newObj, onfile.layout_);
     std::cout << "Hi 1 !" << std::endl;
   ]]>
   </read>
@@ -25,8 +25,23 @@
     portabletest::TestHostMultiCollection::ROOTReadStreamer(newObj, onfile.impl_);
     std::cout << "Hi 2 !" << std::endl;
   ]]>
+  </read>  
+  
+  <class name="portabletest::TestHostMultiCollection3"/>
+  <read
+    sourceClass="portabletest::TestHostMultiCollection3"
+    targetClass="portabletest::TestHostMultiCollection3"
+    version="[1-]"
+    source="portabletest::TestHostMultiCollection3::Implementation impl_;"
+    target="buffer_,impl_"
+    embed="false">
+  <![CDATA[
+    portabletest::TestHostMultiCollection3::ROOTReadStreamer(newObj, onfile.impl_);
+    std::cout << "Hi 3 !" << std::endl;
+  ]]>
   </read>
 
   <class name="edm::Wrapper<portabletest::TestHostCollection>" splitLevel="0"/>
   <class name="edm::Wrapper<portabletest::TestHostMultiCollection>" splitLevel="0"/>
+  <class name="edm::Wrapper<portabletest::TestHostMultiCollection3>" splitLevel="0"/>
 </lcgdict>

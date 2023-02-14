@@ -18,6 +18,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     using TestDeviceMultiCollection = PortableCollection2<TestSoA, TestSoA2>;
 
+    using TestDeviceMultiCollection3 = PortableCollection3<TestSoA, TestSoA2, TestSoA3>;
+
   }  // namespace portabletest
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE

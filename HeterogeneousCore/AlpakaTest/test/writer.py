@@ -18,13 +18,15 @@ process.AlpakaServiceSerialSync = cms.Service('AlpakaServiceSerialSync')
 # run the producer on a CUDA gpu (if available)
 process.testProducerCuda = cms.EDProducer('alpaka_cuda_async::TestAlpakaProducer',
     size = cms.int32(42),
-    size2 = cms.int32(33)
+    size2 = cms.int32(33),
+    size3 = cms.int32(61)
 )
 
 # run the producer on the cpu
 process.testProducerCpu = cms.EDProducer('alpaka_serial_sync::TestAlpakaProducer',
     size = cms.int32(42),
-    size2 = cms.int32(33)
+    size2 = cms.int32(33),  
+    size3 = cms.int32(61)
 )
 
 # either run the producer on a CUDA gpu (if available) and copy the product to the cpu, or run the producer directly on the cpu
@@ -39,9 +41,10 @@ process.testProducer = SwitchProducerCUDA(
         testProducerCpu = cms.VPSet(cms.PSet(type = cms.string('*')))
     ),
     cuda = cms.EDAlias(
-       testProducerCuda = cms.VPSet(cms.PSet(type = cms.string('128falseportabletestTestSoALayoutPortableHostCollectionImpl')),
-                                    cms.PSet(type = cms.string('128falseportabletestTestSoALayout128falseportabletestTestSoALayout2PortableHostCollectionImpl'))
-                                   )
+       testProducerCuda = cms.VPSet(cms.PSet(type = cms.string('*')))
+#       testProducerCuda = cms.VPSet(cms.PSet(type = cms.string('128falseportabletestTestSoALayoutPortableHostCollection')),
+#                                    cms.PSet(type = cms.string('128falseportabletestTestSoALayout128falseportabletestTestSoALayout2PortableHostCollectionImpl'))
+#                                   )
 
     )
 )
@@ -54,7 +57,8 @@ process.testAnalyzer = cms.EDAnalyzer('TestAlpakaAnalyzer',
 # run a second producer explicitly on the cpu
 process.testProducerSerial = cms.EDProducer('alpaka_serial_sync::TestAlpakaProducer',
     size = cms.int32(99),
-    size2 = cms.int32(51)
+    size2 = cms.int32(51),
+    size3 = cms.int32(43)
 )
 
 # analyse the second product

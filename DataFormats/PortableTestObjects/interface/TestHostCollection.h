@@ -11,6 +11,9 @@ namespace portabletest {
 
   using TestHostMultiCollection = PortableHostCollection2<TestSoA, TestSoA2>;
 
+  using TestHostMultiCollection3 = PortableHostCollection3<TestSoA, TestSoA2, TestSoA3>;
+  //using TestHostMultiCollection3 = ::PortableHostMultiCollectionImpl  <TestSoA, TestSoA2, TestSoA3>;
+
 }  // namespace portabletest
 
 #endif  // DataFormats_PortableTestObjects_interface_TestHostCollection_h

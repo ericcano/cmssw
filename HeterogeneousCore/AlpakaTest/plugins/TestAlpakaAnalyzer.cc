@@ -93,6 +93,28 @@ namespace {
     //assert(view.metadata().addressOf_r2() == &view[0].r2());                // cannot access a scalar via a SoA row-like accessor
   }
 
+  template <typename T>
+  void checkViewAddresses3(T const& view) {
+    assert(view.metadata().addressOf_x3() == view.x3());
+    assert(view.metadata().addressOf_x3() == &view.x3(0));
+    assert(view.metadata().addressOf_x3() == &view[0].x3());
+    assert(view.metadata().addressOf_y3() == view.y3());
+    assert(view.metadata().addressOf_y3() == &view.y3(0));
+    assert(view.metadata().addressOf_y3() == &view[0].y3());
+    assert(view.metadata().addressOf_z3() == view.z3());
+    assert(view.metadata().addressOf_z3() == &view.z3(0));
+    assert(view.metadata().addressOf_z3() == &view[0].z3());
+    assert(view.metadata().addressOf_id3() == view.id3());
+    assert(view.metadata().addressOf_id3() == &view.id3(0));
+    assert(view.metadata().addressOf_id3() == &view[0].id3());
+    assert(view.metadata().addressOf_m3() == view.m3());
+    assert(view.metadata().addressOf_m3() == &view.m3(0).coeffRef(0, 0));
+    assert(view.metadata().addressOf_m3() == &view[0].m3().coeffRef(0, 0));
+    assert(view.metadata().addressOf_r3() == &view.r3());
+    //assert(view.metadata().addressOf_r3() == &view.r3(0));                  // cannot access a scalar with an index
+    //assert(view.metadata().addressOf_r3() == &view[0].r3());                // cannot access a scalar via a SoA row-like accessor
+  }
+
 }  // namespace
 
 class TestAlpakaAnalyzer : public edm::stream::EDAnalyzer<> {
@@ -101,6 +123,7 @@ public:
       : source_{config.getParameter<edm::InputTag>("source")},
         token_{consumes(source_)},
         tokenMulti_{consumes(source_)},
+        tokenMulti3_{consumes(source_)},
         expectSize_(config.getParameter<int>("expectSize")) {}
 
   void analyze(edm::Event const& event, edm::EventSetup const&) override {
@@ -182,7 +205,7 @@ public:
       assert(vi.id() == i);
       assert(vi.m() == matrix * i);
     }
-    assert(viewMulti1.r2() == 1.);
+    assert(viewMulti1.r2() == 2.);
     for (int32_t i = 0; i < viewMulti1.metadata().size(); ++i) {
       auto vi = viewMulti1[i];
       assert(vi.x2() == 0.);
@@ -190,6 +213,56 @@ public:
       assert(vi.z2() == 0.);
       assert(vi.id2() == i);
       assert(vi.m2() == matrix * i);
+    }
+
+    portabletest::TestHostMultiCollection3 const& productMulti3 = event.get(tokenMulti3_);
+    auto const& viewMulti3_0 = productMulti3.const_view<0>();
+    auto& mviewMulti3_0 = productMulti3.view<0>();
+    auto const& cmviewMulti3_0 = productMulti3.view<0>();
+    auto const& viewMulti3_1 = productMulti3.const_view<1>();
+    auto& mviewMulti3_1 = productMulti3.view<1>();
+    auto const& cmviewMulti3_1 = productMulti3.view<1>();
+    auto const& viewMulti3_2 = productMulti3.const_view<2>();
+    auto& mviewMulti3_2 = productMulti3.view<2>();
+    auto const& cmviewMulti3_2 = productMulti3.view<2>();
+
+    checkViewAddresses(viewMulti3_0);
+    checkViewAddresses(mviewMulti3_0);
+    checkViewAddresses(cmviewMulti3_0);
+    checkViewAddresses2(viewMulti3_1);
+    checkViewAddresses2(mviewMulti3_1);
+    checkViewAddresses2(cmviewMulti3_1);
+    checkViewAddresses3(viewMulti3_2);
+    checkViewAddresses3(mviewMulti3_2);
+    checkViewAddresses3(cmviewMulti3_2);
+
+    assert(viewMulti3_0.r() == 1.);
+    for (int32_t i = 0; i < viewMulti3_0.metadata().size(); ++i) {
+      auto vi = viewMulti3_0[i];
+      assert(vi.x() == 0.);
+      assert(vi.y() == 0.);
+      assert(vi.z() == 0.);
+      assert(vi.id() == i);
+      assert(vi.m() == matrix * i);
+    }
+    assert(viewMulti3_1.r2() == 2.);
+    for (int32_t i = 0; i < viewMulti3_1.metadata().size(); ++i) {
+      auto vi = viewMulti3_1[i];
+      assert(vi.x2() == 0.);
+      assert(vi.y2() == 0.);
+      assert(vi.z2() == 0.);
+      assert(vi.id2() == i);
+      assert(vi.m2() == matrix * i);
+    }
+
+    assert(viewMulti3_2.r3() == 3.);
+    for (int32_t i = 0; i < viewMulti3_2.metadata().size(); ++i) {
+      auto vi = viewMulti3_2[i];
+      assert(vi.x3() == 0.);
+      assert(vi.y3() == 0.);
+      assert(vi.z3() == 0.);
+      assert(vi.id3() == i);
+      assert(vi.m3() == matrix * i);
     }
   }
 
@@ -205,6 +278,7 @@ private:
   const edm::InputTag source_;
   const edm::EDGetTokenT<portabletest::TestHostCollection> token_;
   const edm::EDGetTokenT<portabletest::TestHostMultiCollection> tokenMulti_;
+  const edm::EDGetTokenT<portabletest::TestHostMultiCollection3> tokenMulti3_;
   const int expectSize_;
 };
 

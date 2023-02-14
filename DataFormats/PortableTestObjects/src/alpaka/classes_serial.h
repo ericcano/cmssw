@@ -10,6 +10,7 @@ namespace ROOT::Meta::Selection {
 
     class CL0_TestHostCollection : CollectionLeaf<0, portabletest::TestSoALayout<128, false>> {};
     class CL1_TestHostMultiCollection : CollectionLeaf<1, portabletest::TestSoALayout2<128, false>> {};
+    class CL2_TestHostMultiCollection : CollectionLeaf<2, portabletest::TestSoALayout3<128, false>> {};
   }  // namespace portablecollection
   namespace portabletest {
     //class TestHostCollection : KeepFirstTemplateArguments<1> {};

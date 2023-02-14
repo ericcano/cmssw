@@ -13,8 +13,73 @@
 #include "DataFormats/Portable/interface/PortableCollectionCommon.h"
 
 // generic SoA-based product in device memory
-template <typename TDev, typename T0, typename... Args>
+template <typename T, typename TDev, typename = std::enable_if_t<alpaka::isDevice<TDev>>>
 class PortableDeviceCollection {
+  static_assert(not std::is_same_v<TDev, alpaka_common::DevHost>,
+                "Use PortableHostCollection<T> instead of PortableDeviceCollection<T, DevHost>");
+
+public:
+  using Layout = T;
+  using View = typename Layout::View;
+  using ConstView = typename Layout::ConstView;
+  using Buffer = cms::alpakatools::device_buffer<TDev, std::byte[]>;
+  using ConstBuffer = cms::alpakatools::const_device_buffer<TDev, std::byte[]>;
+
+  PortableDeviceCollection() = default;
+
+  PortableDeviceCollection(int32_t elements, TDev const& device)
+      : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(device, Layout::computeDataSize(elements))},
+        layout_{buffer_->data(), elements},
+        view_{layout_} {
+    // Alpaka set to a default alignment of 128 bytes defining ALPAKA_DEFAULT_HOST_MEMORY_ALIGNMENT=128
+    assert(reinterpret_cast<uintptr_t>(buffer_->data()) % Layout::alignment == 0);
+  }
+
+  template <typename TQueue, typename = std::enable_if_t<alpaka::isQueue<TQueue>>>
+  PortableDeviceCollection(int32_t elements, TQueue const& queue)
+      : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(queue, Layout::computeDataSize(elements))},
+        layout_{buffer_->data(), elements},
+        view_{layout_} {
+    // Alpaka set to a default alignment of 128 bytes defining ALPAKA_DEFAULT_HOST_MEMORY_ALIGNMENT=128
+    assert(reinterpret_cast<uintptr_t>(buffer_->data()) % Layout::alignment == 0);
+  }
+
+  // non-copyable
+  PortableDeviceCollection(PortableDeviceCollection const&) = delete;
+  PortableDeviceCollection& operator=(PortableDeviceCollection const&) = delete;
+
+  // movable
+  PortableDeviceCollection(PortableDeviceCollection&&) = default;
+  PortableDeviceCollection& operator=(PortableDeviceCollection&&) = default;
+
+  // default destructor
+  ~PortableDeviceCollection() = default;
+
+  // access the View
+  View& view() { return view_; }
+  ConstView const& view() const { return view_; }
+  ConstView const& const_view() const { return view_; }
+
+  View& operator*() { return view_; }
+  ConstView const& operator*() const { return view_; }
+
+  View* operator->() { return &view_; }
+  ConstView const* operator->() const { return &view_; }
+
+  // access the Buffer
+  Buffer buffer() { return *buffer_; }
+  ConstBuffer buffer() const { return *buffer_; }
+  ConstBuffer const_buffer() const { return *buffer_; }
+
+private:
+  std::optional<Buffer> buffer_;  //!
+  Layout layout_;                 //
+  View view_;                     //!
+};
+
+// generic SoA-based product in device memory
+template <typename TDev, typename T0, typename... Args>
+class PortableDeviceMultiCollection {
   //static_assert(alpaka::isDevice<TDev>);
   static_assert(not std::is_same_v<TDev, alpaka_common::DevHost>,
                 "Use PortableHostCollection<T> instead of PortableDeviceCollection<T, DevHost>");
@@ -36,17 +101,19 @@ public:
 
   template <std::size_t Idx = 0>
   using Layout = portablecollection::TypeResolver<Idx, T0, Args...>;
-  
+
   //template <std::size_t Idx = 0>
   //using View = typename Layout<Idx>::View;
   // Workaround for flaky expansion of tempaltes by nvcc (expanding with "Args" instead of "Args...
-  template< std::size_t Idx = 0UL> using View = typename std::tuple_element< Idx, std::tuple< T0, Args...> > ::type::View;
-  
+  template <std::size_t Idx = 0UL>
+  using View = typename std::tuple_element<Idx, std::tuple<T0, Args...>>::type::View;
+
   //template <std::size_t Idx = 0>
   //using ConstView = typename Layout<Idx>::ConstView;
   // Workaround for flaky expansion of tempaltes by nvcc (expanding with "Args" instead of "Args..."
-  template< std::size_t Idx = 0UL> using ConstView = typename std::tuple_element< Idx, std::tuple< T0, Args...> > ::type::ConstView;
-  
+  template <std::size_t Idx = 0UL>
+  using ConstView = typename std::tuple_element<Idx, std::tuple<T0, Args...>>::type::ConstView;
+
 private:
   template <std::size_t Idx>
   using Leaf = portablecollection::CollectionLeaf<Idx, Layout<Idx>>;
@@ -72,9 +139,9 @@ private:
   }
 
 public:
-  PortableDeviceCollection() = default;
+  PortableDeviceMultiCollection() = default;
 
-  PortableDeviceCollection(int32_t elements, TDev const& device)
+  PortableDeviceMultiCollection(int32_t elements, TDev const& device)
       : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(device, Layout<>::computeDataSize(elements))},
         impl_{buffer_->data(), elements} {
     // Alpaka set to a default alignment of 128 bytes defining ALPAKA_DEFAULT_HOST_MEMORY_ALIGNMENT=128
@@ -83,7 +150,7 @@ public:
   }
 
   template <typename TQueue, typename = std::enable_if_t<alpaka::isQueue<TQueue>>>
-  PortableDeviceCollection(int32_t elements, TQueue const& queue)
+  PortableDeviceMultiCollection(int32_t elements, TQueue const& queue)
       : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(queue, Layout<>::computeDataSize(elements))},
         impl_{buffer_->data(), elements} {
     // Alpaka set to a default alignment of 128 bytes defining ALPAKA_DEFAULT_HOST_MEMORY_ALIGNMENT=128
@@ -97,7 +164,7 @@ public:
     return ret;
   }
 
-  PortableDeviceCollection(const SizesArray& sizes, TDev const& device)
+  PortableDeviceMultiCollection(const SizesArray& sizes, TDev const& device)
       // allocate device memory
       : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(device, computeDataSize(sizes))},
         impl_{buffer_->data(), sizes} {
@@ -108,7 +175,7 @@ public:
   }
 
   template <typename TQueue, typename = std::enable_if_t<alpaka::isQueue<TQueue>>>
-  PortableDeviceCollection(const SizesArray& sizes, TQueue const& queue)
+  PortableDeviceMultiCollection(const SizesArray& sizes, TQueue const& queue)
       // allocate device memory asynchronously on the given work queue
       : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(queue, computeDataSize(sizes))},
         impl_{buffer_->data(), sizes} {
@@ -119,15 +186,15 @@ public:
   }
 
   // non-copyable
-  PortableDeviceCollection(PortableDeviceCollection const&) = delete;
-  PortableDeviceCollection& operator=(PortableDeviceCollection const&) = delete;
+  PortableDeviceMultiCollection(PortableDeviceMultiCollection const&) = delete;
+  PortableDeviceMultiCollection& operator=(PortableDeviceMultiCollection const&) = delete;
 
   // movable
-  PortableDeviceCollection(PortableDeviceCollection&&) = default;
-  PortableDeviceCollection& operator=(PortableDeviceCollection&&) = default;
+  PortableDeviceMultiCollection(PortableDeviceMultiCollection&&) = default;
+  PortableDeviceMultiCollection& operator=(PortableDeviceMultiCollection&&) = default;
 
   // default destructor
-  ~PortableDeviceCollection() = default;
+  ~PortableDeviceMultiCollection() = default;
 
   // access the View by index
   template <std::size_t Idx = 0, typename = std::enable_if_t<(members_ > Idx)>>

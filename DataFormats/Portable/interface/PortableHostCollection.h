@@ -1,4 +1,4 @@
-  #ifndef DataFormats_Portable_interface_PortableHostCollection_h
+#ifndef DataFormats_Portable_interface_PortableHostCollection_h
 #define DataFormats_Portable_interface_PortableHostCollection_h
 
 #include <cassert>
@@ -13,9 +13,80 @@
 #include "DataFormats/Portable/interface/PortableCollectionCommon.h"
 
 // generic SoA-based product in host memory
-template <typename T0, typename... Args>
-class PortableHostCollectionImpl {
+template <typename T>
+class PortableHostCollection {
+public:
+  using Layout = T;
+  using View = typename Layout::View;
+  using ConstView = typename Layout::ConstView;
+  using Buffer = cms::alpakatools::host_buffer<std::byte[]>;
+  using ConstBuffer = cms::alpakatools::const_host_buffer<std::byte[]>;
 
+  PortableHostCollection() = default;
+
+  PortableHostCollection(int32_t elements, alpaka_common::DevHost const& host)
+      // allocate pageable host memory
+      : buffer_{cms::alpakatools::make_host_buffer<std::byte[]>(Layout::computeDataSize(elements))},
+        layout_{buffer_->data(), elements},
+        view_{layout_} {
+    // Alpaka set to a default alignment of 128 bytes defining ALPAKA_DEFAULT_HOST_MEMORY_ALIGNMENT=128
+    assert(reinterpret_cast<uintptr_t>(buffer_->data()) % Layout::alignment == 0);
+  }
+
+  template <typename TQueue, typename = std::enable_if_t<alpaka::isQueue<TQueue>>>
+  PortableHostCollection(int32_t elements, TQueue const& queue)
+      // allocate pinned host memory associated to the given work queue, accessible by the queue's device
+      : buffer_{cms::alpakatools::make_host_buffer<std::byte[]>(queue, Layout::computeDataSize(elements))},
+        layout_{buffer_->data(), elements},
+        view_{layout_} {
+    // Alpaka set to a default alignment of 128 bytes defining ALPAKA_DEFAULT_HOST_MEMORY_ALIGNMENT=128
+    assert(reinterpret_cast<uintptr_t>(buffer_->data()) % Layout::alignment == 0);
+  }
+
+  // non-copyable
+  PortableHostCollection(PortableHostCollection const&) = delete;
+  PortableHostCollection& operator=(PortableHostCollection const&) = delete;
+
+  // movable
+  PortableHostCollection(PortableHostCollection&&) = default;
+  PortableHostCollection& operator=(PortableHostCollection&&) = default;
+
+  // default destructor
+  ~PortableHostCollection() = default;
+
+  // access the View
+  View& view() { return view_; }
+  ConstView const& view() const { return view_; }
+  ConstView const& const_view() const { return view_; }
+
+  View& operator*() { return view_; }
+  ConstView const& operator*() const { return view_; }
+
+  View* operator->() { return &view_; }
+  ConstView const* operator->() const { return &view_; }
+
+  // access the Buffer
+  Buffer buffer() { return *buffer_; }
+  ConstBuffer buffer() const { return *buffer_; }
+  ConstBuffer const_buffer() const { return *buffer_; }
+
+  // part of the ROOT read streamer
+  static void ROOTReadStreamer(PortableHostCollection* newObj, Layout const& layout) {
+    newObj->~PortableHostCollection();
+    // use the global "host" object returned by cms::alpakatools::host()
+    new (newObj) PortableHostCollection(layout.metadata().size(), cms::alpakatools::host());
+    newObj->layout_.ROOTReadStreamer(layout);
+  }
+
+private:
+  std::optional<Buffer> buffer_;  //!
+  Layout layout_;                 //
+  View view_;                     //!
+};
+
+// generic SoA-based product in host memory
+template <typename T0, typename... Args>
+class PortableHostMultiCollectionImpl {
   template <typename T>
   static constexpr std::size_t count_t_ = portablecollection::typeCount<T, T0, Args...>;
 
@@ -69,9 +140,9 @@ private:
   }
 
 public:
-  PortableHostCollectionImpl() = default;
+  PortableHostMultiCollectionImpl() = default;
 
-  PortableHostCollectionImpl(int32_t elements, alpaka_common::DevHost const& host)
+  PortableHostMultiCollectionImpl(int32_t elements, alpaka_common::DevHost const& host)
       // allocate pageable host memory
       : buffer_{cms::alpakatools::make_host_buffer<std::byte[]>(Layout<>::computeDataSize(elements))},
         impl_{buffer_->data(), elements} {
@@ -81,7 +152,7 @@ public:
   }
 
   template <typename TQueue, typename = std::enable_if_t<alpaka::isQueue<TQueue>>>
-  PortableHostCollectionImpl(int32_t elements, TQueue const& queue)
+  PortableHostMultiCollectionImpl(int32_t elements, TQueue const& queue)
       // allocate pinned host memory associated to the given work queue, accessible by the queue's device
       : buffer_{cms::alpakatools::make_host_buffer<std::byte[]>(queue, Layout<>::computeDataSize(elements))},
         impl_{buffer_->data(), elements} {
@@ -90,7 +161,7 @@ public:
     static_assert(members_ == 1);
   }
 
-  PortableHostCollectionImpl(const std::array<int32_t, members_>& sizes, alpaka_common::DevHost const& host)
+  PortableHostMultiCollectionImpl(const std::array<int32_t, members_>& sizes, alpaka_common::DevHost const& host)
       // allocate pinned host memory associated to the given work queue, accessible by the queue's device
       : buffer_{cms::alpakatools::make_host_buffer<std::byte[]>(computeDataSize(sizes))}, impl_{buffer_->data(), sizes} {
     // Alpaka set to a default alignment of 128 bytes defining ALPAKA_DEFAULT_HOST_MEMORY_ALIGNMENT=128
@@ -101,7 +172,7 @@ public:
   }
 
   template <typename TQueue, typename = std::enable_if_t<alpaka::isQueue<TQueue>>>
-  PortableHostCollectionImpl(const std::array<int32_t, members_>& sizes, TQueue const& queue)
+  PortableHostMultiCollectionImpl(const std::array<int32_t, members_>& sizes, TQueue const& queue)
       // allocate pinned host memory associated to the given work queue, accessible by the queue's device
       : buffer_{cms::alpakatools::make_host_buffer<std::byte[]>(queue, computeDataSize(sizes))},
         impl_{buffer_->data(), sizes} {
@@ -113,15 +184,15 @@ public:
   }
 
   // non-copyable
-  PortableHostCollectionImpl(PortableHostCollectionImpl const&) = delete;
-  PortableHostCollectionImpl& operator=(PortableHostCollectionImpl const&) = delete;
+  PortableHostMultiCollectionImpl(PortableHostMultiCollectionImpl const&) = delete;
+  PortableHostMultiCollectionImpl& operator=(PortableHostMultiCollectionImpl const&) = delete;
 
   // movable
-  PortableHostCollectionImpl(PortableHostCollectionImpl&&) = default;
-  PortableHostCollectionImpl& operator=(PortableHostCollectionImpl&&) = default;
+  PortableHostMultiCollectionImpl(PortableHostMultiCollectionImpl&&) = default;
+  PortableHostMultiCollectionImpl& operator=(PortableHostMultiCollectionImpl&&) = default;
 
   // default destructor
-  ~PortableHostCollectionImpl() = default;
+  ~PortableHostMultiCollectionImpl() = default;
 
   // access the View by index
   template <std::size_t Idx = 0, typename = std::enable_if_t<(members_ > Idx)>>
@@ -207,15 +278,15 @@ public:
     return ret;
   }
   // part of the ROOT read streamer
-  static void ROOTReadStreamer(PortableHostCollectionImpl* newObj, Implementation const& onfileImpl) {
-    newObj->~PortableHostCollectionImpl();
+  static void ROOTReadStreamer(PortableHostMultiCollectionImpl* newObj, Implementation const& onfileImpl) {
+    newObj->~PortableHostMultiCollectionImpl();
     // use the global "host" object returned by cms::alpakatools::host()
     std::array<int32_t, members_> sizes;
     constexpr_for<0, members_>([&sizes, &onfileImpl](auto i) {
       sizes[i] = static_cast<Leaf<i> const&>(onfileImpl).layout_.metadata().size();
     });
-    new (newObj) PortableHostCollectionImpl(sizes, cms::alpakatools::host());
-    [[maybe_unused]] auto * newObjCopy = newObj;
+    new (newObj) PortableHostMultiCollectionImpl(sizes, cms::alpakatools::host());
+    [[maybe_unused]] auto* newObjCopy = newObj;
     constexpr_for<0, members_>([&newObj, &onfileImpl](auto i) {
       std::cout << "Calling streamer for leaf<" << i << "> : " << typeid(typename Leaf<i>::Layout).name() << std::endl;
       static_cast<Leaf<i>&>(newObj->impl_).layout_.ROOTReadStreamer(static_cast<Leaf<i> const&>(onfileImpl).layout_);
@@ -230,13 +301,14 @@ private:
   Implementation impl_;           // (serialized: this is where the layouts live)
 };
 
-template <typename T0>
-using PortableHostCollection = ::PortableHostCollectionImpl<T0>;
+// singleton case does not need to be aliased
+//template <typename T0>
+//using PortableHostCollection = ::PortableHostCollectionImpl<T0>;
 
 template <typename T0, typename T1>
-using PortableHostCollection2 = ::PortableHostCollectionImpl<T0, T1>;
+using PortableHostCollection2 = ::PortableHostMultiCollectionImpl<T0, T1>;
 
 template <typename T0, typename T1, typename T2>
-using PortableHostCollection3 = ::PortableHostCollectionImpl<T0, T1, T2>;
+using PortableHostCollection3 = ::PortableHostMultiCollectionImpl<T0, T1, T2>;
 
 #endif  // DataFormats_Portable_interface_PortableHostCollection_h
