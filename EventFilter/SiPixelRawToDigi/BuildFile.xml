@@ -1,12 +1,17 @@
 <use name="FWCore/Framework"/>
 <use name="FWCore/ParameterSet"/>
 <use name="DataFormats/FEDRawData"/>
+<use name="DataFormats/SiPixelDigiSoA"/>
 <use name="DataFormats/SiPixelDigi"/>
 <use name="DataFormats/SiPixelRawData"/>
 <use name="CondFormats/SiPixelObjects"/>
 <use name="DataFormats/Candidate"/>
 <use name="CondFormats/DataRecord"/>
+<use name="HeterogeneousCore/AlpakaCore"/>
+<use name="HeterogeneousCore/AlpakaInterface"/>
 <use name="root"/>
+<use name="alpaka"/>
+<flags ALPAKA_BACKENDS="1"/>
 <export>
   <lib name="1"/>
 </export>

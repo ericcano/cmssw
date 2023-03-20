@@ -289,7 +289,8 @@ namespace pixelTopology {
     using hindex_type = uint32_t;  // FIXME from siPixelRecHitsHeterogeneousProduct
     using tindex_type = uint32_t;  // for tuples
     using cindex_type = uint32_t;  // for cells
-
+    
+    static constexpr uint32_t maxNumberOfHits = 256  * 1024;
     static constexpr uint32_t maxCellNeighbors = 64;
     static constexpr uint32_t maxCellTracks = 302;
     static constexpr uint32_t maxHitsOnTrack = 15;
@@ -381,7 +382,8 @@ namespace pixelTopology {
     using hindex_type = uint32_t;  // FIXME from siPixelRecHitsHeterogeneousProduct
     using tindex_type = uint16_t;  // for tuples
     using cindex_type = uint32_t;  // for cells
-
+    
+    static constexpr uint32_t maxNumberOfHits = 48  * 1024;
     static constexpr uint32_t maxCellNeighbors = 36;
     static constexpr uint32_t maxCellTracks = 48;
     static constexpr uint32_t maxHitsOnTrack = 10;
