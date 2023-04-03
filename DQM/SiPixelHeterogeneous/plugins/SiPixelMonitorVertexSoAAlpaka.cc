@@ -105,8 +105,8 @@ void SiPixelMonitorVertexSoAAlpaka::analyze(const edm::Event& iEvent, const edm:
 // -- Book Histograms
 //
 void SiPixelMonitorVertexSoAAlpaka::bookHistograms(DQMStore::IBooker& ibooker,
-                                             edm::Run const& iRun,
-                                             edm::EventSetup const& iSetup) {
+                                                   edm::Run const& iRun,
+                                                   edm::EventSetup const& iSetup) {
   //std::string top_folder = ""//
   ibooker.cd();
   ibooker.setCurrentFolder(topFolderName_);

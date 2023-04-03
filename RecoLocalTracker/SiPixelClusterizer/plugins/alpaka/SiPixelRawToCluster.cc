@@ -19,7 +19,7 @@
 #include "CondFormats/SiPixelObjects/interface/SiPixelFedCablingMap.h"
 #include "CondFormats/SiPixelObjects/interface/SiPixelFedCablingTree.h"
 
-#include "DataFormats/FEDRawData/interface/FEDNumbering.h"  
+#include "DataFormats/FEDRawData/interface/FEDNumbering.h"
 #include "DataFormats/FEDRawData/interface/FEDRawData.h"
 #include "DataFormats/FEDRawData/interface/FEDRawDataCollection.h"
 #include "EventFilter/SiPixelRawToDigi/interface/PixelDataFormatter.h"
@@ -179,7 +179,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       LogDebug("SiPixelRawToCluster") << "region2unpack #feds: " << regions_->nFEDs();
       LogDebug("SiPixelRawToCluster") << "region2unpack #modules (BPIX,EPIX,total): " << regions_->nBarrelModules()
                                       << " " << regions_->nForwardModules() << " " << regions_->nModules();
-      
+
       modulesToUnpackRegional = SiPixelMappingUtilities::getModToUnpRegionalAsync(
           *(regions_->modulesToUnpack()), (cablingMap_->cablingTree()).get(), cablingMap_->fedIds(), iEvent.queue());
       modulesToUnpack = modulesToUnpackRegional.data();

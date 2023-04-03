@@ -151,8 +151,8 @@ void SiPixelCompareVertexSoAAlpaka::analyze(const edm::Event& iEvent, const edm:
 // -- Book Histograms
 //
 void SiPixelCompareVertexSoAAlpaka::bookHistograms(DQMStore::IBooker& ibooker,
-                                             edm::Run const& iRun,
-                                             edm::EventSetup const& iSetup) {
+                                                   edm::Run const& iRun,
+                                                   edm::EventSetup const& iSetup) {
   ibooker.cd();
   ibooker.setCurrentFolder(topFolderName_);
 

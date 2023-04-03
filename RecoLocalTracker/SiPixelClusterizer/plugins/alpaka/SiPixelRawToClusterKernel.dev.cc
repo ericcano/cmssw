@@ -37,8 +37,6 @@
 #include "PixelClustering.h"
 #include "SiPixelRawToClusterKernel.h"
 
-
-
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
   namespace pixelDetails {
 
@@ -680,11 +678,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                                            threadsPerBlockOrElementsPerThread);
         const auto workDiv = cms::alpakatools::make_workdiv<Acc1D>(blocks, threadsPerBlockOrElementsPerThread);
 
-        // alpaka::enqueue(queue, alpaka::createTaskKernel<Acc1D>(workDiv, calibDigis(), 
+        // alpaka::enqueue(queue, alpaka::createTaskKernel<Acc1D>(workDiv, calibDigis(),
         //                     isRun2,
-        //                     digis_d->view(), 
-        //                     clusters_d->view(), 
-        //                     gains, 
+        //                     digis_d->view(),
+        //                     clusters_d->view(),
+        //                     gains,
         //                     wordCounter));
 
 #ifdef GPU_DEBUG
@@ -718,12 +716,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                                         digis_d->view(),
                                                         clusters_d->view(),
                                                         wordCounter));
-// template <typename TAcc>
-//       ALPAKA_FN_ACC void operator()(
-//           const TAcc& acc,
-//           SiPixelDigisLayoutSoAView digi_view,
-//           SiPixelClustersLayoutSoAView clus_view,
-//           const unsigned int numElements)
+        // template <typename TAcc>
+        //       ALPAKA_FN_ACC void operator()(
+        //           const TAcc& acc,
+        //           SiPixelDigisLayoutSoAView digi_view,
+        //           SiPixelClustersLayoutSoAView clus_view,
+        //           const unsigned int numElements)
 
 #ifdef GPU_DEBUG
         alpaka::wait(queue);

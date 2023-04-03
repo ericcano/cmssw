@@ -55,8 +55,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     using Counters = caHitNtupletGenerator::Counters;
 
   public:
-    CAHitNtupletGenerator(const edm::ParameterSet& cfg, edm::ConsumesCollector&& iC)
-        : CAHitNtupletGenerator(cfg, iC){};
+    CAHitNtupletGenerator(const edm::ParameterSet& cfg, edm::ConsumesCollector&& iC) : CAHitNtupletGenerator(cfg, iC){};
     CAHitNtupletGenerator(const edm::ParameterSet& cfg, edm::ConsumesCollector& iC);
 
     static void fillDescriptions(edm::ParameterSetDescription& desc);

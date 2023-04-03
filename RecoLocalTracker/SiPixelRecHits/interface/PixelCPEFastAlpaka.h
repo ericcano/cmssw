@@ -16,12 +16,12 @@ template <typename TrackerTraits>
 class PixelCPEFastAlpaka final : public PixelCPEGenericBase {
 public:
   PixelCPEFastAlpaka(edm::ParameterSet const &conf,
-               const MagneticField *,
-               const TrackerGeometry &,
-               const TrackerTopology &,
-               const SiPixelLorentzAngle *,
-               const SiPixelGenErrorDBObject *,
-               const SiPixelLorentzAngle *);
+                     const MagneticField *,
+                     const TrackerGeometry &,
+                     const TrackerTopology &,
+                     const SiPixelLorentzAngle *,
+                     const SiPixelGenErrorDBObject *,
+                     const SiPixelLorentzAngle *);
 
   ~PixelCPEFastAlpaka() override = default;
 

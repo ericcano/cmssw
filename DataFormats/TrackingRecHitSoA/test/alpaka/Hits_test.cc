@@ -25,7 +25,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
 int main() {
-/*  const auto host = cms::alpakatools::host();
+  /*  const auto host = cms::alpakatools::host();
   const auto device = cms::alpakatools::devices<Platform>()[0];
   Queue queue(device);
 

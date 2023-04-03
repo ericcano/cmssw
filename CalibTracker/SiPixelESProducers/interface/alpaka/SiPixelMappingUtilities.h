@@ -20,7 +20,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     ALPAKA_FN_HOST_ACC ALPAKA_FN_ACC ALPAKA_FN_INLINE static cms::alpakatools::device_buffer<Device, unsigned char[]>
     getModToUnpRegionalAsync(std::set<unsigned int> const& modules,
                              const SiPixelFedCablingTree* cabling,
-                             std::vector<unsigned int> const&  fedIds,
+                             std::vector<unsigned int> const& fedIds,
                              Queue& queue) {
       auto modToUnpDevice = cms::alpakatools::make_device_buffer<unsigned char[]>(queue, pixelgpudetails::MAX_SIZE);
       auto modToUnpHost = cms::alpakatools::make_host_buffer<unsigned char[]>(queue, pixelgpudetails::MAX_SIZE);
@@ -52,4 +52,4 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
   };
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
-#endif //CalibTracker_SiPixelESProducers_alpaka_SiPixelMappingUtilities_h
+#endif  //CalibTracker_SiPixelESProducers_alpaka_SiPixelMappingUtilities_h

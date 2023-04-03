@@ -25,7 +25,6 @@
 #include "DQMServices/Core/interface/DQMStore.h"
 #include "DataFormats/Track/interface/TrackSoAHost.h"
 
-
 template <typename T>
 class SiPixelMonitorTrackSoAAlpaka : public DQMEDAnalyzer {
 public:
@@ -90,7 +89,7 @@ void SiPixelMonitorTrackSoAAlpaka<T>::analyze(const edm::Event& iEvent, const ed
   int32_t nLooseAndAboveTracks = 0;
 
   for (int32_t it = 0; it < maxTracks; ++it) {
-    auto nHits = tsoa.view().detIndices().size(it); 
+    auto nHits = tsoa.view().detIndices().size(it);
     auto nLayers = tsoa.view()[it].nLayers();
     if (nHits == 0)
       break;  // this is a guard
@@ -107,9 +106,9 @@ void SiPixelMonitorTrackSoAAlpaka<T>::analyze(const edm::Event& iEvent, const ed
       continue;
 
     // fill parameters only for quality >= loose
-  
+
     float chi2 = tsoa.view()[it].chi2();
-    float phi = tsoa.view()[it].state()(0); //TODO: put these numbers in enum
+    float phi = tsoa.view()[it].state()(0);  //TODO: put these numbers in enum
     float zip = tsoa.view()[it].state()(4);
     float eta = tsoa.view()[it].eta();
     float tip = tsoa.view()[it].state()(1);
@@ -139,8 +138,8 @@ void SiPixelMonitorTrackSoAAlpaka<T>::analyze(const edm::Event& iEvent, const ed
 //
 template <typename T>
 void SiPixelMonitorTrackSoAAlpaka<T>::bookHistograms(DQMStore::IBooker& iBook,
-                                                edm::Run const& iRun,
-                                                edm::EventSetup const& iSetup) {
+                                                     edm::Run const& iRun,
+                                                     edm::EventSetup const& iSetup) {
   iBook.cd();
   iBook.setCurrentFolder(topFolderName_);
 

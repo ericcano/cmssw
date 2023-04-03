@@ -21,7 +21,8 @@ namespace pixelClustering {
         const TAcc& acc,
         SiPixelDigisLayoutSoAView digi_view,
         SiPixelClustersLayoutSoAView clus_view,
-        SiPixelClusterThresholds clusterThresholds,  // charge cut on cluster in electrons (for layer 1 and for other layers)
+        SiPixelClusterThresholds
+            clusterThresholds,  // charge cut on cluster in electrons (for layer 1 and for other layers)
         const uint32_t numElements) const {
       constexpr int startBPIX2 = TrackerTraits::layerStart[1];
       [[maybe_unused]] constexpr int nMaxModules = TrackerTraits::numberOfModules;
@@ -43,10 +44,10 @@ namespace pixelClustering {
       const uint32_t threadIdxLocal(alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]);
       if (threadIdxLocal == 0 && nclus > maxNumClustersPerModules)
         printf("Warning too many clusters in module %d in block %d: %d > %d\n",
-              thisModuleId,
-              blockIdx,
-              nclus,
-              maxNumClustersPerModules);
+               thisModuleId,
+               blockIdx,
+               nclus,
+               maxNumClustersPerModules);
 
       // Stride = block size.
       const uint32_t blockDimension(alpaka::getWorkDiv<alpaka::Block, alpaka::Elems>(acc)[0u]);
@@ -150,4 +151,4 @@ namespace pixelClustering {
 
 }  // namespace pixelClustering
 
-#endif  // 
+#endif  //

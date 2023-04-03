@@ -22,12 +22,12 @@ namespace {
 //-----------------------------------------------------------------------------
 template <typename TrackerTraits>
 PixelCPEFastAlpaka<TrackerTraits>::PixelCPEFastAlpaka(edm::ParameterSet const& conf,
-                                          const MagneticField* mag,
-                                          const TrackerGeometry& geom,
-                                          const TrackerTopology& ttopo,
-                                          const SiPixelLorentzAngle* lorentzAngle,
-                                          const SiPixelGenErrorDBObject* genErrorDBObject,
-                                          const SiPixelLorentzAngle* lorentzAngleWidth)
+                                                      const MagneticField* mag,
+                                                      const TrackerGeometry& geom,
+                                                      const TrackerTopology& ttopo,
+                                                      const SiPixelLorentzAngle* lorentzAngle,
+                                                      const SiPixelGenErrorDBObject* genErrorDBObject,
+                                                      const SiPixelLorentzAngle* lorentzAngleWidth)
     : PixelCPEGenericBase(conf, mag, geom, ttopo, lorentzAngle, genErrorDBObject, lorentzAngleWidth) {
   // Use errors from templates or from GenError
   if (useErrorsFromTemplates_) {
@@ -58,8 +58,8 @@ void PixelCPEFastAlpaka<TrackerTraits>::initializeParams() {
 
   commonParams_.numberOfLaddersInBarrel = TrackerTraits::numberOfLaddersInBarrel;
 
-  LogDebug("PixelCPEFastAlpaka") << "pitch & thickness " << commonParams_.thePitchX << ' ' << commonParams_.thePitchY << "  "
-                           << commonParams_.theThicknessB << ' ' << commonParams_.theThicknessE;
+  LogDebug("PixelCPEFastAlpaka") << "pitch & thickness " << commonParams_.thePitchX << ' ' << commonParams_.thePitchY
+                                 << "  " << commonParams_.theThicknessB << ' ' << commonParams_.theThicknessE;
 
   // zero average geometry
   memset(&averageGeometry_, 0, sizeof(pixelTopology::AverageGeometryT<TrackerTraits>));
@@ -100,16 +100,16 @@ void PixelCPEFastAlpaka<TrackerTraits>::initializeParams() {
     if (oldLayer != g.layer) {
       oldLayer = g.layer;
       LogDebug("PixelCPEFastAlpaka") << "new layer at " << i << (g.isBarrel ? " B  " : (g.isPosZ ? " E+ " : " E- "))
-                               << g.layer << " starting at " << g.rawId << '\n'
-                               << "old layer had " << nl << " ladders";
+                                     << g.layer << " starting at " << g.rawId << '\n'
+                                     << "old layer had " << nl << " ladders";
       nl = 0;
     }
     if (oldLadder != ladder) {
       oldLadder = ladder;
       LogDebug("PixelCPEFastAlpaka") << "new ladder at " << i << (g.isBarrel ? " B  " : (g.isPosZ ? " E+ " : " E- "))
-                               << ladder << " starting at " << g.rawId << '\n'
-                               << "old ladder ave z,r,p mz " << zl / 8.f << " " << rl / 8.f << " " << pl / 8.f << ' '
-                               << miz << ' ' << mxz;
+                                     << ladder << " starting at " << g.rawId << '\n'
+                                     << "old ladder ave z,r,p mz " << zl / 8.f << " " << rl / 8.f << " " << pl / 8.f
+                                     << ' ' << miz << ' ' << mxz;
       rl = 0;
       zl = 0;
       pl = 0;
@@ -169,8 +169,9 @@ void PixelCPEFastAlpaka<TrackerTraits>::initializeParams() {
     auto m = 10000.f;
     for (float qclus = 15000; qclus < 35000; qclus += 15000) {
       errorFromTemplates(p, cp, qclus);
-      LogDebug("PixelCPEFastAlpaka") << i << ' ' << qclus << ' ' << cp.pixmx << ' ' << m * cp.sigmax << ' ' << m * cp.sx1
-                               << ' ' << m * cp.sx2 << ' ' << m * cp.sigmay << ' ' << m * cp.sy1 << ' ' << m * cp.sy2;
+      LogDebug("PixelCPEFastAlpaka") << i << ' ' << qclus << ' ' << cp.pixmx << ' ' << m * cp.sigmax << ' '
+                                     << m * cp.sx1 << ' ' << m * cp.sx2 << ' ' << m * cp.sigmay << ' ' << m * cp.sy1
+                                     << ' ' << m * cp.sy2;
     }
     LogDebug("PixelCPEFastAlpaka") << i << ' ' << m * std::sqrt(lape.xx()) << ' ' << m * std::sqrt(lape.yy());
 #endif  // EDM_ML_DEBUG
@@ -196,8 +197,9 @@ void PixelCPEFastAlpaka<TrackerTraits>::initializeParams() {
       errorFromTemplates(p, cp, 20000.f);
       g.sigmax[ix] = toMicron(cp.sigmax);
       g.sigmax1[ix] = toMicron(cp.sx1);
-      LogDebug("PixelCPEFastAlpaka") << "sigmax vs x " << i << ' ' << x << ' ' << cp.cotalpha << ' ' << int(g.sigmax[ix])
-                               << ' ' << int(g.sigmax1[ix]) << ' ' << 10000.f * cp.sigmay << std::endl;
+      LogDebug("PixelCPEFastAlpaka") << "sigmax vs x " << i << ' ' << x << ' ' << cp.cotalpha << ' '
+                                     << int(g.sigmax[ix]) << ' ' << int(g.sigmax1[ix]) << ' ' << 10000.f * cp.sigmay
+                                     << std::endl;
     }
 #ifdef EDM_ML_DEBUG
     // sample yerr as function of position
@@ -213,8 +215,8 @@ void PixelCPEFastAlpaka<TrackerTraits>::initializeParams() {
       cp.cotbeta = gvy * gvz;
       cp.cotalpha = gvx * gvz;
       errorFromTemplates(p, cp, 20000.f);
-      LogDebug("PixelCPEFastAlpaka") << "sigmay vs y " << i << ' ' << y << ' ' << cp.cotbeta << ' ' << 10000.f * cp.sigmay
-                               << std::endl;
+      LogDebug("PixelCPEFastAlpaka") << "sigmay vs y " << i << ' ' << y << ' ' << cp.cotbeta << ' '
+                                     << 10000.f * cp.sigmay << std::endl;
     }
 #endif  // EDM_ML_DEBUG
 
@@ -235,9 +237,10 @@ void PixelCPEFastAlpaka<TrackerTraits>::initializeParams() {
       g.yfact[k] = cp.sigmay;
       g.minCh[k++] = qclus;
 #ifdef EDM_ML_DEBUG
-      LogDebug("PixelCPEFastAlpaka") << i << ' ' << g.rawId << ' ' << cp.cotalpha << ' ' << qclus << ' ' << cp.qBin_ << ' '
-                               << cp.pixmx << ' ' << m * cp.sigmax << ' ' << m * cp.sx1 << ' ' << m * cp.sx2 << ' '
-                               << m * cp.sigmay << ' ' << m * cp.sy1 << ' ' << m * cp.sy2 << std::endl;
+      LogDebug("PixelCPEFastAlpaka") << i << ' ' << g.rawId << ' ' << cp.cotalpha << ' ' << qclus << ' ' << cp.qBin_
+                                     << ' ' << cp.pixmx << ' ' << m * cp.sigmax << ' ' << m * cp.sx1 << ' '
+                                     << m * cp.sx2 << ' ' << m * cp.sigmay << ' ' << m * cp.sy1 << ' ' << m * cp.sy2
+                                     << std::endl;
 #endif  // EDM_ML_DEBUG
     }
 
@@ -268,7 +271,8 @@ void PixelCPEFastAlpaka<TrackerTraits>::initializeParams() {
       errorFromTemplates(p, cp, 20000.f);
       g.sigmay[iy] = toMicron(cp.sigmay);
       LogDebug("PixelCPEFastAlpaka") << "sigmax/sigmay " << i << ' ' << (ys + 4.f) / 8.f << ' ' << cp.cotalpha << '/'
-                               << cp.cotbeta << ' ' << 10000.f * cp.sigmax << '/' << int(g.sigmay[iy]) << std::endl;
+                                     << cp.cotbeta << ' ' << 10000.f * cp.sigmax << '/' << int(g.sigmay[iy])
+                                     << std::endl;
     }
   }  // loop over det
 
@@ -321,10 +325,10 @@ void PixelCPEFastAlpaka<TrackerTraits>::initializeParams() {
 #ifdef EDM_ML_DEBUG
   for (int jl = 0, nl = numberOfLaddersInBarrel; jl < nl; ++jl) {
     LogDebug("PixelCPEFastAlpaka") << jl << ':' << aveGeom.ladderR[jl] << '/'
-                             << std::sqrt(aveGeom.ladderX[jl] * aveGeom.ladderX[jl] +
-                                          aveGeom.ladderY[jl] * aveGeom.ladderY[jl])
-                             << ',' << aveGeom.ladderZ[jl] << ',' << aveGeom.ladderMinZ[jl] << ','
-                             << aveGeom.ladderMaxZ[jl] << '\n';
+                                   << std::sqrt(aveGeom.ladderX[jl] * aveGeom.ladderX[jl] +
+                                                aveGeom.ladderY[jl] * aveGeom.ladderY[jl])
+                                   << ',' << aveGeom.ladderZ[jl] << ',' << aveGeom.ladderMinZ[jl] << ','
+                                   << aveGeom.ladderMaxZ[jl] << '\n';
   }
   LogDebug("PixelCPEFastAlpaka") << aveGeom.endCapZ[0] << ' ' << aveGeom.endCapZ[1];
 #endif  // EDM_ML_DEBUG
@@ -351,8 +355,8 @@ void PixelCPEFastAlpaka<TrackerTraits>::initializeParams() {
 
 template <typename TrackerTraits>
 void PixelCPEFastAlpaka<TrackerTraits>::errorFromTemplates(DetParam const& theDetParam,
-                                                     ClusterParamGeneric& theClusterParam,
-                                                     float qclus) const {
+                                                           ClusterParamGeneric& theClusterParam,
+                                                           float qclus) const {
   float locBz = theDetParam.bz;
   float locBx = theDetParam.bx;
   LogDebug("PixelCPEFastAlpaka") << "PixelCPEFastAlpaka::localPosition(...) : locBz = " << locBz;
@@ -403,8 +407,8 @@ void PixelCPEFastAlpaka<TrackerTraits>::errorFromTemplates(DetParam const& theDe
 
 template <>
 void PixelCPEFastAlpaka<pixelTopology::Phase2>::errorFromTemplates(DetParam const& theDetParam,
-                                                             ClusterParamGeneric& theClusterParam,
-                                                             float qclus) const {
+                                                                   ClusterParamGeneric& theClusterParam,
+                                                                   float qclus) const {
   theClusterParam.qBin_ = 0.0f;
 }
 
@@ -415,7 +419,7 @@ void PixelCPEFastAlpaka<pixelTopology::Phase2>::errorFromTemplates(DetParam cons
 //-----------------------------------------------------------------------------
 template <typename TrackerTraits>
 LocalPoint PixelCPEFastAlpaka<TrackerTraits>::localPosition(DetParam const& theDetParam,
-                                                      ClusterParam& theClusterParamBase) const {
+                                                            ClusterParam& theClusterParamBase) const {
   ClusterParamGeneric& theClusterParam = static_cast<ClusterParamGeneric&>(theClusterParamBase);
 
   if (useErrorsFromTemplates_) {
@@ -457,7 +461,7 @@ LocalPoint PixelCPEFastAlpaka<TrackerTraits>::localPosition(DetParam const& theD
   theClusterParam.sigmay = cp.yerr[0];
 
   LogDebug("PixelCPEFastAlpaka") << " in PixelCPEFastAlpaka:localPosition - pos = " << xPos << " " << yPos << " size "
-                           << cp.maxRow[0] - cp.minRow[0] << ' ' << cp.maxCol[0] - cp.minCol[0];
+                                 << cp.maxRow[0] - cp.minRow[0] << ' ' << cp.maxCol[0] - cp.minCol[0];
 
   //--- Now put the two together
   LocalPoint pos_in_local(xPos, yPos);
@@ -471,7 +475,7 @@ LocalPoint PixelCPEFastAlpaka<TrackerTraits>::localPosition(DetParam const& theD
 //-------------------------------------------------------------------------
 template <typename TrackerTraits>
 LocalError PixelCPEFastAlpaka<TrackerTraits>::localError(DetParam const& theDetParam,
-                                                   ClusterParam& theClusterParamBase) const {
+                                                         ClusterParam& theClusterParamBase) const {
   ClusterParamGeneric& theClusterParam = static_cast<ClusterParamGeneric&>(theClusterParamBase);
 
   auto xerr = theClusterParam.sigmax;

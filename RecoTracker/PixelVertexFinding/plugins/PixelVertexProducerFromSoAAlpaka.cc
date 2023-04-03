@@ -59,7 +59,9 @@ void PixelVertexProducerFromSoAAlpaka::fillDescriptions(edm::ConfigurationDescri
   descriptions.add("pixelVertexFromSoAAlpaka", desc);
 }
 
-void PixelVertexProducerFromSoAAlpaka::produce(edm::StreamID streamID, edm::Event &iEvent, const edm::EventSetup &) const {
+void PixelVertexProducerFromSoAAlpaka::produce(edm::StreamID streamID,
+                                               edm::Event &iEvent,
+                                               const edm::EventSetup &) const {
   auto vertexes = std::make_unique<reco::VertexCollection>();
 
   auto tracksHandle = iEvent.getHandle(tokenTracks_);

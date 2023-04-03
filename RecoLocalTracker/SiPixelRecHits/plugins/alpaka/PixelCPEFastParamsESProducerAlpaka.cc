@@ -25,8 +25,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   };
 
   template <typename TrackerTraits>
-  PixelCPEFastParamsESProducerAlpaka<TrackerTraits>::PixelCPEFastParamsESProducerAlpaka(edm::ParameterSet const& iConfig) : ESProducer(iConfig) {
-    
+  PixelCPEFastParamsESProducerAlpaka<TrackerTraits>::PixelCPEFastParamsESProducerAlpaka(edm::ParameterSet const& iConfig)
+      : ESProducer(iConfig) {
     auto const& myname = iConfig.getParameter<std::string>("ComponentName");
   }
 
@@ -41,7 +41,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   }
 
   template <typename TrackerTraits>
-  void PixelCPEFastParamsESProducerAlpaka<TrackerTraits>::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+  void PixelCPEFastParamsESProducerAlpaka<TrackerTraits>::fillDescriptions(
+      edm::ConfigurationDescriptions& descriptions) {
     edm::ParameterSetDescription desc;
 
     std::string name = "PixelCPEFast";

@@ -46,7 +46,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
   private:
-
     edm::ESGetToken<MagneticField, IdealMagneticFieldRecord> tokenField_;
     device::EDGetToken<HitsOnDevice> tokenHit_;
     device::EDPutToken<TkSoADevice> tokenTrack_;

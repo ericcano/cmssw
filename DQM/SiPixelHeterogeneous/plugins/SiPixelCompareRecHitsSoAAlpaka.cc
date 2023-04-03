@@ -193,8 +193,8 @@ void SiPixelCompareRecHitsSoAAlpaka<T>::analyze(const edm::Event& iEvent, const 
 //
 template <typename T>
 void SiPixelCompareRecHitsSoAAlpaka<T>::bookHistograms(DQMStore::IBooker& iBook,
-                                                 edm::Run const& iRun,
-                                                 edm::EventSetup const& iSetup) {
+                                                       edm::Run const& iRun,
+                                                       edm::EventSetup const& iSetup) {
   iBook.cd();
   iBook.setCurrentFolder(topFolderName_);
 

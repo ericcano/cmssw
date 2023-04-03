@@ -45,14 +45,13 @@ public:
   using HitsOnHost = TrackingRecHitAlpakaHost<TrackerTraits>;
 
 private:
-   void produce(edm::StreamID streamID, edm::Event &iEvent, const edm::EventSetup &iSetup) const override;
+  void produce(edm::StreamID streamID, edm::Event& iEvent, const edm::EventSetup& iSetup) const override;
 
   const edm::ESGetToken<TrackerGeometry, TrackerDigiGeometryRecord> geomToken_;
   const edm::EDGetTokenT<HitsOnHost> hitsToken_;                      // Alpaka hits
   const edm::EDGetTokenT<SiPixelClusterCollectionNew> clusterToken_;  // legacy clusters
   const edm::EDPutTokenT<SiPixelRecHitCollection> rechitsPutToken_;   // legacy rechits
   const edm::EDPutTokenT<HMSstorage> hostPutToken_;
-
 };
 
 template <typename TrackerTraits>
@@ -72,12 +71,10 @@ void SiPixelRecHitFromSoAAlpaka<TrackerTraits>::fillDescriptions(edm::Configurat
   descriptions.addWithDefaultLabel(desc);
 }
 
-
 template <typename TrackerTraits>
 void SiPixelRecHitFromSoAAlpaka<TrackerTraits>::produce(edm::StreamID streamID,
-                                                        edm::Event &iEvent,
-                                                        const edm::EventSetup &iSetup) const {
-
+                                                        edm::Event& iEvent,
+                                                        const edm::EventSetup& iSetup) const {
   auto& hits_h_ = iEvent.get(hitsToken_);
   auto nHits = hits_h_.view().nHits();
   LogDebug("SiPixelRecHitFromSoAAlpaka") << "converting " << nHits << " Hits";
@@ -135,14 +132,14 @@ void SiPixelRecHitFromSoAAlpaka<TrackerTraits>::produce(edm::StreamID streamID,
 
     assert(lc > fc);
     LogDebug("SiPixelRecHitFromSoAAlpaka") << "in det " << gind << ": conv " << nhits << " hits from " << dsv.size()
-                                        << " legacy clusters" << ' ' << fc << ',' << lc << "\n";
+                                           << " legacy clusters" << ' ' << fc << ',' << lc << "\n";
     if (nhits > maxHitsInModule)
       edm::LogWarning("SiPixelRecHitFromSoAAlpaka") << fmt::sprintf(
           "Too many clusters %d in module %d. Only the first %d hits will be converted", nhits, gind, maxHitsInModule);
     nhits = std::min(nhits, maxHitsInModule);
 
     LogDebug("SiPixelRecHitFromSoAAlpaka") << "in det " << gind << "conv " << nhits << " hits from " << dsv.size()
-                                        << " legacy clusters" << ' ' << lc << ',' << fc;
+                                           << " legacy clusters" << ' ' << lc << ',' << fc;
 
     if (0 == nhits)
       continue;
@@ -185,7 +182,8 @@ void SiPixelRecHitFromSoAAlpaka<TrackerTraits>::produce(edm::StreamID streamID,
 
   }  //    <-- End loop on DetUnits
 
-  LogDebug("SiPixelRecHitFromSoAAlpaka") << "found " << numberOfDetUnits << " dets, " << numberOfClusters << " clusters";
+  LogDebug("SiPixelRecHitFromSoAAlpaka") << "found " << numberOfDetUnits << " dets, " << numberOfClusters
+                                         << " clusters";
 
   iEvent.emplace(rechitsPutToken_, std::move(output));
 }
