@@ -46,6 +46,7 @@ namespace alpaka_cuda_async {
   using Device = alpaka::DevCudaRt;
   using Queue = alpaka::QueueCudaRtNonBlocking;
   using Event = alpaka::EventCudaRt;
+  using BlockSharedMemDyn = alpaka::BlockSharedMemDynUniformCudaHipBuiltIn;
 
   template <typename TDim>
   using Acc = alpaka::AccGpuCudaRt<TDim, Idx>;
@@ -72,6 +73,7 @@ namespace alpaka_rocm_async {
   using Device = alpaka::DevHipRt;
   using Queue = alpaka::QueueHipRtNonBlocking;
   using Event = alpaka::EventHipRt;
+  using BlockSharedMemDyn = alpaka::BlockSharedMemDynUniformCudaHipBuiltIn;
 
   template <typename TDim>
   using Acc = alpaka::AccGpuHipRt<TDim, Idx>;
@@ -98,6 +100,7 @@ namespace alpaka_serial_sync {
   using Device = alpaka::DevCpu;
   using Queue = alpaka::QueueCpuBlocking;
   using Event = alpaka::EventCpu;
+  using BlockSharedMemDyn = alpaka::BlockSharedMemDynMember<>;
 
   template <typename TDim>
   using Acc = alpaka::AccCpuSerial<TDim, Idx>;
@@ -124,6 +127,7 @@ namespace alpaka_tbb_async {
   using Device = alpaka::DevCpu;
   using Queue = alpaka::QueueCpuNonBlocking;
   using Event = alpaka::EventCpu;
+  using BlockSharedMemDyn = alpaka::BlockSharedMemDynMember<>;
 
   template <typename TDim>
   using Acc = alpaka::AccCpuTbbBlocks<TDim, Idx>;

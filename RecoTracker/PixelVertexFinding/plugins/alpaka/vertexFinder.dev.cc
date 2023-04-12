@@ -81,7 +81,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                     float errmax,  // max error to be "seed"
                                     float chi2max  // max normalized distance to cluster,
       ) const {
-        clusterTracksByDensity(acc, pdata, pws, minT, eps, errmax, chi2max);
+        clusterTracksByDensity(acc, pdata, pws, minT, eps, errmax, chi2max, 256, 16000 /* TODO: make variables */ );
         alpaka::syncBlockThreads(acc);
         fitVertices(acc, pdata, pws, maxChi2ForFirstFit);
         alpaka::syncBlockThreads(acc);
@@ -104,7 +104,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                     float errmax,  // max error to be "seed"
                                     float chi2max  // max normalized distance to cluster,
       ) const {
-        clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max);
+        clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, 256, 16000 /* TODO: make variables */ );
         alpaka::syncBlockThreads(acc);
         fitVertices(pdata, pws, maxChi2ForFirstFit);
       }
@@ -168,7 +168,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       } else {  // five kernels
         if (useDensity_) {
           alpaka::exec<Acc1D>(
-              queue, finderSorterWorkDiv, clusterTracksByDensityKernel{}, soa, ws_d.view(), minT, eps, errmax, chi2max);
+              queue, finderSorterWorkDiv, clusterTracksByDensityKernel{}, soa, ws_d.view(), minT, eps, errmax, chi2max, 256, 16000 /* TODO: make variables */ );
 
         } else if (useDBSCAN_) {
           alpaka::exec<Acc1D>(

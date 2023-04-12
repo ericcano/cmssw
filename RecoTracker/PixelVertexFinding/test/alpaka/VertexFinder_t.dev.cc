@@ -11,9 +11,11 @@
 #ifdef USE_DBSCAN
 #include "RecoTracker/PixelVertexFinding/plugins/alpaka/clusterTracksDBSCAN.h"
 #define CLUSTERIZE ALPAKA_ACCELERATOR_NAMESPACE::vertexFinder::clusterTracksDBSCAN
+#define CLUSTERIZE_EXTRA_PARAMS
 #elif USE_ITERATIVE
 #include "RecoTracker/PixelVertexFinding/plugins/alpaka/clusterTracksIterativeAlpaka.h"
 #define CLUSTERIZE ALPAKA_ACCELERATOR_NAMESPACE::vertexFinder::clusterTracksIterative
+#define CLUSTERIZE_EXTRA_PARAMS
 #else
 #include "RecoTracker/PixelVertexFinding/plugins/alpaka/clusterTracksByDensity.h"
 #define CLUSTERIZE ALPAKA_ACCELERATOR_NAMESPACE::vertexFinder::clusterTracksByDensityKernel
@@ -90,9 +92,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                     int minT,      // min number of neighbours to be "seed"
                                     float eps,     // max absolute distance to cluster
                                     float errmax,  // max error to be "seed"
-                                    float chi2max  // max normalized distance to cluster,
+                                    float chi2max,  // max normalized distance to cluster,
+                                    uint32_t nBins,// number of bins
+                                    int32_t size   // maximum number of elements
       ) const {
-        vertexFinder::clusterTracksByDensity(acc, pdata, pws, minT, eps, errmax, chi2max);
+        vertexFinder::clusterTracksByDensity(acc, pdata, pws, minT, eps, errmax, chi2max, nBins, size);
         alpaka::syncBlockThreads(acc);
         vertexFinder::fitVertices(acc, pdata, pws, 50.);
         alpaka::syncBlockThreads(acc);
@@ -160,10 +164,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                               kk,
                               par[0],
                               par[1],
-                              par[2]);
+                              par[2], 256, 16000);
 #else
           alpaka::exec<Acc1D>(
-              queue, workDivClusterizer, CLUSTERIZE{}, vertices_d.view(), ws_d.view(), kk, par[0], par[1], par[2]);
+              queue, workDivClusterizer, CLUSTERIZE{}, vertices_d.view(), ws_d.view(), kk, par[0], par[1], par[2]
+#if !defined(USE_DBSCAN)  && !defined(USE_ITERATIVE)
+                 , 256, 16000
+#endif
+                      );
 #endif
           alpaka::wait(queue);
           alpaka::exec<Acc1D>(queue, workDiv1D, kernel_print{}, vertices_d.view(), ws_d.view());

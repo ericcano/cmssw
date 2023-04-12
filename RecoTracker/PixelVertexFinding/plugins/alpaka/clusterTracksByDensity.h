@@ -28,7 +28,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                            int minT,      // min number of neighbours to be "seed"
                            float eps,     // max absolute distance to cluster
                            float errmax,  // max error to be "seed"
-                           float chi2max  // max normalized distance to cluster
+                           float chi2max, // max normalized distance to cluster
+                           uint32_t nBins,// number of bins
+                           int32_t size   // maximum number of elements
     ) {
       using namespace vertexFinder;
       constexpr bool verbose = false;  // in principle the compiler should optmize out if false
@@ -58,12 +60,46 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       ALPAKA_ASSERT_OFFLOAD(nn);
       ALPAKA_ASSERT_OFFLOAD(iv);
 
-      using Hist = cms::alpakatools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t>;
-      auto& hist = alpaka::declareSharedVar<Hist, __COUNTER__>(acc);
-      auto& hws = alpaka::declareSharedVar<Hist::Counter[32], __COUNTER__>(acc);
-
-      for (auto j : cms::alpakatools::elements_with_stride(acc, Hist::totbins())) {
-        hist.off[j] = 0;
+      // using Hist = cms::alpakatools::HistoContainer<T= uint8_t,  256, uint32_t NBINS =  16000,
+      //    int32_t SIZE =   8, uint32_t S = sizeof(T) * 8, I = uint16_t(, uint32_t NHISTS = (default) 1)>;
+      constexpr uint32_t nHists = 1;
+      using Hist = cms::alpakatools::HistoContainerRuntimeSized<uint8_t, 8, uint16_t>;
+      // The buffer will  contain:
+      // - The histo container structure
+      // - The SoA(s?) containing the data storage for it, and for the hws array (Hist::Counter[32])
+      // (32 being warp or block size?)
+      // - Compile time sizes are:
+      // NBINS = 256
+      // SIZE =  16000
+      // NHISTS = (default) 1
+      // totbins() = NHISTS(=1) * NBINS + 1
+      // capacity() = SIZE
+      // Leading to storage of: 
+      // Counter (=uint32_t) off[totbins()]
+      // index_type (=uint16_t) bins[capacity() = SIZE]
+      // 
+      // Make sure we are properly aligned for any scalar type
+      std::byte* staticBuffer = reinterpret_cast<std::byte *>(alpaka::getDynSharedMem<std::max_align_t>(acc));
+      // Allocate hist in shared memory
+      auto& hist = *reinterpret_cast<Hist *>(staticBuffer);
+      // Allocate other buffers: hist stores (off[totbins() = NHISTS * NBINS + 1] and bins[capacity() = SIZE])
+      constexpr size_t histAlignedSize = ((sizeof(Hist) - 1) / sizeof(std::max_align_t) + 1) * sizeof(std::max_align_t);
+      Hist::Counter* histOffs = reinterpret_cast<Hist::Counter*>(staticBuffer + histAlignedSize);
+      std::size_t histOffsSize = nHists /* = 1 */  * nBins + 1;
+      std::size_t histOffsAlignedByteSize = ((histOffsSize - 1) / sizeof(std::max_align_t) + 1) * sizeof(std::max_align_t);
+      Hist::index_type* histBins = reinterpret_cast<Hist::index_type*>(reinterpret_cast<std::byte*>(histOffs) + histOffsAlignedByteSize);
+      std::size_t histBinsSize = size;
+      std::size_t histBinsAlignedByteSize = ((histBinsSize - 1) / sizeof(std::max_align_t) + 1) * sizeof(std::max_align_t);
+      Hist::Counter* hws=reinterpret_cast<Hist::Counter*>(reinterpret_cast<std::byte*>(histBins) + histBinsAlignedByteSize);
+      // Initialize the hist struct (one thread per block)
+      if (0 == threadIdxLocal)
+        new(&hist)Hist(nBins, size, histOffs, histBins);
+      alpaka::syncBlockThreads(acc);
+//      auto& hist = alpaka::declareSharedVar<Hist, __COUNTER__>(acc);
+//      auto& hws = alpaka::declareSharedVar<Hist::Counter[32], __COUNTER__>(acc);
+      
+      for (auto j : cms::alpakatools::elements_with_stride(acc, hist.totbins())) {
+        hist.off_[j] = 0;
       }
       alpaka::syncBlockThreads(acc);
 
@@ -190,6 +226,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       alpaka::syncBlockThreads(acc);
 #endif
 
+      // TODO: other shared variable!
       auto& foundClusters = alpaka::declareSharedVar<unsigned int, __COUNTER__>(acc);
       foundClusters = 0;
       alpaka::syncBlockThreads(acc);
@@ -237,11 +274,55 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                     int minT,      // min number of neighbours to be "seed"
                                     float eps,     // max absolute distance to cluster
                                     float errmax,  // max error to be "seed"
-                                    float chi2max  // max normalized distance to cluster
+                                    float chi2max, // max normalized distance to cluster
+                                    uint32_t nBins,// number of bins
+                                    int32_t size   // maximum number of elements
       ) const {
-        clusterTracksByDensity(acc, pdata, pws, minT, eps, errmax, chi2max);
+        clusterTracksByDensity(acc, pdata, pws, minT, eps, errmax, chi2max, nBins, size);
       }
     };
   }  // namespace vertexFinder
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
+
+namespace alpaka::trait {
+  template<typename TAcc, typename TSfinae>
+  struct BlockSharedMemDynSizeBytes<ALPAKA_ACCELERATOR_NAMESPACE::vertexFinder::clusterTracksByDensityKernel, TAcc, TSfinae>
+  {
+#if BOOST_COMP_CLANG
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored                                                                                  \
+        "-Wdocumentation" // clang does not support the syntax for variadic template arguments "args,..."
+#endif
+    //! \param kernelFnObj The kernel object for which the block shared memory size should be calculated.
+    //! \param blockThreadExtent The block thread extent.
+    //! \param threadElemExtent The thread element extent.
+    //! \tparam TArgs The kernel invocation argument types pack.
+    //! \param args,... The kernel invocation arguments.
+    //! \return The size of the shared memory allocated for a block in bytes.
+    //! The default version always returns zero.
+#if BOOST_COMP_CLANG
+#    pragma clang diagnostic pop
+#endif
+    ALPAKA_NO_HOST_ACC_WARNING
+    template<typename TDim, typename... TArgs>
+    ALPAKA_FN_HOST_ACC static auto getBlockSharedMemDynSizeBytes(
+        [[maybe_unused]] ALPAKA_ACCELERATOR_NAMESPACE::vertexFinder::clusterTracksByDensityKernel const& kernelFnObj,
+        [[maybe_unused]] Vec<TDim, Idx<TAcc>> const& blockThreadExtent,
+        [[maybe_unused]] Vec<TDim, Idx<TAcc>> const& threadElemExtent,
+        //[[maybe_unused]] const TAcc& acc,
+        [[maybe_unused]] ALPAKA_ACCELERATOR_NAMESPACE::vertexFinder::VtxSoAView pdata,
+        [[maybe_unused]] ALPAKA_ACCELERATOR_NAMESPACE::vertexFinder::WsSoAView pws,
+        [[maybe_unused]] int minT,      // min number of neighbours to be "seed"
+        [[maybe_unused]] float eps,     // max absolute distance to cluster
+        [[maybe_unused]] float errmax,  // max error to be "seed"
+        [[maybe_unused]] float chi2max,
+        [[maybe_unused]] uint32_t nBins,// number of bins
+        [[maybe_unused]] int32_t size)   // maximum number of elements) -> std::size_t
+    {
+      // TODO TODO
+        return 0u;
+    }
+  };
+} // namespace alpaka::trait
+
 #endif  // RecoPixelVertexing_PixelVertexFinding_clusterTracksByDensityAlpaka_h
