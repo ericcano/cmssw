@@ -316,8 +316,8 @@ namespace alpaka::trait {
         [[maybe_unused]] float eps,     // max absolute distance to cluster
         [[maybe_unused]] float errmax,  // max error to be "seed"
         [[maybe_unused]] float chi2max,
-        [[maybe_unused]] uint32_t nBins,// number of bins
-        [[maybe_unused]] int32_t size)   // maximum number of elements) -> std::size_t
+        uint32_t nBins,// number of bins
+        int32_t size)   // maximum number of elements) -> std::size_t
     {
       // The shared memory contains:
       // - The (fixed size) HistoContainerRuntimeSized object
