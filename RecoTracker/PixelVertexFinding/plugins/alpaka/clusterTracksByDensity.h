@@ -319,8 +319,22 @@ namespace alpaka::trait {
         [[maybe_unused]] uint32_t nBins,// number of bins
         [[maybe_unused]] int32_t size)   // maximum number of elements) -> std::size_t
     {
-      // TODO TODO
-        return 0u;
+      // The shared memory contains:
+      // - The (fixed size) HistoContainerRuntimeSized object
+      // - The offsets array
+      // - The bins array
+      // - The hws (hist work space?) array.
+      // On top of that, things should be aligned to 
+      using Hist = cms::alpakatools::HistoContainerRuntimeSized<uint8_t, 8, uint16_t>;
+      constexpr uint32_t nHists = 1;
+      constexpr std::size_t histAlignedSize = ((sizeof(Hist) - 1) / sizeof(std::max_align_t) + 1) * sizeof(std::max_align_t);
+      std::size_t histOffsSize = nHists /* = 1 */  * nBins + 1;
+      std::size_t histOffsAlignedByteSize = ((histOffsSize - 1) / sizeof(std::max_align_t) + 1) * sizeof(std::max_align_t);
+      std::size_t histBinsSize = size;
+      std::size_t histBinsAlignedByteSize = ((histBinsSize - 1) / sizeof(std::max_align_t) + 1) * sizeof(std::max_align_t);
+      std::size_t hwsSize = 32 * sizeof(Hist::Counter);
+      std::size_t hwsAlignedByteSize = ((hwsSize - 1) / sizeof(std::max_align_t) + 1) * sizeof(std::max_align_t);
+      return  histAlignedSize + histOffsAlignedByteSize + histBinsAlignedByteSize + hwsAlignedByteSize;
     }
   };
 } // namespace alpaka::trait
