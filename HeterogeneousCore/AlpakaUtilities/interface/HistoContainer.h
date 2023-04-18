@@ -509,10 +509,7 @@ namespace cms {
       constexpr index_type const *begin(uint32_t b) const { 
         printf("In HistoContainerRuntimeSized::begin(): bins_@%p, off_@%p, off_[b=%d]=%d/%x\n", 
                 bins_, off_, b, off_[b], off_[b]);
-        if (off_[b] > capacity()) {
-          printf  ("In HistoContainerRuntimeSized::begin(): Error off_[b=%d]=%d > capacity()=%d\n", b, off_[b], capacity());
-          abort();
-        }
+        if (off_[b] > capacity()) printf  ("In HistoContainerRuntimeSized::begin(): Error off_[b=%d]=%d > capacity()=%d\n", b, off_[b], capacity());
         return bins_ + off_[b]; 
       }
       constexpr index_type const *end(uint32_t b) const { 
