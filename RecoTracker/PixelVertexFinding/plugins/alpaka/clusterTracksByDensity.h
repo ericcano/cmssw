@@ -60,6 +60,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       ALPAKA_ASSERT_OFFLOAD(nn);
       ALPAKA_ASSERT_OFFLOAD(iv);
 
+#if 1
       // using Hist = cms::alpakatools::HistoContainer<T= uint8_t,  256, uint32_t NBINS =  16000,
       //    int32_t SIZE =   8, uint32_t S = sizeof(T) * 8, I = uint16_t(, uint32_t NHISTS = (default) 1)>;
       constexpr uint32_t nHists = 1;
@@ -91,18 +92,43 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       std::size_t histBinsSize = size;
       std::size_t histBinsAlignedByteSize = ((histBinsSize - 1) / sizeof(std::max_align_t) + 1) * sizeof(std::max_align_t);
       Hist::Counter* hws=reinterpret_cast<Hist::Counter*>(reinterpret_cast<std::byte*>(histBins) + histBinsAlignedByteSize);
+      std::size_t hwsSize = 32 * sizeof(Hist::Counter);
+      std::size_t hwsAlignedByteSize = ((hwsSize - 1) / sizeof(std::max_align_t) + 1) * sizeof(std::max_align_t);
       // Initialize the hist struct (one thread per block)
-      if (0 == threadIdxLocal)
+      if (0 == threadIdxLocal) {
         new(&hist)Hist(nBins, size, histOffs, histBins);
+        printf("Initialized hist (@%p) with nBins=%d, size=%d, histAlignedSize=%lu, histOffs@%p, histOffsSize=%lu, histOffsAlignedByteSize=%lu\n",
+                &hist, nBins, size, histAlignedSize, histOffs, histOffsSize, histOffsAlignedByteSize);
+        printf("    histBins@%p, histBinsSize=%lu, histBinsAlignedByteSize=%lu, hws@%p, hwsSize=%lu, hwsAlignedByteSize=%lu\n",
+                histBins, histBinsSize, histBinsAlignedByteSize, hws, hwsSize, hwsAlignedByteSize);
+      }
       alpaka::syncBlockThreads(acc);
 //      auto& hist = alpaka::declareSharedVar<Hist, __COUNTER__>(acc);
 //      auto& hws = alpaka::declareSharedVar<Hist::Counter[32], __COUNTER__>(acc);
-      
       for (auto j : cms::alpakatools::elements_with_stride(acc, hist.totbins())) {
         hist.off_[j] = 0;
       }
-      alpaka::syncBlockThreads(acc);
+#else
+      using Hist = cms::alpakatools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t>;
+      auto& hist = alpaka::declareSharedVar<Hist, __COUNTER__>(acc);
+      auto& hws = alpaka::declareSharedVar<Hist::Counter[32], __COUNTER__>(acc);
 
+      for (auto j : cms::alpakatools::elements_with_stride(acc, Hist::totbins())) {
+        hist.off[j] = 0;
+      }
+#endif
+      alpaka::syncBlockThreads(acc);
+      
+      
+      if (0 == threadIdxLocal) {
+        printf ("hist.totbins()=%d\n", hist.totbins());
+        for (std::size_t i=0; i<hist.totbins(); i++) {
+          if (hist.off_[i]) {
+            printf("After offset initialization: hist.off_[%ld]=%d\n", i, hist.off_[i]);
+          }
+        }
+      }
+      alpaka::syncBlockThreads(acc);
       if (verbose && 0 == threadIdxLocal)
         printf("booked hist with %d bins, size %d for %d tracks\n", hist.nbins(), hist.capacity(), nt);
 
@@ -134,21 +160,32 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       alpaka::syncBlockThreads(acc);
 
       // count neighbours
+      if (0 == threadIdxLocal)
+        printf("zt@%p, ezt2@%p, nn@%p, izt@%p\n", zt, ezt2, nn, izt);
+      alpaka::syncBlockThreads(acc);
       for (auto i : cms::alpakatools::elements_with_stride(acc, nt)) {
         if (ezt2[i] > er2mx)
           continue;
         auto loop = [&](uint32_t j) {
+          printf("chk 1\n");
           if (i == j)
             return;
+          printf("chk 2\n");
           auto dist = std::abs(zt[i] - zt[j]);
+          printf("chk 3\n");
           if (dist > eps)
             return;
+          printf("chk 4\n");
           if (dist * dist > chi2max * (ezt2[i] + ezt2[j]))
             return;
+          printf("chk 5\n");
           nn[i]++;
+          printf("chk 6\n");
         };
 
+        printf("chk B1, hist@%p, threadIdxLocal=%d\n", &hist, threadIdxLocal);
         cms::alpakatools::forEachInBins(hist, izt[i], 1, loop);
+        printf("chk B2, threadIdxLocal=%d\n", threadIdxLocal);
       }
 
       alpaka::syncBlockThreads(acc);

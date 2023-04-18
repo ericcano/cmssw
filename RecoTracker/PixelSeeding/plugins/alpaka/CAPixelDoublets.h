@@ -34,7 +34,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         if (0 == threadIdx) {
           cellNeighbors->construct(TrackerTraits::maxNumOfActiveDoublets, cellNeighborsContainer);
           cellTracks->construct(TrackerTraits::maxNumOfActiveDoublets, cellTracksContainer);
-          auto i = cellNeighbors->extend(acc);
+          [[maybe_unused]] auto  i = cellNeighbors->extend(acc);
           assert(0 == i);
           (*cellNeighbors)[0].reset();
           i = cellTracks->extend(acc);
