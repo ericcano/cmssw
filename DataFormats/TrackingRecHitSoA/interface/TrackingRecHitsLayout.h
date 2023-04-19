@@ -11,7 +11,7 @@
 template <typename TrackerTraits>
 struct TrackingRecHitAlpakaSoA {
   using hindex_type = typename TrackerTraits::hindex_type;
-  using PhiBinner = cms::alpakatools::HistoContainer<int16_t,
+  using PhiBinner = cms::alpakatools::HistoContainerFixedSize<int16_t,
                                                      256,
                                                      500000,
                                                      8 * sizeof(int16_t),

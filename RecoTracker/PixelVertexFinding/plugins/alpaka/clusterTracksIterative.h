@@ -53,7 +53,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         ALPAKA_ASSERT_OFFLOAD(iv);
         ALPAKA_ASSERT_OFFLOAD(ezt2);
 
-        using Hist = cms::alpakatools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t>;
+        using Hist = cms::alpakatools::HistoContainerFixedSize<uint8_t, 256, 16000, 8, uint16_t>;
         auto& hist = alpaka::declareSharedVar<Hist, __COUNTER__>(acc);
         auto& hws = alpaka::declareSharedVar<Hist::Counter[32], __COUNTER__>(acc);
 

@@ -156,11 +156,11 @@ namespace cms {
               typename I = uint32_t,  // type stored in the container (usually an index in a vector of the input values)
               uint32_t NHISTS = 1     // number of histos stored
               >
-    class HistoContainer {
+    class HistoContainerFixedSize {
     public:
       using Counter = uint32_t;
 
-      using CountersOnly = HistoContainer<T, NBINS, 0, S, I, NHISTS>;
+      using CountersOnly = HistoContainerFixedSize<T, NBINS, 0, S, I, NHISTS>;
 
       using index_type = I;
       using UT = typename std::make_unsigned<T>::type;
@@ -530,7 +530,7 @@ namespace cms {
               int32_t MAXONES,  // max number of "ones"
               int32_t MAXMANYS  // max number of "manys"
               >
-    using OneToManyAssoc = HistoContainer<uint32_t, MAXONES, MAXMANYS, sizeof(uint32_t) * 8, I, 1>;
+    using OneToManyAssoc = HistoContainerFixedSize<uint32_t, MAXONES, MAXMANYS, sizeof(uint32_t) * 8, I, 1>;
 
   }  // namespace alpakatools
 }  // namespace cms

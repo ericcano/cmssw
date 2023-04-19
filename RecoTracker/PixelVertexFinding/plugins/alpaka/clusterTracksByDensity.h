@@ -61,7 +61,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       ALPAKA_ASSERT_OFFLOAD(iv);
 
 #if 1
-      // using Hist = cms::alpakatools::HistoContainer<T= uint8_t,  256, uint32_t NBINS =  16000,
+      // using Hist = cms::alpakatools::HistoContainerFixedSize<T= uint8_t,  256, uint32_t NBINS =  16000,
       //    int32_t SIZE =   8, uint32_t S = sizeof(T) * 8, I = uint16_t(, uint32_t NHISTS = (default) 1)>;
       constexpr uint32_t nHists = 1;
       using Hist = cms::alpakatools::HistoContainerRuntimeSized<uint8_t, 8, uint16_t>;
@@ -109,7 +109,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         hist.off_[j] = 0;
       }
 #else
-      using Hist = cms::alpakatools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t>;
+      using Hist = cms::alpakatools::HistoContainerFixedSize<uint8_t, 256, 16000, 8, uint16_t>;
       auto& hist = alpaka::declareSharedVar<Hist, __COUNTER__>(acc);
       auto& hws = alpaka::declareSharedVar<Hist::Counter[32], __COUNTER__>(acc);
 

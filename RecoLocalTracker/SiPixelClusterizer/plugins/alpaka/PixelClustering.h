@@ -173,7 +173,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         constexpr auto nbins = TrackerTraits::clusterBinning;
         constexpr auto nbits = TrackerTraits::clusterBits;
 
-        using Hist = cms::alpakatools::HistoContainer<uint16_t, nbins, maxPixInModule, nbits, uint16_t>;
+        using Hist = cms::alpakatools::HistoContainerFixedSize<uint16_t, nbins, maxPixInModule, nbits, uint16_t>;
         auto& hist = alpaka::declareSharedVar<Hist, __COUNTER__>(acc);
         auto& ws = alpaka::declareSharedVar<typename Hist::Counter[32], __COUNTER__>(acc);
 
