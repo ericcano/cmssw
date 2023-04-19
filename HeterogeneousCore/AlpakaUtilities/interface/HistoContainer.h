@@ -457,11 +457,11 @@ namespace cms {
       template <typename TAcc>
       ALPAKA_FN_ACC ALPAKA_FN_INLINE void fill(const TAcc &acc, T t, index_type j) {
         uint32_t b = bin(t);
-        printf("In HistoContainerRuntimeSized::fill(2 args): b=bin(t=%d)=%d, off_[b]=%d/%x\n", t, b, off_[b], off_[b]);
+        //printf("In HistoContainerRuntimeSized::fill(2 args): b=bin(t=%d)=%d, off_[b]=%d/%x\n", t, b, off_[b], off_[b]);
         ALPAKA_ASSERT_OFFLOAD(b < nbins());
         auto w = atomicDecrement(acc, off_[b]);
         auto o = off_[b];
-        printf("In HistoContainerRuntimeSized::fill(2 args) (post): off_[b]=%d\n", o);
+        //printf("In HistoContainerRuntimeSized::fill(2 args) (post): off_[b]=%d\n", o);
         ALPAKA_ASSERT_OFFLOAD(w > 0);
         bins_[w - 1] = j;
       }
