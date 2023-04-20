@@ -11,11 +11,9 @@
 #ifdef USE_DBSCAN
 #include "RecoTracker/PixelVertexFinding/plugins/alpaka/clusterTracksDBSCAN.h"
 #define CLUSTERIZE ALPAKA_ACCELERATOR_NAMESPACE::vertexFinder::clusterTracksDBSCAN
-#define CLUSTERIZE_EXTRA_PARAMS
 #elif USE_ITERATIVE
 #include "RecoTracker/PixelVertexFinding/plugins/alpaka/clusterTracksIterativeAlpaka.h"
 #define CLUSTERIZE ALPAKA_ACCELERATOR_NAMESPACE::vertexFinder::clusterTracksIterative
-#define CLUSTERIZE_EXTRA_PARAMS
 #else
 #include "RecoTracker/PixelVertexFinding/plugins/alpaka/clusterTracksByDensity.h"
 #define CLUSTERIZE ALPAKA_ACCELERATOR_NAMESPACE::vertexFinder::clusterTracksByDensityKernel

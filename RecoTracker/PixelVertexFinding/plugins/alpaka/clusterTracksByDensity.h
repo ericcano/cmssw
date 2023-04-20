@@ -86,7 +86,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       // Allocate other buffers: hist stores (off[totbins() = NHISTS * NBINS + 1] and bins[capacity() = SIZE])
       constexpr size_t histAlignedSize = ((sizeof(Hist) - 1) / sizeof(std::max_align_t) + 1) * sizeof(std::max_align_t);
       Hist::Counter* histOffs = reinterpret_cast<Hist::Counter*>(staticBuffer + histAlignedSize);
-      std::size_t histOffsSize = nHists /* = 1 */  * nBins + 1;
+      std::size_t histOffsSize = (nHists /* = 1 */  * nBins + 1) * sizeof(Hist::Counter);
       std::size_t histOffsAlignedByteSize = ((histOffsSize - 1) / sizeof(std::max_align_t) + 1) * sizeof(std::max_align_t);
       Hist::index_type* histBins = reinterpret_cast<Hist::index_type*>(reinterpret_cast<std::byte*>(histOffs) + histOffsAlignedByteSize);
       std::size_t histBinsSize = size;
@@ -94,6 +94,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       Hist::Counter* hws=reinterpret_cast<Hist::Counter*>(reinterpret_cast<std::byte*>(histBins) + histBinsAlignedByteSize);
       std::size_t hwsSize = 32 * sizeof(Hist::Counter);
       std::size_t hwsAlignedByteSize = ((hwsSize - 1) / sizeof(std::max_align_t) + 1) * sizeof(std::max_align_t);
+      unsigned int & foundClusters = *reinterpret_cast<unsigned int *>(reinterpret_cast<std::byte*>(hws) + hwsAlignedByteSize);
+      std::size_t foundClustersBize = sizeof(unsigned int);
+      std::size_t foundAlignedByteSize = ((foundClustersBize - 1) / sizeof(std::max_align_t) + 1) * sizeof(std::max_align_t);
       // Initialize the hist struct (one thread per block)
       if (0 == threadIdxLocal) {
         new(&hist)Hist(nBins, size, histOffs, histBins);
@@ -101,6 +104,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                 &hist, nBins, size, histAlignedSize, histOffs, histOffsSize, histOffsAlignedByteSize);
         printf("    histBins@%p, histBinsSize=%lu, histBinsAlignedByteSize=%lu, hws@%p, hwsSize=%lu, hwsAlignedByteSize=%lu\n",
                 histBins, histBinsSize, histBinsAlignedByteSize, hws, hwsSize, hwsAlignedByteSize);
+        printf("    & foundClusters@%p, foundClustersBize=%lu, foundAlignedByteSize=%lu\n",
+                & foundClusters, foundClustersBize, foundAlignedByteSize);
       }
       alpaka::syncBlockThreads(acc);
 //      auto& hist = alpaka::declareSharedVar<Hist, __COUNTER__>(acc);
@@ -151,41 +156,56 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       if (threadIdxLocal < 32)
         hws[threadIdxLocal] = 0;  // used by prefix scan...
       alpaka::syncBlockThreads(acc);
+      //if (0 == threadIdxLocal)
+      //  printf("Pre finalize: off_@%p=[.., %d, %d, %d...]\n", hist.off_, hist.off_[126], hist.off_[127], hist.off_[128]);
       hist.finalize(acc, hws);
       alpaka::syncBlockThreads(acc);
       ALPAKA_ASSERT_OFFLOAD(hist.size() == nt);
+      //if (0 == threadIdxLocal)
+      //  printf("Post finalize: off_@%p=[.., %d, %d, %d...]\n", hist.off_, hist.off_[126], hist.off_[127], hist.off_[128]);
       for (auto i : cms::alpakatools::elements_with_stride(acc, nt)) {
+      //  printf("Pre fill, round %d, thread %d: off_@%p=[.., %d, %d, %d...]\n", i, threadIdxLocal, hist.off_, hist.off_[126], hist.off_[127], hist.off_[128]);
         hist.fill(acc, izt[i], uint16_t(i));
+      //  printf("Post fill: off_@%p=[.., %d, %d, %d...]\n", hist.off_, hist.off_[126], hist.off_[127], hist.off_[128]);
       }
       alpaka::syncBlockThreads(acc);
+      if (0 == threadIdxLocal)
+      //  printf("Post fill loop: off_@%p=[.., %d, %d, %d...]\n", hist.off_, hist.off_[126], hist.off_[127], hist.off_[128]);
+      if (threadIdxLocal < 32) {
+      //  printf("Updating hws[threadIdxLocal]@%p\n", &hws[threadIdxLocal]);
+        hws[threadIdxLocal] = 0;  // used by prefix scan...
+      }
 
       // count neighbours
-      if (0 == threadIdxLocal)
-        printf("zt@%p, ezt2@%p, nn@%p, izt@%p\n", zt, ezt2, nn, izt);
+      //if (0 == threadIdxLocal) {
+      //  printf("zt@%p, ezt2@%p, nn@%p, izt@%p\n", zt, ezt2, nn, izt);
+      //  printf("off_@%p=[.., %d, %d, %d...]\n", hist.off_, hist.off_[126], hist.off_[127], hist.off_[128]);
+      //}
       alpaka::syncBlockThreads(acc);
       for (auto i : cms::alpakatools::elements_with_stride(acc, nt)) {
         if (ezt2[i] > er2mx)
           continue;
         auto loop = [&](uint32_t j) {
-          printf("chk 1\n");
+          //printf("chk 1\n");
           if (i == j)
             return;
-          printf("chk 2\n");
+          //printf("chk 2\n");
           auto dist = std::abs(zt[i] - zt[j]);
-          printf("chk 3\n");
+          //printf("chk 3\n");
           if (dist > eps)
             return;
-          printf("chk 4\n");
+          //printf("chk 4\n");
           if (dist * dist > chi2max * (ezt2[i] + ezt2[j]))
             return;
-          printf("chk 5\n");
+          //printf("chk 5\n");
           nn[i]++;
-          printf("chk 6\n");
+          //printf("chk 6\n");
         };
 
-        printf("chk B1, hist@%p, threadIdxLocal=%d\n", &hist, threadIdxLocal);
+        //printf("chk B1, hist@%p, threadIdxLocal=%doff_@%p=[.., %d, %d, %d...]\n", &hist, threadIdxLocal,
+          //      hist.off_, hist.off_[126], hist.off_[127], hist.off_[128]);
         cms::alpakatools::forEachInBins(hist, izt[i], 1, loop);
-        printf("chk B2, threadIdxLocal=%d\n", threadIdxLocal);
+        //printf("chk B2, threadIdxLocal=%d\n", threadIdxLocal);
       }
 
       alpaka::syncBlockThreads(acc);
@@ -263,8 +283,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       alpaka::syncBlockThreads(acc);
 #endif
 
-      // TODO: other shared variable!
-      auto& foundClusters = alpaka::declareSharedVar<unsigned int, __COUNTER__>(acc);
       foundClusters = 0;
       alpaka::syncBlockThreads(acc);
 
@@ -365,13 +383,15 @@ namespace alpaka::trait {
       using Hist = cms::alpakatools::HistoContainerRuntimeSized<uint8_t, 8, uint16_t>;
       constexpr uint32_t nHists = 1;
       constexpr std::size_t histAlignedSize = ((sizeof(Hist) - 1) / sizeof(std::max_align_t) + 1) * sizeof(std::max_align_t);
-      std::size_t histOffsSize = nHists /* = 1 */  * nBins + 1;
+      std::size_t histOffsSize = (nHists /* = 1 */  * nBins + 1) * sizeof(Hist::Counter);
       std::size_t histOffsAlignedByteSize = ((histOffsSize - 1) / sizeof(std::max_align_t) + 1) * sizeof(std::max_align_t);
       std::size_t histBinsSize = size;
       std::size_t histBinsAlignedByteSize = ((histBinsSize - 1) / sizeof(std::max_align_t) + 1) * sizeof(std::max_align_t);
       std::size_t hwsSize = 32 * sizeof(Hist::Counter);
       std::size_t hwsAlignedByteSize = ((hwsSize - 1) / sizeof(std::max_align_t) + 1) * sizeof(std::max_align_t);
-      return  histAlignedSize + histOffsAlignedByteSize + histBinsAlignedByteSize + hwsAlignedByteSize;
+      std::size_t foundClustersBize = sizeof(unsigned int);
+      std::size_t foundAlignedByteSize = ((foundClustersBize - 1) / sizeof(std::max_align_t) + 1) * sizeof(std::max_align_t);
+      return  histAlignedSize + histOffsAlignedByteSize + histBinsAlignedByteSize + hwsAlignedByteSize + foundAlignedByteSize;
     }
   };
 } // namespace alpaka::trait
