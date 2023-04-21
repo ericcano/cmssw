@@ -114,12 +114,8 @@ namespace cms {
       int be = std::min(int(hist.nbins() - 1), bs + n);
       bs = std::max(0, bs - n);
       ALPAKA_ASSERT_OFFLOAD(be >= bs);
-      for (auto pj = hist.begin(bs); pj < hist.end(be); ++pj) {
-        //if (0 == threadIdxLocal)
-          printf("&*pj@%p, pj@%p\n", &*pj, pj);
-          printf(">>>>> *pj=%d\n", *pj);
+      for (auto pj = hist.begin(bs); pj < hist.end(be); ++pj)
         func(*pj);
-      }
     }
 
 //    // iteratate over N bins left and right of the one containing "v"
@@ -309,8 +305,6 @@ namespace cms {
       constexpr index_type const *end() const { return begin() + size(); }
 
       constexpr index_type const *begin(uint32_t b) const { 
-        printf("In HistoContainer::begin(): bins@%p, off@%p, b=%d, off[d]=%d/%x\n", 
-          bins, off, b, off[b], off[b]);
         return bins + off[b];
       }
       constexpr index_type const *end(uint32_t b) const { return bins + off[b + 1]; }
@@ -371,13 +365,8 @@ namespace cms {
 
       template <typename TAcc>
       ALPAKA_FN_ACC ALPAKA_FN_INLINE void add(const TAcc &acc, CountersOnly const &co) {
-        for (uint32_t i = 0; i < totbins(); ++i) {
-          printf("In HistoContainerRuntimeSized::add(): off_[i=%d]=%d, co.off_[i=%d]=%d\n",
-                  i, off_[i], i, co.off_[i]);
+        for (uint32_t i = 0; i < totbins(); ++i)
           alpaka::atomicAdd(acc, off_ + i, co.off_[i], alpaka::hierarchy::Blocks{});
-          printf("In HistoContainerRuntimeSized::add() (post add): off_[i=%d]=%d, co.off_[i=%d]=%d\n",
-                  i, off_[i], i, co.off_[i]);
-        }
       }
 
       template <typename TAcc>
@@ -393,26 +382,20 @@ namespace cms {
       template <typename TAcc>
       ALPAKA_FN_ACC ALPAKA_FN_INLINE void countDirect(const TAcc &acc, T b) {
         ALPAKA_ASSERT_OFFLOAD(b < nbins());
-        printf("In HistoContainerRuntimeSized::countDirect(): off_[b=%d]=%d\n", b, off_[b]);
         atomicIncrement(acc, off_[b]);
-        printf("In HistoContainerRuntimeSized::countDirect() (post): off_[b=%d]=%d\n", b, off_[b]);
       }
 
       template <typename TAcc>
       ALPAKA_FN_ACC ALPAKA_FN_INLINE void fillDirect(const TAcc &acc, T b, index_type j) {
         ALPAKA_ASSERT_OFFLOAD(b < nbins());
-        printf("In HistoContainerRuntimeSized::fillDirect(): off_[b=%d]=%d\n", b, off_[b]);
         auto w = atomicDecrement(acc, off_[b]);
         ALPAKA_ASSERT_OFFLOAD(w > 0);
-        printf("In HistoContainerRuntimeSized::fillDirect() (mid): bins_[w=%d - 1]=%d\n", w, bins_[w - 1]);
         bins_[w - 1] = j;
-        printf("In HistoContainerRuntimeSized::fillDirect() (post): j=%d, bins_[w=%d - 1]=%d\n", j, w, bins_[w - 1]);
       }
 
       template <typename TAcc>
       ALPAKA_FN_ACC ALPAKA_FN_INLINE int32_t
       bulkFill(const TAcc &acc, AtomicPairCounter &apc, index_type const *v, uint32_t n) {
-        printf("In HistoContainerRuntimeSized::AtomicPairCounter()\n");
         auto c = apc.add(acc, n);
         if (c.m >= nbins())
           return -int32_t(c.m);
@@ -424,13 +407,11 @@ namespace cms {
 
       template <typename TAcc>
       ALPAKA_FN_ACC ALPAKA_FN_INLINE void bulkFinalize(const TAcc &acc, AtomicPairCounter const &apc) {
-        printf("In HistoContainerRuntimeSized::bulkFinalize()\n");
         off_[apc.get().m] = apc.get().n;
       }
 
       template <typename TAcc>
       ALPAKA_FN_ACC ALPAKA_FN_INLINE void bulkFinalizeFill(const TAcc &acc, AtomicPairCounter const &apc) {
-        printf("In HistoContainerRuntimeSized::bulkFinalizeFill()\n");
         auto m = apc.get().m;
         auto n = apc.get().n;
 
@@ -445,51 +426,30 @@ namespace cms {
       template <typename TAcc>
       ALPAKA_FN_ACC ALPAKA_FN_INLINE void count(const TAcc &acc, T t) {
         uint32_t b = bin(t);
-        //printf("In HistoContainerRuntimeSized::count(2 args): b=bin(t=%d)=%d, off_[b]=%d\n", t, b, off_[b]);
         ALPAKA_ASSERT_OFFLOAD(b < nbins());
         atomicIncrement(acc, off_[b]);
-        //auto o = off_[b];
-        //printf("In HistoContainerRuntimeSized::count(2 args) (post): off_[b]=%d/%x\n", o,o);
-        //ALPAKA_ASSERT_OFFLOAD(o < capacity());
-        //if (o >= capacity()) printf("In count(const TAcc &acc, T t): o=%d > capacity()=%d\n", o, capacity());
       }
 
       template <typename TAcc>
       ALPAKA_FN_ACC ALPAKA_FN_INLINE void fill(const TAcc &acc, T t, index_type j) {
         uint32_t b = bin(t);
-        printf("In HistoContainerRuntimeSized::fill(2 args): b=bin(t=%d)=%d, off_[b]=%d/%x\n", t, b, off_[b], off_[b]);
         ALPAKA_ASSERT_OFFLOAD(b < nbins());
         auto w = atomicDecrement(acc, off_[b]);
-        auto o = off_[b];
-        printf("In HistoContainerRuntimeSized::fill(2 args) (post-1): off_[b]=%d, w=%d, bins@%p, bins[w - 1]@%p, j=%d/%x "
-                "off_@%p=[.., %d/%x, %d/%x, %d/%x...]\n", 
-          o, w, bins_, &(bins_[w - 1]), j, j, off_, off_[126], off_[126], off_[127], off_[127], off_[128], off_[128]);
-        if (w <= 0) printf("In HistoContainerRuntimeSized::fill(2 args) (post): Error: w<=0\n");
         ALPAKA_ASSERT_OFFLOAD(w > 0);
         bins_[w - 1] = j;
-        printf("In HistoContainerRuntimeSized::fill(2 args) (post-2): off_@%p="
-                "[.., %d/%x, %d/%x, %d/%x, %d/%x, %d/%x, %d/%x, %d/%x, %d/%x, %d/%x...] ([@%p ... @%p])\n",
-                off_, off_[126], off_[126], off_[127], off_[127], off_[128], off_[128], off_[129], off_[129], off_[130], off_[130], 
-                off_[131], off_[131], off_[132], off_[132], off_[133], off_[133], off_[134], off_[134], &(off_[126]), &(off_[134]));
       }
 
       template <typename TAcc>
       ALPAKA_FN_ACC ALPAKA_FN_INLINE void count(const TAcc &acc, T t, uint32_t nh) {
-        printf("In HistoContainerRuntimeSized::count(3 args)\n");
         uint32_t b = bin(t);
         ALPAKA_ASSERT_OFFLOAD(b < nbins());
         b += histOff(nh);
         ALPAKA_ASSERT_OFFLOAD(b < totbins());
         atomicIncrement(acc, off_[b]);
-        auto o = off_[b];
-        ALPAKA_ASSERT_OFFLOAD(o < capacity());
-        if (o >= capacity()) printf("In count(const TAcc &acc, T t, uint32_t nh): o=%d > capacity()=%d\n", o, capacity());
-        ALPAKA_ASSERT_OFFLOAD(false);
       }
 
       template <typename TAcc>
       ALPAKA_FN_ACC ALPAKA_FN_INLINE void fill(const TAcc &acc, T t, index_type j, uint32_t nh) {
-        printf("In HistoContainerRuntimeSized::fill(3 args)\n");
         uint32_t b = bin(t);
         ALPAKA_ASSERT_OFFLOAD(b < nbins());
         b += histOff(nh);
@@ -501,7 +461,6 @@ namespace cms {
 
       template <typename TAcc>
       ALPAKA_FN_ACC ALPAKA_FN_INLINE void finalize(const TAcc &acc, Counter *ws = nullptr) {
-        printf("In HistoContainerRuntimeSized::finalize(): off_@%p=[.., %d, %d, %d...], totbins()=%d, ws=@%p\n", off_, off_[126], off_[127], off_[128], totbins(), ws);
         ALPAKA_ASSERT_OFFLOAD(off_[totbins() - 1] == 0);
         blockPrefixScan(acc, off_, totbins(), ws);
         ALPAKA_ASSERT_OFFLOAD(off_[totbins() - 1] == off_[totbins() - 2]);
@@ -514,16 +473,9 @@ namespace cms {
       constexpr index_type const *end() const { return begin() + size(); }
 
       constexpr index_type const *begin(uint32_t b) const { 
-        printf("In HistoContainerRuntimeSized::begin(): bins_@%p, off_@%p=[.., %d, %d, %d...], off_[b=%d]=%d/%x\n", 
-                bins_, off_, off_[126], off_[127], off_[128], b, off_[b], off_[b]);
-        if (off_[b] > capacity()) printf  ("In HistoContainerRuntimeSized::begin(): Error off_[b=%d]=%d > capacity()=%d\n", b, off_[b], capacity());
         return bins_ + off_[b]; 
       }
       constexpr index_type const *end(uint32_t b) const { 
-        printf("In HistoContainerRuntimeSized::end(): bins_@%p, off_@%p=[..., %d, %d, %d...], b=%d, off_[d]=%d\n", 
-                bins_, off_, off_[126], off_[127], off_[128], b + 1, off_[b + 1]);
-        if (off_[b + 1] > capacity()) printf  ("In HistoContainerRuntimeSized::end(): Error off_[b + 1 = %d]=%d > capacity()=%d\n", 
-                b+1, off_[b+1], capacity());
         return bins_ + off_[b + 1]; 
       }
 
