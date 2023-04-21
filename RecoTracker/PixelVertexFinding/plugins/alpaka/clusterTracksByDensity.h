@@ -64,7 +64,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       // using Hist = cms::alpakatools::HistoContainerFixedSize<T= uint8_t,  256, uint32_t NBINS =  16000,
       //    int32_t SIZE =   8, uint32_t S = sizeof(T) * 8, I = uint16_t(, uint32_t NHISTS = (default) 1)>;
       constexpr uint32_t nHists = 1;
-      using Hist = cms::alpakatools::HistoContainerRuntimeSized<uint8_t, 8, uint16_t>;
+      using Hist = cms::alpakatools::HistoContainer<uint8_t, 8, uint16_t>;
       // The buffer will  contain:
       // - The histo container structure
       // - The SoA(s?) containing the data storage for it, and for the hws array (Hist::Counter[32])
@@ -331,12 +331,12 @@ namespace alpaka::trait {
         int32_t size)   // maximum number of elements) -> std::size_t
     {
       // The shared memory contains:
-      // - The (fixed size) HistoContainerRuntimeSized object
+      // - The (fixed size) HistoContainer object
       // - The offsets array
       // - The bins array
       // - The hws (hist work space?) array.
       // On top of that, things should be aligned to 
-      using Hist = cms::alpakatools::HistoContainerRuntimeSized<uint8_t, 8, uint16_t>;
+      using Hist = cms::alpakatools::HistoContainer<uint8_t, 8, uint16_t>;
       constexpr uint32_t nHists = 1;
       constexpr std::size_t histAlignedSize = ((sizeof(Hist) - 1) / sizeof(std::max_align_t) + 1) * sizeof(std::max_align_t);
       std::size_t histOffsSize = (nHists /* = 1 */  * nBins + 1) * sizeof(Hist::Counter);

@@ -38,6 +38,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                bool useDensity,
                bool useDBSCAN,
                bool useIterative,
+               uint32_t nBins,
+               int32_t size,
                int iminT,      // min number of neighbours to be "core"
                float ieps,     // max absolute distance to cluster
                float ierrmax,  // max error to be "seed"
@@ -47,6 +49,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             useDensity_(useDensity),
             useDBSCAN_(useDBSCAN),
             useIterative_(useIterative),
+            nBins_(nBins),
+            size_(size),
             minT(iminT),
             eps(ieps),
             errmax(ierrmax),
@@ -61,6 +65,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       const bool useDensity_;
       const bool useDBSCAN_;
       const bool useIterative_;
+      
+      const uint32_t nBins_;
+      const int32_t size_;
 
       int minT;       // min number of neighbours to be "core"
       float eps;      // max absolute distance to cluster

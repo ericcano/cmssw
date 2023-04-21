@@ -13,9 +13,6 @@
 
 #include "HeterogeneousCore/AlpakaInterface/interface/memory.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/workdivision.h"
-
-//#define NDEBUG
-
 namespace cms {
   namespace alpakatools {
 
@@ -109,30 +106,14 @@ namespace cms {
     // iteratate over N bins left and right of the one containing "v"
     template <typename Hist, typename V, typename Func>
     ALPAKA_FN_ACC ALPAKA_FN_INLINE void forEachInBins(Hist const &hist, V value, int n, Func func) {
-      //const uint32_t threadIdxLocal(alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]);
       int bs = hist.bin(value);
       int be = std::min(int(hist.nbins() - 1), bs + n);
       bs = std::max(0, bs - n);
       ALPAKA_ASSERT_OFFLOAD(be >= bs);
-      for (auto pj = hist.begin(bs); pj < hist.end(be); ++pj)
+      for (auto pj = hist.begin(bs); pj < hist.end(be); ++pj) {
         func(*pj);
+      }
     }
-
-//    // iteratate over N bins left and right of the one containing "v"
-//    template <typename Hist, typename V, typename Func>
-//    ALPAKA_FN_ACC ALPAKA_FN_INLINE void forEachInBins(Hist const &hist, V value, int n, Func func) {
-//      //const uint32_t threadIdxLocal(alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]);
-//      int bs = hist.bin(value);
-//      int be = std::min(int(hist.nbins() - 1), bs + n);
-//      bs = std::max(0, bs - n);
-//      ALPAKA_ASSERT_OFFLOAD(be >= bs);
-//      for (auto pj = hist.begin(bs); pj < hist.end(be); ++pj) {
-//        //if (0 == threadIdxLocal)
-//          printf("&*pj@%p, pj@%p\n", &*pj, pj);
-//          printf(">>>>> *pj=%d\n", *pj);
-//        func(*pj);
-//      }
-//    }
 
     // iteratate over bins containing all values in window wmin, wmax
     template <typename Hist, typename V, typename Func>
@@ -144,6 +125,174 @@ namespace cms {
         func(*pj);
       }
     }
+
+    template <typename T,                  // the type of the discretized input values
+              uint32_t S = sizeof(T) * 8,  // number of significant bits in T
+              typename I = uint32_t,  // type stored in the container (usually an index in a vector of the input values)
+              uint32_t NHISTS = 1     // number of histos stored
+              >
+    class HistoContainer {
+    public:
+      using Counter = uint32_t;
+
+      using CountersOnly = HistoContainer<T, S, I, NHISTS>;
+      
+      using index_type = I;
+      using UT = typename std::make_unsigned<T>::type;
+
+      static constexpr uint32_t ilog2(uint32_t v) {
+        constexpr uint32_t b[] = {0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000};
+        constexpr uint32_t s[] = {1, 2, 4, 8, 16};
+
+        uint32_t r = 0;  // result of log2(v) will go here
+        for (auto i = 4; i >= 0; i--)
+          if (v & b[i]) {
+            v >>= s[i];
+            r |= s[i];
+          }
+        return r;
+      }
+
+      ALPAKA_FN_ACC ALPAKA_FN_INLINE HistoContainer(uint32_t nbins, int32_t size, Counter *off, index_type *bins):
+        nbins_(nbins), size_(size), off_(off), bins_(bins) {}
+
+      static constexpr uint32_t sizeT() { return S; }
+      constexpr uint32_t nbins() const { return nbins_; }
+      static constexpr uint32_t nhists() { return NHISTS; }
+      constexpr uint32_t totbins() const { return NHISTS * nbins_ + 1; }
+      constexpr uint32_t nbits() const { return ilog2(nbins_ - 1) + 1; }
+      constexpr uint32_t capacity() const { return size_; }
+
+      constexpr auto histOff(uint32_t nh) const { return nbins_ * nh; }
+
+      constexpr UT bin(T t) const {
+        uint32_t shift = sizeT() - nbits();
+        uint32_t mask = (1 << nbits()) - 1;
+        return (t >> shift) & mask;
+      }
+
+      ALPAKA_FN_ACC ALPAKA_FN_INLINE void zero() {
+        for (uint32_t i = 0; i < totbins(); i++)
+          off_[i] = 0;
+      }
+
+      template <typename TAcc>
+      ALPAKA_FN_ACC ALPAKA_FN_INLINE void add(const TAcc &acc, CountersOnly const &co) {
+        for (uint32_t i = 0; i < totbins(); ++i)
+          alpaka::atomicAdd(acc, off_ + i, co.off_[i], alpaka::hierarchy::Blocks{});
+      }
+
+      template <typename TAcc>
+      ALPAKA_FN_ACC ALPAKA_FN_INLINE static uint32_t atomicIncrement(const TAcc &acc, Counter &x) {
+        return alpaka::atomicAdd(acc, &x, 1u, alpaka::hierarchy::Blocks{});
+      }
+
+      template <typename TAcc>
+      ALPAKA_FN_ACC ALPAKA_FN_INLINE static uint32_t atomicDecrement(const TAcc &acc, Counter &x) {
+        return alpaka::atomicSub(acc, &x, 1u, alpaka::hierarchy::Blocks{});
+      }
+
+      template <typename TAcc>
+      ALPAKA_FN_ACC ALPAKA_FN_INLINE void countDirect(const TAcc &acc, T b) {
+        ALPAKA_ASSERT_OFFLOAD(b < nbins());
+        atomicIncrement(acc, off_[b]);
+      }
+
+      template <typename TAcc>
+      ALPAKA_FN_ACC ALPAKA_FN_INLINE void fillDirect(const TAcc &acc, T b, index_type j) {
+        ALPAKA_ASSERT_OFFLOAD(b < nbins());
+        auto w = atomicDecrement(acc, off_[b]);
+        ALPAKA_ASSERT_OFFLOAD(w > 0);
+        bins_[w - 1] = j;
+      }
+
+      template <typename TAcc>
+      ALPAKA_FN_ACC ALPAKA_FN_INLINE int32_t
+      bulkFill(const TAcc &acc, AtomicPairCounter &apc, index_type const *v, uint32_t n) {
+        auto c = apc.add(acc, n);
+        if (c.m >= nbins())
+          return -int32_t(c.m);
+        off_[c.m] = c.n;
+        for (uint32_t j = 0; j < n; ++j)
+          bins_[c.n + j] = v[j];
+        return c.m;
+      }
+
+      template <typename TAcc>
+      ALPAKA_FN_ACC ALPAKA_FN_INLINE void bulkFinalize(const TAcc &acc, AtomicPairCounter const &apc) {
+        off_[apc.get().m] = apc.get().n;
+      }
+
+      template <typename TAcc>
+      ALPAKA_FN_ACC ALPAKA_FN_INLINE void bulkFinalizeFill(const TAcc &acc, AtomicPairCounter const &apc) {
+        auto m = apc.get().m;
+        auto n = apc.get().n;
+
+        if (m >= nbins()) {  // overflow!
+          off_[nbins()] = uint32_t(off_[nbins() - 1]);
+          return;
+        }
+
+        for_each_element_in_grid_strided(acc, totbins(), m, [&](uint32_t i) { off_[i] = n; });
+      }
+
+      template <typename TAcc>
+      ALPAKA_FN_ACC ALPAKA_FN_INLINE void count(const TAcc &acc, T t) {
+        uint32_t b = bin(t);
+        ALPAKA_ASSERT_OFFLOAD(b < nbins());
+        atomicIncrement(acc, off_[b]);
+      }
+
+      template <typename TAcc>
+      ALPAKA_FN_ACC ALPAKA_FN_INLINE void fill(const TAcc &acc, T t, index_type j) {
+        uint32_t b = bin(t);
+        ALPAKA_ASSERT_OFFLOAD(b < nbins());
+        auto w = atomicDecrement(acc, off_[b]);
+        ALPAKA_ASSERT_OFFLOAD(w > 0);
+        bins_[w - 1] = j;
+      }
+
+      template <typename TAcc>
+      ALPAKA_FN_ACC ALPAKA_FN_INLINE void count(const TAcc &acc, T t, uint32_t nh) {
+        uint32_t b = bin(t);
+        ALPAKA_ASSERT_OFFLOAD(b < nbins());
+        b += histOff(nh);
+        ALPAKA_ASSERT_OFFLOAD(b < totbins());
+        atomicIncrement(acc, off_[b]);
+      }
+
+      template <typename TAcc>
+      ALPAKA_FN_ACC ALPAKA_FN_INLINE void fill(const TAcc &acc, T t, index_type j, uint32_t nh) {
+        uint32_t b = bin(t);
+        ALPAKA_ASSERT_OFFLOAD(b < nbins());
+        b += histOff(nh);
+        ALPAKA_ASSERT_OFFLOAD(b < totbins());
+        auto w = atomicDecrement(acc, off_[b]);
+        ALPAKA_ASSERT_OFFLOAD(w > 0);
+        bins_[w - 1] = j;
+      }
+
+      template <typename TAcc>
+      ALPAKA_FN_ACC ALPAKA_FN_INLINE void finalize(const TAcc &acc, Counter *ws = nullptr) {
+        ALPAKA_ASSERT_OFFLOAD(off_[totbins() - 1] == 0);
+        blockPrefixScan(acc, off_, totbins(), ws);
+        ALPAKA_ASSERT_OFFLOAD(off_[totbins() - 1] == off_[totbins() - 2]);
+      }
+
+      constexpr auto size() const { return uint32_t(off_[totbins() - 1]); }
+      constexpr auto size(uint32_t b) const { return off_[b + 1] - off_[b]; }
+
+      constexpr index_type const *begin() const { return bins_; }
+      constexpr index_type const *end() const { return begin() + size(); }
+
+      constexpr index_type const *begin(uint32_t b) const { return bins_ + off_[b]; }
+      constexpr index_type const *end(uint32_t b) const { return bins_ + off_[b + 1]; }
+
+      const uint32_t nbins_;
+      const int32_t size_;
+      Counter *off_; // [tobins()]
+      index_type *bins_;   // [capacity()]
+   };
 
     template <typename T,                  // the type of the discretized input values
               uint32_t NBINS,              // number of bins //TODO: WTPM is going on here!?!
@@ -304,186 +453,12 @@ namespace cms {
       constexpr index_type const *begin() const { return bins; }
       constexpr index_type const *end() const { return begin() + size(); }
 
-      constexpr index_type const *begin(uint32_t b) const { 
-        return bins + off[b];
-      }
+      constexpr index_type const *begin(uint32_t b) const { return bins + off[b]; }
       constexpr index_type const *end(uint32_t b) const { return bins + off[b + 1]; }
 
       Counter off[totbins()];
       index_type bins[capacity()];
     };
-
-    template <typename T,                  // the type of the discretized input values
-              uint32_t S = sizeof(T) * 8,  // number of significant bits in T
-              typename I = uint32_t,  // type stored in the container (usually an index in a vector of the input values)
-              uint32_t NHISTS = 1     // number of histos stored
-              >
-    class HistoContainerRuntimeSized {
-    public:
-      using Counter = uint32_t;
-
-      using CountersOnly = HistoContainerRuntimeSized<T, S, I, NHISTS>;
-      
-      using index_type = I;
-      using UT = typename std::make_unsigned<T>::type;
-
-      static constexpr uint32_t ilog2(uint32_t v) {
-        constexpr uint32_t b[] = {0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000};
-        constexpr uint32_t s[] = {1, 2, 4, 8, 16};
-
-        uint32_t r = 0;  // result of log2(v) will go here
-        for (auto i = 4; i >= 0; i--)
-          if (v & b[i]) {
-            v >>= s[i];
-            r |= s[i];
-          }
-        return r;
-      }
-
-      ALPAKA_FN_ACC ALPAKA_FN_INLINE HistoContainerRuntimeSized(uint32_t nbins, int32_t size, Counter *off, index_type *bins):
-        nbins_(nbins), size_(size), off_(off), bins_(bins) {}
-
-      static constexpr uint32_t sizeT() { return S; }
-      constexpr uint32_t nbins() const { return nbins_; }
-      static constexpr uint32_t nhists() { return NHISTS; }
-      constexpr uint32_t totbins() const { return NHISTS * nbins_ + 1; }
-      constexpr uint32_t nbits() const { return ilog2(nbins_ - 1) + 1; }
-      constexpr uint32_t capacity() const { return size_; }
-
-      constexpr auto histOff(uint32_t nh) const { return nbins_ * nh; }
-
-      constexpr UT bin(T t) const {
-        uint32_t shift = sizeT() - nbits();
-        uint32_t mask = (1 << nbits()) - 1;
-        return (t >> shift) & mask;
-      }
-
-      ALPAKA_FN_ACC ALPAKA_FN_INLINE void zero() {
-        for (uint32_t i = 0; i < totbins(); i++)
-          off_[i] = 0;
-      }
-
-      template <typename TAcc>
-      ALPAKA_FN_ACC ALPAKA_FN_INLINE void add(const TAcc &acc, CountersOnly const &co) {
-        for (uint32_t i = 0; i < totbins(); ++i)
-          alpaka::atomicAdd(acc, off_ + i, co.off_[i], alpaka::hierarchy::Blocks{});
-      }
-
-      template <typename TAcc>
-      ALPAKA_FN_ACC ALPAKA_FN_INLINE static uint32_t atomicIncrement(const TAcc &acc, Counter &x) {
-        return alpaka::atomicAdd(acc, &x, 1u, alpaka::hierarchy::Blocks{});
-      }
-
-      template <typename TAcc>
-      ALPAKA_FN_ACC ALPAKA_FN_INLINE static uint32_t atomicDecrement(const TAcc &acc, Counter &x) {
-        return alpaka::atomicSub(acc, &x, 1u, alpaka::hierarchy::Blocks{});
-      }
-
-      template <typename TAcc>
-      ALPAKA_FN_ACC ALPAKA_FN_INLINE void countDirect(const TAcc &acc, T b) {
-        ALPAKA_ASSERT_OFFLOAD(b < nbins());
-        atomicIncrement(acc, off_[b]);
-      }
-
-      template <typename TAcc>
-      ALPAKA_FN_ACC ALPAKA_FN_INLINE void fillDirect(const TAcc &acc, T b, index_type j) {
-        ALPAKA_ASSERT_OFFLOAD(b < nbins());
-        auto w = atomicDecrement(acc, off_[b]);
-        ALPAKA_ASSERT_OFFLOAD(w > 0);
-        bins_[w - 1] = j;
-      }
-
-      template <typename TAcc>
-      ALPAKA_FN_ACC ALPAKA_FN_INLINE int32_t
-      bulkFill(const TAcc &acc, AtomicPairCounter &apc, index_type const *v, uint32_t n) {
-        auto c = apc.add(acc, n);
-        if (c.m >= nbins())
-          return -int32_t(c.m);
-        off_[c.m] = c.n;
-        for (uint32_t j = 0; j < n; ++j)
-          bins_[c.n + j] = v[j];
-        return c.m;
-      }
-
-      template <typename TAcc>
-      ALPAKA_FN_ACC ALPAKA_FN_INLINE void bulkFinalize(const TAcc &acc, AtomicPairCounter const &apc) {
-        off_[apc.get().m] = apc.get().n;
-      }
-
-      template <typename TAcc>
-      ALPAKA_FN_ACC ALPAKA_FN_INLINE void bulkFinalizeFill(const TAcc &acc, AtomicPairCounter const &apc) {
-        auto m = apc.get().m;
-        auto n = apc.get().n;
-
-        if (m >= nbins()) {  // overflow!
-          off_[nbins()] = uint32_t(off_[nbins() - 1]);
-          return;
-        }
-
-        for_each_element_in_grid_strided(acc, totbins(), m, [&](uint32_t i) { off_[i] = n; });
-      }
-
-      template <typename TAcc>
-      ALPAKA_FN_ACC ALPAKA_FN_INLINE void count(const TAcc &acc, T t) {
-        uint32_t b = bin(t);
-        ALPAKA_ASSERT_OFFLOAD(b < nbins());
-        atomicIncrement(acc, off_[b]);
-      }
-
-      template <typename TAcc>
-      ALPAKA_FN_ACC ALPAKA_FN_INLINE void fill(const TAcc &acc, T t, index_type j) {
-        uint32_t b = bin(t);
-        ALPAKA_ASSERT_OFFLOAD(b < nbins());
-        auto w = atomicDecrement(acc, off_[b]);
-        ALPAKA_ASSERT_OFFLOAD(w > 0);
-        bins_[w - 1] = j;
-      }
-
-      template <typename TAcc>
-      ALPAKA_FN_ACC ALPAKA_FN_INLINE void count(const TAcc &acc, T t, uint32_t nh) {
-        uint32_t b = bin(t);
-        ALPAKA_ASSERT_OFFLOAD(b < nbins());
-        b += histOff(nh);
-        ALPAKA_ASSERT_OFFLOAD(b < totbins());
-        atomicIncrement(acc, off_[b]);
-      }
-
-      template <typename TAcc>
-      ALPAKA_FN_ACC ALPAKA_FN_INLINE void fill(const TAcc &acc, T t, index_type j, uint32_t nh) {
-        uint32_t b = bin(t);
-        ALPAKA_ASSERT_OFFLOAD(b < nbins());
-        b += histOff(nh);
-        ALPAKA_ASSERT_OFFLOAD(b < totbins());
-        auto w = atomicDecrement(acc, off_[b]);
-        ALPAKA_ASSERT_OFFLOAD(w > 0);
-        bins_[w - 1] = j;
-      }
-
-      template <typename TAcc>
-      ALPAKA_FN_ACC ALPAKA_FN_INLINE void finalize(const TAcc &acc, Counter *ws = nullptr) {
-        ALPAKA_ASSERT_OFFLOAD(off_[totbins() - 1] == 0);
-        blockPrefixScan(acc, off_, totbins(), ws);
-        ALPAKA_ASSERT_OFFLOAD(off_[totbins() - 1] == off_[totbins() - 2]);
-      }
-
-      constexpr auto size() const { return uint32_t(off_[totbins() - 1]); }
-      constexpr auto size(uint32_t b) const { return off_[b + 1] - off_[b]; }
-
-      constexpr index_type const *begin() const { return bins_; }
-      constexpr index_type const *end() const { return begin() + size(); }
-
-      constexpr index_type const *begin(uint32_t b) const { 
-        return bins_ + off_[b]; 
-      }
-      constexpr index_type const *end(uint32_t b) const { 
-        return bins_ + off_[b + 1]; 
-      }
-
-      const uint32_t nbins_;
-      const int32_t size_;
-      Counter *off_; // [tobins()]
-      index_type *bins_;   // [capacity()]
-   };
 
     template <typename I,       // type stored in the container (usually an index in a vector of the input values)
               int32_t MAXONES,  // max number of "ones"

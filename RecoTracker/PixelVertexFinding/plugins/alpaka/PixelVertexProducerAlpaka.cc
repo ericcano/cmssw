@@ -67,6 +67,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                  conf.getParameter<bool>("useDensity"),
                  conf.getParameter<bool>("useDBSCAN"),
                  conf.getParameter<bool>("useIterative"),
+                 conf.getParameter<uint32_t>("nBins"),
+                 conf.getParameter<int32_t>("size"),
                  conf.getParameter<int>("minT"),
                  conf.getParameter<double>("eps"),
                  conf.getParameter<double>("errmax"),
@@ -89,6 +91,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     desc.add<bool>("useDensity", true);
     desc.add<bool>("useDBSCAN", false);
     desc.add<bool>("useIterative", false);
+    
+    // Size of histograms and number of tracks
+    desc.add<uint32_t>("nBins", 256);
+    desc.add<int32_t>("size", 16000);
 
     desc.add<int>("minT", 2);          // min number of neighbours to be "core"
     desc.add<double>("eps", 0.07);     // max absolute distance to cluster

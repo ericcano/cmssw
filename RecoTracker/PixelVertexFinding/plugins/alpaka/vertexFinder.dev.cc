@@ -79,9 +79,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                     int minT,      // min number of neighbours to be "seed"
                                     float eps,     // max absolute distance to cluster
                                     float errmax,  // max error to be "seed"
-                                    float chi2max  // max normalized distance to cluster,
+                                    float chi2max, // max normalized distance to cluster,
+                                    uint32_t nBins,// number of bins
+                                    int32_t size   // maximum number of elements
       ) const {
-        clusterTracksByDensity(acc, pdata, pws, minT, eps, errmax, chi2max, 256, 16000 /* TODO: make variables */ );
+        clusterTracksByDensity(acc, pdata, pws, minT, eps, errmax, chi2max, nBins, size);
         alpaka::syncBlockThreads(acc);
         fitVertices(acc, pdata, pws, maxChi2ForFirstFit);
         alpaka::syncBlockThreads(acc);
@@ -102,9 +104,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                     int minT,      // min number of neighbours to be "seed"
                                     float eps,     // max absolute distance to cluster
                                     float errmax,  // max error to be "seed"
-                                    float chi2max  // max normalized distance to cluster,
+                                    float chi2max, // max normalized distance to cluster,
+                                    uint32_t nBins,// number of bins
+                                    int32_t size   // maximum number of elements
       ) const {
-        clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, 256, 16000 /* TODO: make variables */ );
+        clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, nBins, size);
         alpaka::syncBlockThreads(acc);
         fitVertices(pdata, pws, maxChi2ForFirstFit);
       }
@@ -156,7 +160,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         // implemented only for density clustesrs
 #ifndef THREE_KERNELS
         alpaka::exec<Acc1D>(
-            queue, finderSorterWorkDiv, vertexFinderOneKernel{}, soa, ws_d.view(), minT, eps, errmax, chi2max);
+            queue, finderSorterWorkDiv, vertexFinderOneKernel{}, soa, ws_d.view(), minT, eps, errmax, chi2max, nBins_, size_);
 #else
         alpaka::exec<Acc1D>(
             queue, finderSorterWorkDiv, vertexFinderOneKernel{}, soa, ws_d.view(), minT, eps, errmax, chi2max);
@@ -168,7 +172,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       } else {  // five kernels
         if (useDensity_) {
           alpaka::exec<Acc1D>(
-              queue, finderSorterWorkDiv, clusterTracksByDensityKernel{}, soa, ws_d.view(), minT, eps, errmax, chi2max, 256, 16000 /* TODO: make variables */ );
+              queue, finderSorterWorkDiv, clusterTracksByDensityKernel{}, soa, ws_d.view(), minT, eps, errmax, chi2max, nBins_, size_);
 
         } else if (useDBSCAN_) {
           alpaka::exec<Acc1D>(
