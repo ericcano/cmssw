@@ -82,7 +82,7 @@ if __name__ == '__main__':
                      158.01, #reMiniAOD of 2018 HI MC with pp-like reco
                      312.0, #2021/Run3 HI MC Pyquen_ZeemumuJets_pt10 with pp-like reco
                      1306.0, #SingleMu Pt1 UP15
-                     2500.601, #test NanoAOD from existing MINI
+                     2500.4, #test NanoAOD from existing MINI
                      1330, #Run2 2015/2016 MC Zmm
                      135.4, #Run 2 2015/2016 Zee ttbar fastsim
                      10042.0, #2017 ZMM
@@ -97,11 +97,11 @@ if __name__ == '__main__':
                      13434.0, #2021 ttbar PU fastsim
                      12434.0, #2023 ttbar
                      12434.7, #2023 ttbar mkFit
-                     23634.0, #2026D95 ttbar (Phase-2 baseline)
-                     23634.911, #2026D95 ttbar DD4hep XML
-                     23834.999, #2026D95 ttbar premixing stage1+stage2, PU50
-                     23696.0, #CE_E_Front_120um D95
-                     23700.0, #CE_H_Coarse_Scint D95
+                     24834.0, #2026D98 ttbar (Phase-2 baseline)
+                     24834.911, #2026D98 ttbar DD4hep XML
+                     25034.999, #2026D98 ttbar premixing stage1+stage2, PU50
+                     24896.0, #CE_E_Front_120um D98
+                     24900.0, #CE_H_Coarse_Scint D98
                      23234.0, #2026D94 ttbar (exercise with HFNose)
                      25202.0, #2016 ttbar UP15 PU
                      250202.181, #2018 ttbar stage1 + stage2 premix
