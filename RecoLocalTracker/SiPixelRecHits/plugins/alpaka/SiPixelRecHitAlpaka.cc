@@ -7,7 +7,7 @@
 #include "DataFormats/TrackingRecHitSoA/interface/alpaka/TrackingRecHitSoACollection.h"
 #include "DataFormats/Common/interface/Handle.h"
 #include "Geometry/CommonTopologies/interface/SimplePixelTopology.h"
-#include "RecoLocalTracker/SiPixelRecHits/interface/PixelCPEFastParams.h"
+#include "RecoLocalTracker/SiPixelRecHits/interface/alpaka/PixelCPEFastParamsCollection.h"
 
 #include "HeterogeneousCore/AlpakaCore/interface/alpaka/Event.h"
 #include "HeterogeneousCore/AlpakaCore/interface/alpaka/EventSetup.h"
@@ -22,8 +22,6 @@
 #include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
 #include "RecoLocalTracker/Records/interface/TkPixelCPERecord.h"
 #include "RecoLocalTracker/SiPixelRecHits/interface/PixelCPEBase.h"
-#include "RecoLocalTracker/SiPixelRecHits/interface/PixelCPEFastAlpaka.h"
-#include "RecoLocalTracker/SiPixelRecHits/interface/PixelCPEFastParams.h"
 #include "RecoLocalTracker/SiPixelRecHits/interface/pixelCPEforDevice.h"
 
 #include "PixelRecHitGPUKernel.h"
@@ -41,7 +39,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   private:
     void produce(edm::StreamID streamID, device::Event& iEvent, const device::EventSetup& iSetup) const override;
 
-    const device::ESGetToken<pixelCPEforDevice::PixelCPEFastParams<Device, TrackerTraits>, TkPixelCPERecord> cpeToken_;
+    const device::ESGetToken<PixelCPEFastParams<TrackerTraits>, TkPixelCPERecord> cpeToken_;
     const device::EDGetToken<BeamSpotDevice> tBeamSpot;
     const device::EDGetToken<SiPixelClustersSoA> tokenClusters_;
     const device::EDGetToken<SiPixelDigisSoA> tokenDigi_;
@@ -77,9 +75,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                                    device::Event& iEvent,
                                                    const device::EventSetup& es) const {
     auto& fcpe = es.getData(cpeToken_);
-    if (not fcpe.data()) {
-      throw cms::Exception("Configuration") << "SiPixelRecHitAlpaka can only use a CPE of type PixelCPEFast";
-    }
 
     auto const& clusters = iEvent.get(tokenClusters_);
 
@@ -87,7 +82,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     auto const& bs = iEvent.get(tBeamSpot);
 
-    iEvent.emplace(tokenHit_, gpuAlgo_.makeHitsAsync(digis, clusters, bs, fcpe.data(), iEvent.queue()));
+    iEvent.emplace(tokenHit_, gpuAlgo_.makeHitsAsync(digis, clusters, bs, fcpe.const_buffer().data(), iEvent.queue()));
   }
   using SiPixelRecHitAlpakaPhase1 = SiPixelRecHitAlpaka<pixelTopology::Phase1>;
   using SiPixelRecHitAlpakaPhase2 = SiPixelRecHitAlpaka<pixelTopology::Phase2>;

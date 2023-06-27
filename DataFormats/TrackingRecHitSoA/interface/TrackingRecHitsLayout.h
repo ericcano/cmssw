@@ -5,7 +5,7 @@
 #include "Geometry/CommonTopologies/interface/SimplePixelTopology.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/HistoContainer.h"
 #include "DataFormats/SoATemplate/interface/SoALayout.h"
-#include "RecoLocalTracker/SiPixelRecHits/interface/PixelCPEFastParams.h"
+#include "RecoLocalTracker/SiPixelRecHits/interface/pixelCPEforDevice.h"
 #include "SiPixelHitStatus.h"
 
 template <typename TrackerTraits>
