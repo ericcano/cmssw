@@ -20,7 +20,7 @@
 #include "FWCore/Utilities/interface/InputTag.h"
 #include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
 #include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
-#include "RecoLocalTracker/Records/interface/TkPixelCPERecord.h"
+#include "RecoLocalTracker/Records/interface/PixelCPEFastParamsRecord.h"
 #include "RecoLocalTracker/SiPixelRecHits/interface/PixelCPEBase.h"
 #include "RecoLocalTracker/SiPixelRecHits/interface/pixelCPEforDevice.h"
 
@@ -39,7 +39,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   private:
     void produce(edm::StreamID streamID, device::Event& iEvent, const device::EventSetup& iSetup) const override;
 
-    const device::ESGetToken<PixelCPEFastParams<TrackerTraits>, TkPixelCPERecord> cpeToken_;
+    const device::ESGetToken<PixelCPEFastParams<TrackerTraits>, PixelCPEFastParamsRecord> cpeToken_;
     const device::EDGetToken<BeamSpotDevice> tBeamSpot;
     const device::EDGetToken<SiPixelClustersSoA> tokenClusters_;
     const device::EDGetToken<SiPixelDigisSoA> tokenDigi_;
@@ -63,7 +63,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     desc.add<edm::InputTag>("beamSpot", edm::InputTag("offlineBeamSpotDevice"));
     desc.add<edm::InputTag>("src", edm::InputTag("siPixelClustersPreSplittingAlpaka"));
 
-    std::string cpe = "PixelCPEFast";
+    std::string cpe = "PixelCPEFastParams";
     cpe += TrackerTraits::nameModifier;
     desc.add<std::string>("CPE", cpe);
 
