@@ -78,7 +78,7 @@ namespace cms::alpakatools {
   }
 
   // non-cached, pinned, scalar and 1-dimensional host buffers
-  // the memory is pinned according to the device associated to the platform
+  // the memory is pinned according t o the device associated to the platform
 
   template <typename T, typename TPlatform>
   std::enable_if_t<not std::is_array_v<T>, host_buffer<T>> make_host_buffer() {

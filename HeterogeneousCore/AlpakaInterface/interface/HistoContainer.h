@@ -292,11 +292,11 @@ namespace cms {
       index_type bins[capacity()];
     };
 
-    template <typename I,       // type stored in the container (usually an index in a vector of the input values)
-              int32_t MAXONES,  // max number of "ones"
-              int32_t MAXMANYS  // max number of "manys"
-              >
-    using OneToManyAssoc = HistoContainer<uint32_t, MAXONES, MAXMANYS, sizeof(uint32_t) * 8, I, 1>;
+//    template <typename I,       // type stored in the container (usually an index in a vector of the input values)
+//              int32_t MAXONES,  // max number of "ones"
+//              int32_t MAXMANYS  // max number of "manys"
+//              >
+//    using OneToManyAssoc = HistoContainer<uint32_t, MAXONES, MAXMANYS, sizeof(uint32_t) * 8, I, 1>;
 
   }  // namespace alpakatools
 }  // namespace cms
