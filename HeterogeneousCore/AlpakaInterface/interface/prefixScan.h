@@ -19,8 +19,8 @@ namespace cms {
   namespace alpakatools {
 
     // FIXME warpSize should be device-dependent
-    //constexpr uint32_t warpSize = 32;
-    //constexpr uint64_t warpMask = ~(~0ull << warpSize);
+    constexpr uint32_t warpSize = 32;
+    constexpr uint64_t warpMask = ~(~0ull << warpSize);
 
 #if (defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDA_ARCH__)) || \
     (defined(ALPAKA_ACC_GPU_HIP_ENABLED) && defined(__HIP_DEVICE_COMPILE__))
@@ -171,7 +171,7 @@ namespace cms {
         uint32_t const blockDimension(alpaka::getWorkDiv<alpaka::Block, alpaka::Threads>(acc)[0u]);
         uint32_t const threadDimension(alpaka::getWorkDiv<alpaka::Thread, alpaka::Elems>(acc)[0u]);
         uint32_t const blockIdx(alpaka::getIdx<alpaka::Grid, alpaka::Blocks>(acc)[0u]);
-        auto const warpSize = alpaka::warp::getSize(acc);
+        auto constexpr warpSize = 32; /*alpaka::warp::getSize(acc);*/
 
         auto& ws = alpaka::declareSharedVar<T[warpSize], __COUNTER__>(acc);
         // first each block does a scan of size warpSize² (better be enough blocks)
@@ -194,39 +194,39 @@ namespace cms {
     template <typename T>
     struct multiBlockPrefixScanSecondStep {
       template <typename TAcc>
-      ALPAKA_FN_ACC void operator()(const TAcc& acc, T const* ci, T* co, int32_t size, int32_t numBlocks) const {
-        uint32_t const blockDimension(alpaka::getWorkDiv<alpaka::Block, alpaka::Threads>(acc)[0u]);
-        uint32_t const threadDimension(alpaka::getWorkDiv<alpaka::Thread, alpaka::Elems>(acc)[0u]);
-        uint32_t const threadIdx(alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]);
-        auto const warpSize = alpaka::warp::getSize(acc);
-
-        T* const psum = alpaka::getDynSharedMem<T>(acc);
-
-        // first each block does a scan of size warpSize² (better be enough blocks)
-        ALPAKA_ASSERT_OFFLOAD(static_cast<int32_t>(blockDimension * threadDimension) >= numBlocks);
-        for (int elemId = 0; elemId < static_cast<int>(threadDimension); ++elemId) {
-          int index = +threadIdx * threadDimension + elemId;
-
-          if (index < numBlocks) {
-            int lastElementOfPreviousBlockId = index * blockDimension * threadDimension - 1;
-            psum[index] = (lastElementOfPreviousBlockId < size and lastElementOfPreviousBlockId >= 0)
-                              ? co[lastElementOfPreviousBlockId]
-                              : T(0);
-          }
-        }
-
-        alpaka::syncBlockThreads(acc);
-
-        auto& ws = alpaka::declareSharedVar<T[warpSize], __COUNTER__>(acc);
-        blockPrefixScan(acc, psum, psum, numBlocks, ws);
-
-        for (int elemId = 0; elemId < static_cast<int>(threadDimension); ++elemId) {
-          int first = threadIdx * threadDimension + elemId;
-          for (int i = first + blockDimension * threadDimension; i < size; i += blockDimension * threadDimension) {
-            auto k = i / (blockDimension * threadDimension);
-            co[i] += psum[k];
-          }
-        }
+      ALPAKA_FN_ACC void operator()(const TAcc& acc/*, T const* ci, T* co, int32_t size, int32_t numBlocks*/) const {
+//        uint32_t const blockDimension(alpaka::getWorkDiv<alpaka::Block, alpaka::Threads>(acc)[0u]);
+//        uint32_t const threadDimension(alpaka::getWorkDiv<alpaka::Thread, alpaka::Elems>(acc)[0u]);
+//        uint32_t const threadIdx(alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]);
+//        auto const warpSize = alpaka::warp::getSize(acc);
+//
+//        T* const psum = alpaka::getDynSharedMem<T>(acc);
+//
+//        // first each block does a scan of size warpSize² (better be enough blocks)
+//        ALPAKA_ASSERT_OFFLOAD(static_cast<int32_t>(blockDimension * threadDimension) >= numBlocks);
+//        for (int elemId = 0; elemId < static_cast<int>(threadDimension); ++elemId) {
+//          int index = +threadIdx * threadDimension + elemId;
+//
+//          if (index < numBlocks) {
+//            int lastElementOfPreviousBlockId = index * blockDimension * threadDimension - 1;
+//            psum[index] = (lastElementOfPreviousBlockId < size and lastElementOfPreviousBlockId >= 0)
+//                              ? co[lastElementOfPreviousBlockId]
+//                              : T(0);
+//          }
+//        }
+//
+//        alpaka::syncBlockThreads(acc);
+//
+//        auto& ws = alpaka::declareSharedVar<T[warpSize], __COUNTER__>(acc);
+//        blockPrefixScan(acc, psum, psum, numBlocks, ws);
+//
+//        for (int elemId = 0; elemId < static_cast<int>(threadDimension); ++elemId) {
+//          int first = threadIdx * threadDimension + elemId;
+//          for (int i = first + blockDimension * threadDimension; i < size; i += blockDimension * threadDimension) {
+//            auto k = i / (blockDimension * threadDimension);
+//            co[i] += psum[k];
+//          }
+//        }
       }
     };
 
@@ -252,12 +252,12 @@ namespace alpaka::trait {
     ALPAKA_FN_HOST_ACC static std::size_t getBlockSharedMemDynSizeBytes(
         cms::alpakatools::multiBlockPrefixScanSecondStep<T> const& /* kernel */,
         TVec const& /* blockThreadExtent */,
-        TVec const& /* threadElemExtent */,
-        T const* /* ci */,
-        T* /* co */,
-        int32_t /* size */,
-        int32_t numBlocks) {
-      return sizeof(T) * numBlocks;
+        TVec const& /* threadElemExtent *///,
+//        T const* /* ci */,
+//        T* /* co */,
+//        int32_t /* size */,
+        /*int32_t numBlocks*/) {
+      return sizeof(T) /** numBlocks*/;
     }
   };
 }  // namespace alpaka::trait
