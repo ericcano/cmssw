@@ -1,5 +1,6 @@
 #ifndef HeterogeneousCore_AlpakaInterface_interface_prefixScan_h
 #define HeterogeneousCore_AlpakaInterface_interface_prefixScan_h
+// Active version
 
 #include <algorithm>
 #include <cstdint>

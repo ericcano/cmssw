@@ -1,5 +1,6 @@
 #ifndef HeterogeneousCore_AlpakaInterface_interface_prefixScan_h
 #define HeterogeneousCore_AlpakaInterface_interface_prefixScan_h
+// 2-pass version (ref)
 
 #include <algorithm>
 #include <cstdint>
