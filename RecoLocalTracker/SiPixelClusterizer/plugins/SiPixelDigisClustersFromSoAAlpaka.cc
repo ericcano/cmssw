@@ -62,8 +62,8 @@ template <typename TrackerTraits>
 void SiPixelDigisClustersFromSoAAlpaka<TrackerTraits>::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   edm::ParameterSetDescription desc;
   desc.add<edm::InputTag>("src", edm::InputTag("siPixelDigisSoA"));
-  desc.add<int>("clusterThreshold_layer1", kSiPixelClusterThresholdsDefaultPhase1.layer1);
-  desc.add<int>("clusterThreshold_otherLayers", kSiPixelClusterThresholdsDefaultPhase1.otherLayers);
+  desc.add<int32_t>("clusterThreshold_layer1", 4000);
+  desc.add<int32_t>("clusterThreshold_otherLayers", 4000);
   desc.add<bool>("produceDigis", true);
   desc.add<bool>("storeDigis", true);
 

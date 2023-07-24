@@ -96,8 +96,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     edm::ParameterSetDescription desc;
 
     desc.add<bool>("IncludeErrors", true);
-    desc.add<int32_t>("clusterThreshold_layer1", kSiPixelClusterThresholdsDefaultPhase2.layer1);
-    desc.add<int32_t>("clusterThreshold_otherLayers", kSiPixelClusterThresholdsDefaultPhase2.otherLayers);
+    desc.add<int32_t>("clusterThreshold_layer1", 4000);
+    desc.add<int32_t>("clusterThreshold_otherLayers", 4000);
+    desc.add<double>("ElectronPerADCGain", 1500.f);
+    desc.add<uint32_t>("Phase2DigiBaseline", 1000);
+    desc.add<uint32_t>("Phase2KinkADC", 8);
     desc.add<edm::InputTag>("InputDigis", edm::InputTag("simSiPixelDigis:Pixel"));
     descriptions.addWithDefaultLabel(desc);
   }

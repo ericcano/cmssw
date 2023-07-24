@@ -130,8 +130,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     // It is kept to avoid breaking older configurations, and will not be printed in the generated cfi.py file.
     desc.addOptionalNode(edm::ParameterDescription<uint32_t>("MaxFEDWords", 0, true), false)
         ->setComment("This parameter is obsolete and will be ignored.");
-    desc.add<int32_t>("clusterThreshold_layer1", kSiPixelClusterThresholdsDefaultPhase1.layer1);
-    desc.add<int32_t>("clusterThreshold_otherLayers", kSiPixelClusterThresholdsDefaultPhase1.otherLayers);
+    desc.add<int32_t>("clusterThreshold_layer1", 4000);
+    desc.add<int32_t>("clusterThreshold_otherLayers", 4000);
     desc.add<edm::InputTag>("InputLabel", edm::InputTag("rawDataCollector"));
     {
       edm::ParameterSetDescription psd0;
