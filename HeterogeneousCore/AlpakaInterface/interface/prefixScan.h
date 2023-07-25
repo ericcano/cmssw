@@ -35,9 +35,9 @@ namespace cms {
       auto x = ci[i];
       CMS_UNROLL_LOOP
       for (uint32_t offset = 1; offset < warpSize; offset <<= 1) {
-#if defined(__CUDA_ARCH__)
+#if defined(ALPAKA_ACC_GPU_CUDA_ENABLED)
         auto y = __shfl_up_sync(mask, x, offset);
-#elif defined(__HIP_DEVICE_COMPILE__)
+#elif defined(ALPAKA_ACC_GPU_HIP_ENABLED)
         auto y = __shfl_up(x, offset);
 #endif
         if (laneId >= offset)
@@ -54,9 +54,9 @@ namespace cms {
       auto x = c[i];
       CMS_UNROLL_LOOP
       for (uint32_t offset = 1; offset < warpSize; offset <<= 1) {
-#if defined(__CUDA_ARCH__)
+#if defined(ALPAKA_ACC_GPU_CUDA_ENABLED)
         auto y = __shfl_up_sync(mask, x, offset);
-#elif defined(__HIP_DEVICE_COMPILE__)
+#elif defined(ALPAKA_ACC_GPU_HIP_ENABLED)
         auto y = __shfl_up(x, offset);
 #endif
         if (laneId >= offset)
@@ -129,9 +129,9 @@ namespace cms {
       ALPAKA_ASSERT_OFFLOAD(size <= warpSize * warpSize);
       ALPAKA_ASSERT_OFFLOAD(0 == blockDimension % warpSize);
       auto first = blockThreadIdx;
-#if defined(__CUDA_ARCH__)
+#if defined(ALPAKA_ACC_GPU_CUDA_ENABLED)
       auto mask = __ballot_sync(warpMask, first < size);
-#elif defined(__HIP_DEVICE_COMPILE__)
+#elif defined(ALPAKA_ACC_GPU_HIP_ENABLED)
       auto mask = warpMask;
 #endif
       auto laneId = blockThreadIdx & (warpSize - 1);
@@ -142,7 +142,7 @@ namespace cms {
         ALPAKA_ASSERT_OFFLOAD(warpId < warpSize);
         if ((warpSize - 1) == laneId)
           ws[warpId] = c[i];
-#if defined(__CUDA_ARCH__)
+#if defined(ALPAKA_ACC_GPU_CUDA_ENABLED)
         mask = __ballot_sync(mask, i + blockDimension < size);
 #endif
       }

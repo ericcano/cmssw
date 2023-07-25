@@ -60,8 +60,8 @@ template <typename T>
 struct testWarpPrefixScan {
   template <typename TAcc>
   ALPAKA_FN_ACC void operator()(const TAcc& acc, uint32_t size) const {
-#if defined(ALPAKA_ACC_GPU_CUDA_ASYNC_BACKEND) && defined(__CUDA_ARCH__) || \
-    defined(ALPAKA_ACC_GPU_HIP_ASYNC_BACKEND) && defined(__HIP_DEVICE_COMPILE__)
+#if defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDA_ARCH__) || \
+    defined(ALPAKA_ACC_GPU_HIP_ENABLED) && defined(__HIP_DEVICE_COMPILE__)
     assert(size <= 32);
     auto& c = alpaka::declareSharedVar<T[1024], __COUNTER__>(acc);
     auto& co = alpaka::declareSharedVar<T[1024], __COUNTER__>(acc);
@@ -87,6 +87,9 @@ struct testWarpPrefixScan {
       assert(c[i] == static_cast<T>(i + 1));
       assert(c[i] == co[i]);
     }
+#else
+    // We should never be called outsie of the GPU.
+    assert(false);
 #endif
   }
 };
@@ -129,8 +132,8 @@ int main() {
   for (auto const& device : devices) {
     std::cout << "Test prefix scan on " << alpaka::getName(device) << '\n';
     auto queue = Queue(device);
-    // WARP PREFIXSCAN (OBVIOUSLY GPU-ONLY)
-#if defined(ALPAKA_ACC_GPU_CUDA_ASYNC_BACKEND) || defined(ALPAKA_ACC_GPU_HIP_ASYNC_BACKEND)
+    // WARP PREFIXSCAN (OBVIOUSLY GPU-OqNLY)
+#if defined(ALPAKA_ACC_GPU_CUDA_ENABLED) || defined(ALPAKA_ACC_GPU_HIP_ENABLED)
     std::cout << "warp level" << std::endl;
 
     const auto threadsPerBlockOrElementsPerThread = 32;
@@ -140,6 +143,8 @@ int main() {
     alpaka::enqueue(queue, alpaka::createTaskKernel<Acc1D>(workDivWarp, testWarpPrefixScan<int>(), 32));
     alpaka::enqueue(queue, alpaka::createTaskKernel<Acc1D>(workDivWarp, testWarpPrefixScan<int>(), 16));
     alpaka::enqueue(queue, alpaka::createTaskKernel<Acc1D>(workDivWarp, testWarpPrefixScan<int>(), 5));
+    alpaka::wait(queue);
+    std::cout << "... OK" << std::endl;
 #endif
 
     // PORTABLE BLOCK PREFIXSCAN
