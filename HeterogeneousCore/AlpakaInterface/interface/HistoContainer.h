@@ -73,7 +73,7 @@ namespace cms {
 
       const auto workDivWith1Block = make_workdiv<TAcc>(1, threadsPerBlockOrElementsPerThread);
       alpaka::exec<TAcc>(
-          queue, workDivWith1Block, multiBlockPrefixScanSecondStep<uint32_t>()/*, poff, poff, num_items, blocksPerGrid*/);
+          queue, workDivWith1Block, multiBlockPrefixScanSecondStep<uint32_t>(), poff, poff, num_items, blocksPerGrid);
     }
 
     template <typename TAcc, typename Histo, typename T, typename TQueue>
