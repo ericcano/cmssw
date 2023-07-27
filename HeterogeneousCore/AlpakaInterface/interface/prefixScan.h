@@ -235,49 +235,54 @@ namespace cms {
     template <typename T>
     struct multiBlockPrefixScan {
       template <typename TAcc>
-      ALPAKA_FN_ACC void operator()(const TAcc& acc, T const* ci, T* co, int32_t size, int32_t numBlocks) const {
+      ALPAKA_FN_ACC void operator()(const TAcc& acc, T const* ci, T* co, int32_t size, int32_t numBlocks, int32_t* pc) const {
         //volatile T const* ci = ici;
         //volatile T* co = ico;
-        // Get 
+        // Get shared variable.
         auto& ws = alpaka::declareSharedVar<T[warpSizeHardcodedFixme], __COUNTER__>(acc);
     #ifdef __CUDA_ARCH__
         assert(sizeof(T) * gridDim.x <= dynamic_smem_size());  // size of psum below
     #endif
-        assert(alpaka::getWorkDiv<alpaka::Grid, alpaka::Threads>(acc)[0u] >= size);
+        const auto threadsPerGrid = alpaka::getWorkDiv<alpaka::Grid, alpaka::Threads>(acc)[0u];
+        const auto threadsPerBlock = alpaka::getWorkDiv<alpaka::Block, alpaka::Threads>(acc)[0u];
+        const auto blocksPerGrid = alpaka::getWorkDiv<alpaka::Grid, alpaka::Blocks>(acc)[0u];
+        const auto blockIdx = alpaka::getIdx<alpaka::Grid, alpaka::Blocks>(acc)[0u];
+        const auto threadIdx = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u];
+        assert(threadsPerGrid >= size);
         // first each block does a scan
-        int off = blockDim.x * blockIdx.x;
+        int off = threadsPerBlock * blockIdx;
         if (size - off > 0)
-          blockPrefixScan(ci + off, co + off, std::min(int(blockDim.x), size - off), ws);
+          blockPrefixScan(ci + off, co + off, std::min(threadsPerBlock, size - off), ws);
 
         // count blocks that finished
         auto& isLastBlockDone = alpaka::declareSharedVar<bool, __COUNTER__>(acc);
         //__shared__ bool isLastBlockDone;
-        if (0 == threadIdx.x) {
-          __threadfence();
-          auto value = atomicAdd(pc, 1);  // block counter
-          isLastBlockDone = (value == (int(gridDim.x) - 1));
+        if (0 == threadIdx) {
+          alpaka::mem_fence(acc, alpaka::memory_scope::Device{});
+          auto value = alpaka::atomicOp<alpaka::atomicAdd>(acc, pc, 1);  // block counter
+          isLastBlockDone = (value == (int(blocksPerGrid) - 1));
         }
 
-        __syncthreads();
+        alpaka::syncBlockThreads(acc);
 
         if (!isLastBlockDone)
           return;
 
-        assert(int(gridDim.x) == *pc);
+        assert(int(threadsPerGrid) == *pc);
 
         // good each block has done its work and now we are left in last block
 
         // let's get the partial sums from each block
-        extern __shared__ T psum[];
-        for (int i = threadIdx.x, ni = gridDim.x; i < ni; i += blockDim.x) {
-          auto j = blockDim.x * i + blockDim.x - 1;
+        T* psum = alpaka::getDynSharedMem<T>(acc);
+        for (int i = threadIdx.x, ni = blocksPerGrid; i < ni; i += threadsPerBlock) {
+          auto j = threadsPerBlock * i + threadsPerBlock - 1;
           psum[i] = (j < size) ? co[j] : T(0);
         }
-        __syncthreads();
-        blockPrefixScan(psum, psum, gridDim.x, ws);
+        alpaka::syncBlockThreads(acc);
+        blockPrefixScan(psum, psum, blocksPerGrid, ws);
 
         // now it would have been handy to have the other blocks around...
-        for (int i = threadIdx.x + blockDim.x, k = 0; i < size; i += blockDim.x, ++k) {
+        for (int i = threadIdx + threadsPerBlock, k = 0; i < size; i += threadsPerBlock, ++k) {
           co[i] += psum[k];
         }
       }
@@ -303,23 +308,23 @@ namespace alpaka::trait {
     }
   };
   
-//  // Actiually not needed: fixed size   
-//  template <typename TAcc, typename T>
-//  struct BlockSharedMemDynSizeBytes<cms::alpakatools::multiBlockPrefixScan<T>, TAcc> {
-//    template <typename TVec>
-//    ALPAKA_FN_HOST_ACC static std::size_t getBlockSharedMemDynSizeBytes(
-//        cms::alpakatools::multiBlockPrefixScanSecondStep<T> const& /* kernel */,
-//        TVec const& /* blockThreadExtent */,
-//        TVec const& /* threadElemExtent */,
-//        T const* /* ci */,
-//        T* /* co */,
-//        int32_t /* size */,
-//        int32_t numBlocks) {
-//      return 0;
-//    }
-//  };
-  
+  // Variable size shared mem   
   template <typename TAcc, typename T>
+  struct BlockSharedMemDynSizeBytes<cms::alpakatools::multiBlockPrefixScan<T>, TAcc> {
+    template <typename TVec>
+    ALPAKA_FN_HOST_ACC static std::size_t getBlockSharedMemDynSizeBytes(
+        cms::alpakatools::multiBlockPrefixScan<T> const& /* kernel */,
+        TVec const& /* blockThreadExtent */,
+        TVec const& /* threadElemExtent */,
+        T const* /* ci */,
+        T* /* co */,
+        int32_t /* size */,
+        int32_t numBlocks,
+        int32_t* /* pc */) {
+      return sizeof(int32_t) * numBlocks;
+    }
+  };
+
 }  // namespace alpaka::trait
 
 #endif  // HeterogeneousCore_AlpakaInterface_interface_prefixScan_h
