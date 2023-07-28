@@ -167,13 +167,14 @@ int main() {
     }
 
     // PORTABLE MULTI-BLOCK PREFIXSCAN
-    int num_items = 200;
+    uint32_t num_items = 200;
     for (int ksize = 1; ksize < 4; ++ksize) {
       std::cout << "multiblock" << std::endl;
       num_items *= 10;
 
       auto input_d = make_device_buffer<uint32_t[]>(queue, num_items);
       auto output1_d = make_device_buffer<uint32_t[]>(queue, num_items);
+      auto blockCounter_d = make_device_buffer<int32_t>(queue);
 
       const auto nThreadsInit = 256;  // NB: 1024 would be better
       const auto nBlocksInit = divide_up_by(num_items, nThreadsInit);
@@ -181,7 +182,8 @@ int main() {
 
       alpaka::enqueue(queue,
                       alpaka::createTaskKernel<Acc1D>(workDivMultiBlockInit, init(), input_d.data(), 1, num_items));
-
+      alpaka::memset(queue, blockCounter_d, 0);
+              
       const auto nThreads = 1024;
       const auto nBlocks = divide_up_by(num_items, nThreads);
       const auto workDivMultiBlock = make_workdiv<Acc1D>(nBlocks, nThreads);
@@ -189,20 +191,12 @@ int main() {
       std::cout << "launch multiBlockPrefixScan " << num_items << ' ' << nBlocks << std::endl;
       alpaka::enqueue(queue,
                       alpaka::createTaskKernel<Acc1D>(workDivMultiBlock,
-                                                      multiBlockPrefixScanFirstStep<uint32_t>(),
-                                                      input_d.data(),
-                                                      output1_d.data(),
-                                                      num_items));
-
-      const auto blocksPerGridSecondStep = 1;
-      const auto workDivMultiBlockSecondStep = make_workdiv<Acc1D>(blocksPerGridSecondStep, nThreads);
-      alpaka::enqueue(queue,
-                      alpaka::createTaskKernel<Acc1D>(workDivMultiBlockSecondStep,
-                                                      multiBlockPrefixScanSecondStep<uint32_t>(),
+                                                      multiBlockPrefixScan<uint32_t>(),
                                                       input_d.data(),
                                                       output1_d.data(),
                                                       num_items,
-                                                      nBlocks));
+                                                      nBlocks,
+                                                      blockCounter_d.data()));
 
       alpaka::enqueue(queue, alpaka::createTaskKernel<Acc1D>(workDivMultiBlock, verify(), output1_d.data(), num_items));
 

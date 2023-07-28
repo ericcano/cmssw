@@ -235,13 +235,13 @@ namespace cms {
     template <typename T>
     struct multiBlockPrefixScan {
       template <typename TAcc>
-      ALPAKA_FN_ACC void operator()(const TAcc& acc, T const* ci, T* co, int32_t size, int32_t numBlocks, int32_t* pc) const {
+      ALPAKA_FN_ACC void operator()(const TAcc& acc, T const* ci, T* co, uint32_t size, int32_t numBlocks, int32_t* pc) const {
         //volatile T const* ci = ici;
         //volatile T* co = ico;
         // Get shared variable.
         auto& ws = alpaka::declareSharedVar<T[warpSizeHardcodedFixme], __COUNTER__>(acc);
     #ifdef __CUDA_ARCH__
-        assert(sizeof(T) * gridDim.x <= dynamic_smem_size());  // size of psum below
+       // TODO assert(sizeof(T) * gridDim.x <= dynamic_smem_size());  // size of psum below
     #endif
         const auto threadsPerGrid = alpaka::getWorkDiv<alpaka::Grid, alpaka::Threads>(acc)[0u];
         const auto threadsPerBlock = alpaka::getWorkDiv<alpaka::Block, alpaka::Threads>(acc)[0u];
@@ -250,16 +250,16 @@ namespace cms {
         const auto threadIdx = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u];
         assert(threadsPerGrid >= size);
         // first each block does a scan
-        int off = threadsPerBlock * blockIdx;
+        [[maybe_unused]] int off = threadsPerBlock * blockIdx;
         if (size - off > 0)
-          blockPrefixScan(ci + off, co + off, std::min(threadsPerBlock, size - off), ws);
+          blockPrefixScan(acc, ci + off, co + off, std::min(threadsPerBlock, size - off), ws);
 
         // count blocks that finished
         auto& isLastBlockDone = alpaka::declareSharedVar<bool, __COUNTER__>(acc);
         //__shared__ bool isLastBlockDone;
         if (0 == threadIdx) {
           alpaka::mem_fence(acc, alpaka::memory_scope::Device{});
-          auto value = alpaka::atomicOp<alpaka::atomicAdd>(acc, pc, 1);  // block counter
+          auto value = alpaka::atomicAdd(acc, pc, 1, alpaka::hierarchy::Blocks{});  // block counter
           isLastBlockDone = (value == (int(blocksPerGrid) - 1));
         }
 
@@ -268,21 +268,23 @@ namespace cms {
         if (!isLastBlockDone)
           return;
 
-        assert(int(threadsPerGrid) == *pc);
+        if (!threadIdx)
+          printf("blPerGr=%d, pc=%d\n", blocksPerGrid, *pc);
+        assert(int(blocksPerGrid) == *pc);
 
         // good each block has done its work and now we are left in last block
 
         // let's get the partial sums from each block
         T* psum = alpaka::getDynSharedMem<T>(acc);
-        for (int i = threadIdx.x, ni = blocksPerGrid; i < ni; i += threadsPerBlock) {
+        for (uint32_t i = threadIdx, ni = blocksPerGrid; i < ni; i += threadsPerBlock) {
           auto j = threadsPerBlock * i + threadsPerBlock - 1;
           psum[i] = (j < size) ? co[j] : T(0);
         }
         alpaka::syncBlockThreads(acc);
-        blockPrefixScan(psum, psum, blocksPerGrid, ws);
+        blockPrefixScan(acc, psum, psum, blocksPerGrid, ws);
 
         // now it would have been handy to have the other blocks around...
-        for (int i = threadIdx + threadsPerBlock, k = 0; i < size; i += threadsPerBlock, ++k) {
+        for (uint32_t i = threadIdx + threadsPerBlock, k = 0; i < size; i += threadsPerBlock, ++k) {
           co[i] += psum[k];
         }
       }
