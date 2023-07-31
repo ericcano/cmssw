@@ -183,7 +183,7 @@ int main() {
       alpaka::enqueue(queue,
                       alpaka::createTaskKernel<Acc1D>(workDivMultiBlockInit, init(), input_d.data(), 1, num_items));
       alpaka::memset(queue, blockCounter_d, 0);
-              
+      
       const auto nThreads = 1024;
       const auto nBlocks = divide_up_by(num_items, nThreads);
       const auto workDivMultiBlock = make_workdiv<Acc1D>(nBlocks, nThreads);

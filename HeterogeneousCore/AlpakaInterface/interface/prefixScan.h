@@ -166,7 +166,7 @@ namespace cms {
 
     // limited to warpSize⁴ elements
     template <typename T>
-    struct multiBlockPrefixScanFirstStep {
+    struct multiBlockPrefixScanFirstStepXXX {
       template <typename TAcc>
       ALPAKA_FN_ACC void operator()(const TAcc& acc, T const* ci, T* co, int32_t size) const {
         uint32_t const blockDimension(alpaka::getWorkDiv<alpaka::Block, alpaka::Threads>(acc)[0u]);
@@ -193,7 +193,7 @@ namespace cms {
 
     // limited to warpSize⁴ elements
     template <typename T>
-    struct multiBlockPrefixScanSecondStep {
+    struct multiBlockPrefixScanSecondStepXXX {
       template <typename TAcc>
       ALPAKA_FN_ACC void operator()(const TAcc& acc, T const* ci, T* co, int32_t size, int32_t numBlocks) const {
         uint32_t const blockDimension(alpaka::getWorkDiv<alpaka::Block, alpaka::Threads>(acc)[0u]);
@@ -296,10 +296,10 @@ namespace cms {
 // declare the amount of block shared memory used by the multiBlockPrefixScanSecondStep kernel
 namespace alpaka::trait {
   template <typename TAcc, typename T>
-  struct BlockSharedMemDynSizeBytes<cms::alpakatools::multiBlockPrefixScanSecondStep<T>, TAcc> {
+  struct BlockSharedMemDynSizeBytes<cms::alpakatools::multiBlockPrefixScanSecondStepXXX<T>, TAcc> {
     template <typename TVec>
     ALPAKA_FN_HOST_ACC static std::size_t getBlockSharedMemDynSizeBytes(
-        cms::alpakatools::multiBlockPrefixScanSecondStep<T> const& /* kernel */,
+        cms::alpakatools::multiBlockPrefixScanSecondStepXXX<T> const& /* kernel */,
         TVec const& /* blockThreadExtent */,
         TVec const& /* threadElemExtent */,
         T const* /* ci */,

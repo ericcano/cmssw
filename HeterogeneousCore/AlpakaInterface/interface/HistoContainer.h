@@ -69,11 +69,9 @@ namespace cms {
       const auto threadsPerBlockOrElementsPerThread = 1024u;
       const auto blocksPerGrid = divide_up_by(num_items, threadsPerBlockOrElementsPerThread);
       const auto workDiv = make_workdiv<TAcc>(blocksPerGrid, threadsPerBlockOrElementsPerThread);
-      alpaka::exec<TAcc>(queue, workDiv, multiBlockPrefixScanFirstStep<uint32_t>(), poff, poff, num_items);
-
-      const auto workDivWith1Block = make_workdiv<TAcc>(1, threadsPerBlockOrElementsPerThread);
-      alpaka::exec<TAcc>(
-          queue, workDivWith1Block, multiBlockPrefixScanSecondStep<uint32_t>(), poff, poff, num_items, blocksPerGrid);
+      auto blockCounter_d = make_device_buffer<int32_t>(queue);
+      alpaka::memset(queue, blockCounter_d, 0);
+      alpaka::exec<TAcc>(queue, workDiv, multiBlockPrefixScan<uint32_t>(), poff, poff, num_items, blocksPerGrid, blockCounter_d.data());
     }
 
     template <typename TAcc, typename Histo, typename T, typename TQueue>
