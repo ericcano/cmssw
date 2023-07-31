@@ -270,7 +270,7 @@ int main() {
     for (auto i = 0U; i < N; ++i) {
       auto x = la->size(i);
       if (!(x == 4 || x == 3)) {
-        std::cout << i << ' ' << x << std::endl;
+        std::cout << "i=" << i << " x=" << x << std::endl;
       }
       assert(x == 4 || x == 3);
       ave += x;
