@@ -23,26 +23,33 @@ using SmallAssoc = OneToManyAssoc<uint16_t, 128, MaxAssocs>;
 using Multiplicity = OneToManyAssoc<uint16_t, 8, MaxTk>;
 using TK = std::array<uint16_t, 4>;
 
+namespace {
+  template<typename T>
+  typename std::make_signed<T>::type toSigned(T v) {
+    return static_cast<typename std::make_signed<T>::type>(v);
+  }
+}
+
 struct countMultiLocal {
   template <typename TAcc>
   ALPAKA_FN_ACC void operator()(const TAcc& acc,
                                 TK const* __restrict__ tk,
                                 Multiplicity* __restrict__ assoc,
                                 uint32_t n) const {
-//    for_each_element_in_grid_strided(acc, n, [&](uint32_t i) {
-//      auto& local = alpaka::declareSharedVar<Multiplicity::CountersOnly, __COUNTER__>(acc);
-//      const uint32_t threadIdxLocal(alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]);
-//      const bool oncePerSharedMemoryAccess = (threadIdxLocal == 0);
-//      if (oncePerSharedMemoryAccess) {
-//        local.zero();
-//      }
-//      alpaka::syncBlockThreads(acc);
-//      local.countDirect(acc, 2 + i % 4);
-//      alpaka::syncBlockThreads(acc);
-//      if (oncePerSharedMemoryAccess) {
-//        assoc->add(acc, local);
-//      }
-//    });
+    for_each_element_in_grid_strided(acc, n, [&](uint32_t i) {
+      auto& local = alpaka::declareSharedVar<Multiplicity::CountersOnly, __COUNTER__>(acc);
+      const uint32_t threadIdxLocal(alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]);
+      const bool oncePerSharedMemoryAccess = (threadIdxLocal == 0);
+      if (oncePerSharedMemoryAccess) {
+        local.zero();
+      }
+      alpaka::syncBlockThreads(acc);
+      local.count(2 + i % 4);
+      alpaka::syncBlockThreads(acc);
+      if (oncePerSharedMemoryAccess) {
+        assoc->add(local);
+      }
+    });
   }
 };
 
@@ -52,15 +59,15 @@ struct countMulti {
                                 TK const* __restrict__ tk,
                                 Multiplicity* __restrict__ assoc,
                                 uint32_t n) const {
-    // TOODfor_each_element_in_grid_strided(acc, n, [&](uint32_t i) { assoc->countDirect(acc, 2 + i % 4); });
+    for_each_element_in_grid_strided(acc, n, [&](uint32_t i) { assoc->count(2 + i % 4); });
   }
 };
 
 struct verifyMulti {
   template <typename TAcc>
   ALPAKA_FN_ACC void operator()(const TAcc& acc, Multiplicity* __restrict__ m1, Multiplicity* __restrict__ m2) const {
-// TODO   for_each_element_in_grid_strided(
-// TODO        acc, Multiplicity::totbins(), [&](uint32_t i) { assert(m1->off[i] == m2->off[i]); });
+    for_each_element_in_grid_strided(
+         acc, Multiplicity{}.totOnes(), [&](uint32_t i) { assert(m1->off[i] == m2->off[i]); });
   }
 };
 
@@ -78,7 +85,7 @@ struct count {
         return;
       }
       if (tk[k][j] < MaxElem) {
-//        assoc->countDirect(acc, tk[k][j]);
+        assoc->count(tk[k][j]);
       }
     });
   }
@@ -98,7 +105,7 @@ struct fill {
         return;
       }
       if (tk[k][j] < MaxElem) {
-//        assoc->fillDirect(acc, tk[k][j], k);
+        assoc->fill(tk[k][j], k);
       }
     });
   }
@@ -107,7 +114,7 @@ struct fill {
 struct verify {
   template <typename TAcc>
   ALPAKA_FN_ACC void operator()(const TAcc& acc, Assoc* __restrict__ assoc) const {
-    //assert(assoc->size() < Assoc::capacity());
+    assert(assoc->size() < Assoc{}.capacity());
   }
 };
 
@@ -124,11 +131,11 @@ struct fillBulk {
 
 struct verifyBulk {
   template <typename TAcc, typename Assoc>
-  ALPAKA_FN_ACC void operator()(const TAcc &acc, Assoc const* __restrict__ assoc, AtomicPairCounter const* apc) const {
-//    if (apc->get().m >= Assoc::ctNOnes()) {
-//      printf("Overflow %d %d\n", apc->get().m, Assoc::ctNOnes());
-//    }
-//    assert(assoc->size() < Assoc::ctCapacity());
+  ALPAKA_FN_ACC void operator()(const TAcc& acc, Assoc const* __restrict__ assoc, AtomicPairCounter const* apc) const {
+    if (::toSigned(apc->get().m) >= Assoc::ctNOnes()) {
+      printf("Overflow %d %d\n", apc->get().m, Assoc::ctNOnes());
+    }
+    assert(toSigned(assoc->size()) < Assoc::ctCapacity());
   }
 };
 
@@ -145,9 +152,9 @@ int main() {
   for (auto const& device : devices) {
     Queue queue(device);
 
-    std::cout << "OneToManyAssoc " << sizeof(Assoc) << ' '/* TODO << Assoc::nbins()*/ << ' ' /* TODO << Assoc::capacity() */ << std::endl;
-    std::cout << "OneToManyAssoc (small) " << sizeof(SmallAssoc) << ' ' /* << TODO SmallAssoc::nbins() */ << ' '
-              /* <<  TODO SmallAssoc::capacity() */ << std::endl;
+    std::cout << "OneToManyAssoc " << sizeof(Assoc) << " Ones=" << Assoc{}.totOnes() << " Capacity=" << Assoc{}.capacity() << std::endl;
+    std::cout << "OneToManyAssoc (small) " << sizeof(SmallAssoc) << " Ones=" << SmallAssoc{}.totOnes() << " Capacity="
+              << SmallAssoc{}.capacity() << std::endl;
 
     std::mt19937 eng;
     std::geometric_distribution<int> rdm(0.8);
