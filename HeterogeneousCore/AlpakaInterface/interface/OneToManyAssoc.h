@@ -15,7 +15,13 @@
 //#include "HeterogeneousCore/CUDAUtilities/interface/cudastdAlgorithm.h"
 //#include "HeterogeneousCore/CUDAUtilities/interface/prefixScan.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/FlexiStorage.h"
-
+namespace {
+  template<typename T>
+  ALPAKA_FN_HOST_ACC
+  typename std::make_signed<T>::type toSigned2(T v) {
+    return static_cast<typename std::make_signed<T>::type>(v);
+  }
+}
 namespace cms {
   namespace alpakatools {
 
@@ -55,16 +61,17 @@ namespace cms {
 
     template <typename TAcc, typename Assoc, typename TQueue>
     inline __attribute__((always_inline)) void launchZero(Assoc *h,
-                                                          TQueue queue
+                                                          TQueue& queue
 //#ifndef __CUDACC__
 //                                                          = cudaStreamDefault
 //#endif
     ) {
-//      typename Assoc::View view = {h, nullptr, nullptr, -1, -1};
-//      launchZero<TAcc>(view, queue);
+      typename Assoc::View view = {h, nullptr, nullptr, -1, -1};
+      launchZero<TAcc>(view, queue);
     }
+
     template <typename TAcc, typename Assoc, typename TQueue>
-    inline __attribute__((always_inline)) void launchZero(OneToManyAssocView<Assoc> view, TQueue queue) {
+    inline __attribute__((always_inline)) void launchZero(OneToManyAssocView<Assoc> view, TQueue& queue) {
       if constexpr (Assoc::ctCapacity() < 0) {
         assert(view.contentStorage);
         assert(view.contentSize > 0);
@@ -95,7 +102,7 @@ namespace cms {
     }
 
     template <typename TAcc, typename Assoc, typename TQueue>
-    inline __attribute__((always_inline)) void launchFinalize(Assoc *h, TQueue queue) {
+    inline __attribute__((always_inline)) void launchFinalize(Assoc *h, TQueue& queue) {
 //#ifndef __CUDACC__
 //                                                              = cudaStreamDefault
 //#endif
@@ -104,7 +111,7 @@ namespace cms {
     }
 
     template <typename TAcc, typename Assoc, typename TQueue>
-    inline __attribute__((always_inline)) void launchFinalize(OneToManyAssocView<Assoc> view, TQueue queue) {
+    inline __attribute__((always_inline)) void launchFinalize(OneToManyAssocView<Assoc> view, TQueue& queue) {
 //#ifndef __CUDACC__
 //                                                              = cudaStreamDefault
 //#endif
@@ -206,46 +213,37 @@ namespace cms {
         }
       }
 
-      ALPAKA_FN_HOST_ACC inline __attribute__((always_inline))  void add(CountersOnly const &co) {
-        for (int32_t i = 0; i < totOnes(); ++i) {
-#ifdef __CUDA_ARCH__
-          atomicAdd(off.data() + i, co.off[i]);
-#else
-          auto &a = (std::atomic<Counter> &)(off[i]);
-          a += co.off[i];
-#endif
+      template <typename TAcc>
+      ALPAKA_FN_ACC ALPAKA_FN_INLINE void add(const TAcc &acc, CountersOnly const &co) {
+        for (uint32_t i = 0; toSigned2(i) < totOnes(); ++i) {
+          alpaka::atomicAdd(acc, off.data() + i, co.off[i], alpaka::hierarchy::Blocks{});
         }
       }
 
-      static ALPAKA_FN_HOST_ACC inline __attribute__((always_inline))  uint32_t atomicIncrement(Counter &x) {
-#ifdef __CUDA_ARCH__
-        return atomicAdd(&x, 1);
-#else
-        auto &a = (std::atomic<Counter> &)(x);
-        return a++;
-#endif
+      template <typename TAcc>
+      ALPAKA_FN_ACC ALPAKA_FN_INLINE static uint32_t atomicIncrement(const TAcc &acc, Counter &x) {
+        return alpaka::atomicAdd(acc, &x, 1u, alpaka::hierarchy::Blocks{});
       }
 
-      static ALPAKA_FN_HOST_ACC inline __attribute__((always_inline))  uint32_t atomicDecrement(Counter &x) {
-#ifdef __CUDA_ARCH__
-        return atomicSub(&x, 1);
-#else
-        auto &a = (std::atomic<Counter> &)(x);
-        return a--;
-#endif
+      template <typename TAcc>
+      ALPAKA_FN_ACC ALPAKA_FN_INLINE static uint32_t atomicDecrement(const TAcc &acc, Counter &x) {
+        return alpaka::atomicSub(acc, &x, 1u, alpaka::hierarchy::Blocks{});
       }
 
-      ALPAKA_FN_HOST_ACC inline __attribute__((always_inline))  void count(int32_t b) {
-        assert(b < nOnes());
-        atomicIncrement(off[b]);
+      template <typename TAcc> 
+      ALPAKA_FN_ACC ALPAKA_FN_INLINE void count(const TAcc &acc, I b) {
+        ALPAKA_ASSERT_OFFLOAD(b < nOnes());
+        atomicIncrement(acc, off[b]);
       }
 
-      ALPAKA_FN_HOST_ACC inline __attribute__((always_inline))  void fill(int32_t b, index_type j) {
-        assert(b < nOnes());
-        auto w = atomicDecrement(off[b]);
-        assert(w > 0);
+      template <typename TAcc>
+      ALPAKA_FN_ACC ALPAKA_FN_INLINE void fill(const TAcc &acc, I b, index_type j) {
+        ALPAKA_ASSERT_OFFLOAD(b < nOnes());
+        auto w = atomicDecrement(acc, off[b]);
+        ALPAKA_ASSERT_OFFLOAD(w > 0);
         content[w - 1] = j;
       }
+
 
       template <typename TAcc>
       ALPAKA_FN_HOST_ACC inline __attribute__((always_inline))  int32_t bulkFill(const TAcc &acc, AtomicPairCounter &apc, index_type const *v, uint32_t n) {

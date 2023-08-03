@@ -25,6 +25,7 @@ using TK = std::array<uint16_t, 4>;
 
 namespace {
   template<typename T>
+  ALPAKA_FN_HOST_ACC
   typename std::make_signed<T>::type toSigned(T v) {
     return static_cast<typename std::make_signed<T>::type>(v);
   }
@@ -44,10 +45,10 @@ struct countMultiLocal {
         local.zero();
       }
       alpaka::syncBlockThreads(acc);
-      local.count(2 + i % 4);
+      local.count(acc, 2 + i % 4);
       alpaka::syncBlockThreads(acc);
       if (oncePerSharedMemoryAccess) {
-        assoc->add(local);
+        assoc->add(acc, local);
       }
     });
   }
@@ -59,7 +60,7 @@ struct countMulti {
                                 TK const* __restrict__ tk,
                                 Multiplicity* __restrict__ assoc,
                                 uint32_t n) const {
-    for_each_element_in_grid_strided(acc, n, [&](uint32_t i) { assoc->count(2 + i % 4); });
+    for_each_element_in_grid_strided(acc, n, [&](uint32_t i) { assoc->count(acc, 2 + i % 4); });
   }
 };
 
@@ -85,7 +86,7 @@ struct count {
         return;
       }
       if (tk[k][j] < MaxElem) {
-        assoc->count(tk[k][j]);
+        assoc->count(acc, tk[k][j]);
       }
     });
   }
@@ -105,7 +106,7 @@ struct fill {
         return;
       }
       if (tk[k][j] < MaxElem) {
-        assoc->fill(tk[k][j], k);
+        assoc->fill(acc, tk[k][j], k);
       }
     });
   }
