@@ -40,10 +40,10 @@ namespace cms {
     // this MUST BE DONE in a single block (or in two kernels!)
     struct zeroAndInit {
       template <typename TAcc, typename Assoc>
-      ALPAKA_FN_ACC void operator() (TAcc acc, OneToManyAssocView<Assoc> view) const {
+      ALPAKA_FN_ACC void operator() (TAcc& acc, OneToManyAssocView<Assoc> view) const {
         auto h = view.assoc;
         assert((1 == alpaka::getWorkDiv<alpaka::Grid, alpaka::Blocks>(acc)[0]));
-        assert((0 == alpaka::getIdx<alpaka::Grid, alpaka::Block>(acc)[0]));
+        assert((0 == alpaka::getIdx<alpaka::Grid, alpaka::Blocks>(acc)[0]));
 
         Idx first = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0];
 
@@ -62,9 +62,6 @@ namespace cms {
     template <typename TAcc, typename Assoc, typename TQueue>
     inline __attribute__((always_inline)) void launchZero(Assoc *h,
                                                           TQueue& queue
-//#ifndef __CUDACC__
-//                                                          = cudaStreamDefault
-//#endif
     ) {
       typename Assoc::View view = {h, nullptr, nullptr, -1, -1};
       launchZero<TAcc>(view, queue);
@@ -80,43 +77,31 @@ namespace cms {
         assert(view.offStorage);
         assert(view.offSize > 0);
       }
+#if !defined(ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED)
       auto nthreads = 1024;
       auto nblocks = 1;  // MUST BE ONE as memory is initialize in thread 0 (alternative is two kernels);
       auto workDiv = cms::alpakatools::make_workdiv<TAcc>(nblocks, nthreads);
-      alpaka::exec<TAcc>(queue, workDiv, zeroAndInit(), view);
-      //zeroAndInit<<<nblocks, nthreads, 0, stream>>>(view);
-      //cudaCheck(cudaGetLastError());
-      
-//#ifdef __CUDACC__ TODO: make CPU specific variant?
-//      auto nthreads = 1024;
-//      auto nblocks = 1;  // MUST BE ONE as memory is initialize in thread 0 (alternative is two kernels);
-//      zeroAndInit<<<nblocks, nthreads, 0, stream>>>(view);
-//      cudaCheck(cudaGetLastError());
-//#else
-//      auto h = view.assoc;
-//      assert(h);
-//      h->initStorage(view);
-//      h->zero();
-//      h->psws = 0;
-//#endif
+      alpaka::exec<TAcc>(queue, workDiv, zeroAndInit{}, view);
+#else
+      auto h = view.assoc;
+      assert(h);
+      h->initStorage(view);
+      h->zero();
+      h->psws = 0;
+#endif
     }
 
     template <typename TAcc, typename Assoc, typename TQueue>
     inline __attribute__((always_inline)) void launchFinalize(Assoc *h, TQueue& queue) {
-//#ifndef __CUDACC__
-//                                                              = cudaStreamDefault
-//#endif
-//      typename Assoc::View view = {h, nullptr, nullptr, -1, -1};
-//      launchFinalize<TAcc>(view, queue);
+      typename Assoc::View view = {h, nullptr, nullptr, -1, -1};
+      launchFinalize<TAcc>(view, queue);
     }
 
     template <typename TAcc, typename Assoc, typename TQueue>
     inline __attribute__((always_inline)) void launchFinalize(OneToManyAssocView<Assoc> view, TQueue& queue) {
-//#ifndef __CUDACC__
-//                                                              = cudaStreamDefault
-//#endif
       auto h = view.assoc;
       assert(h);
+#if !defined(ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED)
       using Counter = typename Assoc::Counter;
       Counter *poff = (Counter *)((char *)(h) + offsetof(Assoc, off));
       auto nOnes = Assoc::ctNOnes();
@@ -131,33 +116,16 @@ namespace cms {
       auto nthreads = 1024;
       auto nblocks = (nOnes + nthreads - 1) / nthreads;
       auto workDiv = cms::alpakatools::make_workdiv<TAcc>(nblocks, nthreads);
-      alpaka::exec<TAcc>(queue, workDiv, multiBlockPrefixScan<TAcc>(), poff, poff, nOnes, ppsws);
-      // cudaCheck(cudaGetLastError()); TODO?
-//#ifdef __CUDACC__ TODO: make explicit CPU variant?
-//      using Counter = typename Assoc::Counter;
-//      Counter *poff = (Counter *)((char *)(h) + offsetof(Assoc, off));
-//      auto nOnes = Assoc::ctNOnes();
-//      if constexpr (Assoc::ctNOnes() < 0) {
-//        assert(view.offStorage);
-//        assert(view.offSize > 0);
-//        nOnes = view.offSize;
-//        poff = view.offStorage;
-//      }
-//      assert(nOnes > 0);
-//      int32_t *ppsws = (int32_t *)((char *)(h) + offsetof(Assoc, psws));
-//      auto nthreads = 1024;
-//      auto nblocks = (nOnes + nthreads - 1) / nthreads;
-//      multiBlockPrefixScan<<<nblocks, nthreads, sizeof(int32_t) * nblocks, stream>>>(poff, poff, nOnes, ppsws);
-//      cudaCheck(cudaGetLastError());
-//#else
-//      h->finalize();
-//#endif
+      alpaka::exec<TAcc>(queue, workDiv, multiBlockPrefixScan<TAcc>(), poff, poff, nOnes, nblocks, ppsws);
+#else
+      h->finalize();
+#endif
     }
 
     struct finalizeBulk {
     template <typename TAcc, typename Assoc>
       ALPAKA_FN_ACC void operator() (const TAcc &acc, AtomicPairCounter const *apc, Assoc *__restrict__ assoc) const {
-        //assoc->bulkFinalizeFill(*apc);
+        assoc->bulkFinalizeFill(acc, *apc);
       }
     };
 
@@ -261,7 +229,7 @@ namespace cms {
       }
 
       template <typename TAcc>
-      ALPAKA_FN_HOST_ACC inline __attribute__((always_inline))  void bulkFinalizeFill(TAcc acc, AtomicPairCounter const &apc) {
+      ALPAKA_FN_HOST_ACC inline __attribute__((always_inline))  void bulkFinalizeFill(TAcc &acc, AtomicPairCounter const &apc) {
         int m = apc.get().m;
         auto n = apc.get().n;
         if (m >= nOnes()) {  // overflow!
@@ -276,11 +244,19 @@ namespace cms {
         }
       }
 
-      ALPAKA_FN_HOST_ACC inline __attribute__((always_inline))  void finalize(Counter *ws = nullptr) {
+      template <typename TAcc>
+      ALPAKA_FN_HOST_ACC inline __attribute__((always_inline))  void finalize(TAcc& acc, Counter *ws = nullptr) {
         assert(off[totOnes() - 1] == 0);
-        blockPrefixScan(off.data(), totOnes(), ws);
+        blockPrefixScan(acc, off.data(), totOnes(), ws);
         assert(off[totOnes() - 1] == off[totOnes() - 2]);
       }
+      
+      ALPAKA_FN_HOST_ACC inline __attribute__((always_inline))  void finalize() {
+        // Single thread finalize.
+        for (uint32_t i = 1; toSigned2(i) < totOnes(); ++i)
+          off[i] += off[i - 1];
+      }
+      
 
       constexpr auto size() const { return uint32_t(off[totOnes() - 1]); }
       constexpr auto size(uint32_t b) const { return off[b + 1] - off[b]; }

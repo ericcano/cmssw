@@ -115,6 +115,8 @@ namespace cms {
         co[i] = ci[i] + co[i - 1];
 #endif  // (defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDA_ARCH__)) || (defined(ALPAKA_ACC_GPU_HIP_ENABLED) && defined(__HIP_DEVICE_COMPILE__))
     }
+    
+    
 
     template <typename TAcc, typename T>
     ALPAKA_FN_HOST_ACC ALPAKA_FN_INLINE void blockPrefixScan(const TAcc& acc,
