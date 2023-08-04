@@ -40,7 +40,7 @@ namespace cms {
     // this MUST BE DONE in a single block (or in two kernels!)
     struct zeroAndInit {
       template <typename TAcc, typename Assoc>
-      ALPAKA_FN_ACC void operator() (TAcc& acc, OneToManyAssocView<Assoc> view) const {
+      ALPAKA_FN_ACC void operator() (const TAcc& acc, OneToManyAssocView<Assoc> view) const {
         auto h = view.assoc;
         assert((1 == alpaka::getWorkDiv<alpaka::Grid, alpaka::Blocks>(acc)[0]));
         assert((0 == alpaka::getIdx<alpaka::Grid, alpaka::Blocks>(acc)[0]));
@@ -116,7 +116,7 @@ namespace cms {
       auto nthreads = 1024;
       auto nblocks = (nOnes + nthreads - 1) / nthreads;
       auto workDiv = cms::alpakatools::make_workdiv<TAcc>(nblocks, nthreads);
-      alpaka::exec<TAcc>(queue, workDiv, multiBlockPrefixScan<TAcc>(), poff, poff, nOnes, nblocks, ppsws);
+      alpaka::exec<TAcc>(queue, workDiv, multiBlockPrefixScan<Counter>(), poff, poff, nOnes, nblocks, ppsws);
 #else
       h->finalize();
 #endif

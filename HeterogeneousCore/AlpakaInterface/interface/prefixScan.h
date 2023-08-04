@@ -305,7 +305,7 @@ namespace alpaka::trait {
         TVec const& /* blockThreadExtent */,
         TVec const& /* threadElemExtent */,
         T const* /* ci */,
-        T* /* co */,
+        T const* /* co */,
         int32_t /* size */,
         int32_t numBlocks) {
       return sizeof(T) * numBlocks;
@@ -321,10 +321,10 @@ namespace alpaka::trait {
         TVec const& /* blockThreadExtent */,
         TVec const& /* threadElemExtent */,
         T const* /* ci */,
-        T* /* co */,
+        T const* /* co */,
         int32_t /* size */,
         int32_t numBlocks,
-        int32_t* /* pc */) {
+        int32_t const* /* pc */) {
       return sizeof(int32_t) * numBlocks;
     }
   };
