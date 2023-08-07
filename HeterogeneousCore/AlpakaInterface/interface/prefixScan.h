@@ -325,7 +325,9 @@ namespace alpaka::trait {
         int32_t /* size */,
         int32_t numBlocks,
         int32_t const* /* pc */) {
-      return sizeof(int32_t) * numBlocks;
+      std::size_t ret = sizeof(int32_t) * numBlocks;
+      printf("In BlockSharedMemDynSizeBytes<cms::alpakatools::multiBlockPrefixScan<T>, TAcc>: ret=%ld\n", ret);
+      return ret;
     }
   };
 
