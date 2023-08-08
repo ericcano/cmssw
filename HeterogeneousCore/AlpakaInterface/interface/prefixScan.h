@@ -10,12 +10,6 @@
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 #include "FWCore/Utilities/interface/CMSUnrollLoop.h"
 
-/* 
-FIXME: this version of prefix scan is not fully updated 
-w.r.t. to the CUDA one, that uses a single kernel. 
-See: https://github.com/cms-sw/cmssw/blob/dca2f3286ff7aa67b6e4021c17698ec31a400e47/HeterogeneousCore/CUDAUtilities/interface/prefixScan.h
-*/
-
 namespace cms { 
   namespace alpakatools {
 
@@ -164,73 +158,6 @@ namespace cms {
 #endif  // (defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDA_ARCH__)) || (defined(ALPAKA_ACC_GPU_HIP_ENABLED) && defined(__HIP_DEVICE_COMPILE__))
     }
 
-    // limited to warpSize⁴ elements
-    template <typename T>
-    struct multiBlockPrefixScanFirstStepXXX {
-      template <typename TAcc>
-      ALPAKA_FN_ACC void operator()(const TAcc& acc, T const* ci, T* co, int32_t size) const {
-        uint32_t const blockDimension(alpaka::getWorkDiv<alpaka::Block, alpaka::Threads>(acc)[0u]);
-        uint32_t const threadDimension(alpaka::getWorkDiv<alpaka::Thread, alpaka::Elems>(acc)[0u]);
-        uint32_t const blockIdx(alpaka::getIdx<alpaka::Grid, alpaka::Blocks>(acc)[0u]);
-        auto constexpr warpSize = 32; /*alpaka::warp::getSize(acc);*/
-
-        auto& ws = alpaka::declareSharedVar<T[warpSize], __COUNTER__>(acc);
-        // first each block does a scan of size warpSize² (better be enough blocks)
-#ifndef NDEBUG
-        [[maybe_unused]] uint32_t const gridDimension(alpaka::getWorkDiv<alpaka::Grid, alpaka::Blocks>(acc)[0u]);
-        ALPAKA_ASSERT_OFFLOAD(gridDimension / threadDimension <= (warpSize * warpSize));
-#endif
-#if 0
-        // this is not yet available in alpaka, see
-        // https://github.com/alpaka-group/alpaka/issues/1648
-        ALPAKA_ASSERT_OFFLOAD(sizeof(T) * gridDimension <= dynamic_smem_size());  // size of psum below
-#endif
-        int off = blockDimension * blockIdx * threadDimension;
-        if (size - off > 0)
-          blockPrefixScan(acc, ci + off, co + off, std::min(int(blockDimension * threadDimension), size - off), ws);
-      }
-    };
-
-    // limited to warpSize⁴ elements
-    template <typename T>
-    struct multiBlockPrefixScanSecondStepXXX {
-      template <typename TAcc>
-      ALPAKA_FN_ACC void operator()(const TAcc& acc, T const* ci, T* co, int32_t size, int32_t numBlocks) const {
-        uint32_t const blockDimension(alpaka::getWorkDiv<alpaka::Block, alpaka::Threads>(acc)[0u]);
-        uint32_t const threadDimension(alpaka::getWorkDiv<alpaka::Thread, alpaka::Elems>(acc)[0u]);
-        uint32_t const threadIdx(alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]);
-        [[maybe_unused]] auto const warpSize = alpaka::warp::getSize(acc);
-
-        T* const psum = alpaka::getDynSharedMem<T>(acc);
-
-        // first each block does a scan of size warpSize² (better be enough blocks)
-        ALPAKA_ASSERT_OFFLOAD(static_cast<int32_t>(blockDimension * threadDimension) >= numBlocks);
-        for (int elemId = 0; elemId < static_cast<int>(threadDimension); ++elemId) {
-          int index = +threadIdx * threadDimension + elemId;
-
-          if (index < numBlocks) {
-            int lastElementOfPreviousBlockId = index * blockDimension * threadDimension - 1;
-            psum[index] = (lastElementOfPreviousBlockId < size and lastElementOfPreviousBlockId >= 0)
-                              ? co[lastElementOfPreviousBlockId]
-                              : T(0);
-          }
-        }
-
-        alpaka::syncBlockThreads(acc);
-
-        auto& ws = alpaka::declareSharedVar<T[warpSizeHardcodedFixme], __COUNTER__>(acc);
-        blockPrefixScan(acc, psum, psum, numBlocks, ws);
-
-        for (int elemId = 0; elemId < static_cast<int>(threadDimension); ++elemId) {
-          int first = threadIdx * threadDimension + elemId;
-          for (int i = first + blockDimension * threadDimension; i < size; i += blockDimension * threadDimension) {
-            auto k = i / (blockDimension * threadDimension);
-            co[i] += psum[k];
-          }
-        }
-      }
-    };
-
     // in principle not limited....
     template <typename T>
     struct multiBlockPrefixScan {
@@ -293,21 +220,6 @@ namespace cms {
 
 // declare the amount of block shared memory used by the multiBlockPrefixScanSecondStep kernel
 namespace alpaka::trait {
-  template <typename TAcc, typename T>
-  struct BlockSharedMemDynSizeBytes<cms::alpakatools::multiBlockPrefixScanSecondStepXXX<T>, TAcc> {
-    template <typename TVec>
-    ALPAKA_FN_HOST_ACC static std::size_t getBlockSharedMemDynSizeBytes(
-        cms::alpakatools::multiBlockPrefixScanSecondStepXXX<T> const& /* kernel */,
-        TVec const& /* blockThreadExtent */,
-        TVec const& /* threadElemExtent */,
-        T const* /* ci */,
-        T const* /* co */,
-        int32_t /* size */,
-        int32_t numBlocks) {
-      return sizeof(T) * numBlocks;
-    }
-  };
-  
   // Variable size shared mem   
   template <typename TAcc, typename T>
   struct BlockSharedMemDynSizeBytes<cms::alpakatools::multiBlockPrefixScan<T>, TAcc> {
