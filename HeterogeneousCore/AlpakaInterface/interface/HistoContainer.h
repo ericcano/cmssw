@@ -100,12 +100,12 @@ namespace cms {
     }
 
     template <typename T,      // the type of the discretized input values
-          uint32_t NBINS,  // number of bins
-          int32_t SIZE,    // max number of element. If -1 is initialized at runtime using external storage
-          uint32_t S = sizeof(T) * 8,  // number of significant bits in T
-          typename I = uint32_t,  // type stored in the container (usually an index in a vector of the input values)
-          uint32_t NHISTS = 1     // number of histos stored
-          >
+              uint32_t NBINS,  // number of bins
+              int32_t SIZE,    // max number of element. If -1 is initialized at runtime using external storage
+              uint32_t S = sizeof(T) * 8,  // number of significant bits in T
+              typename I = uint32_t,  // type stored in the container (usually an index in a vector of the input values)
+              uint32_t NHISTS = 1     // number of histos stored
+              >
     class HistoContainer : public OneToManyAssoc<I, NHISTS * NBINS + 1, SIZE> {
     public:
       using Base = OneToManyAssoc<I, NHISTS * NBINS + 1, SIZE>;
@@ -132,8 +132,6 @@ namespace cms {
       static constexpr uint32_t nhists() { return NHISTS; }
       static constexpr uint32_t totbins() { return NHISTS * NBINS + 1; }
       static constexpr uint32_t nbits() { return ilog2(NBINS - 1) + 1; }
-
-      // static_assert(int32_t(totbins())==Base::ctNOnes());
 
       static constexpr auto histOff(uint32_t nh) { return NBINS * nh; }
 
