@@ -34,7 +34,7 @@ struct mykernel {
     alpaka::syncBlockThreads(acc);
 
     // set bins zero
-    for_each_element_in_block_strided(acc, Hist::totbins(), [&](uint32_t j) { hist.bins[j] = 0; });
+    for_each_element_in_block_strided(acc, Hist::totbins(), [&](uint32_t j) { hist.content[j] = 0; });
     alpaka::syncBlockThreads(acc);
 
     // count
@@ -129,7 +129,7 @@ void go(const DevHost& host, const Device& device, Queue& queue) {
   constexpr unsigned int N = 12000;
 
   using Hist = HistoContainer<T, NBINS, N, S>;
-  std::cout << "HistoContainer " << Hist::nbits() << ' ' << Hist::nbins() << ' ' << Hist::capacity() << ' '
+  std::cout << "HistoContainer " << Hist::nbits() << ' ' << Hist::nbins() << ' ' << Hist{}.capacity() << ' '
             << (rmax - rmin) / Hist::nbins() << std::endl;
   std::cout << "bins " << int(Hist::bin(0)) << ' ' << int(Hist::bin(rmin)) << ' ' << int(Hist::bin(rmax)) << std::endl;
 

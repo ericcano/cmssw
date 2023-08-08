@@ -10,6 +10,7 @@
 #include "HeterogeneousCore/AlpakaInterface/interface/prefixScan.h"
 
 #include "HeterogeneousCore/AlpakaInterface/interface/AtomicPairCounter.h"
+#include "HeterogeneousCore/AlpakaInterface/interface/workdivision.h"
 //#include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
 //#include "HeterogeneousCore/CUDAUtilities/interface/cuda_assert.h"
 //#include "HeterogeneousCore/CUDAUtilities/interface/cudastdAlgorithm.h"
@@ -45,7 +46,7 @@ namespace cms {
         assert((1 == alpaka::getWorkDiv<alpaka::Grid, alpaka::Blocks>(acc)[0]));
         assert((0 == alpaka::getIdx<alpaka::Grid, alpaka::Blocks>(acc)[0]));
 
-        Idx first = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0];
+        auto first = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0];
 
         if (0 == first) {
           h->psws = 0;

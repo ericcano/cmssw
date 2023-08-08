@@ -33,7 +33,7 @@ int go(const DevHost& host, const Device& device, Queue& queue) {
 
   using Hist = HistoContainer<T, 128, N, 8 * sizeof(T), uint32_t, nParts>;
   std::cout << "HistoContainer " << (int)(offsetof(Hist, off)) << ' ' << Hist::nbins() << ' ' << Hist::totbins() << ' '
-            << Hist::capacity() << ' ' << offsetof(Hist, bins) - offsetof(Hist, off) << ' '
+            << Hist{}.capacity() << ' ' << offsetof(Hist, content) - offsetof(Hist, off) << ' '
             << (std::numeric_limits<T>::max() - std::numeric_limits<T>::min()) / Hist::nbins() << std::endl;
 
   auto offsets = make_host_buffer<uint32_t[]>(queue, nParts + 1);
