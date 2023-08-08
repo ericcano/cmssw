@@ -116,8 +116,6 @@ namespace cms {
 #endif  // (defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDA_ARCH__)) || (defined(ALPAKA_ACC_GPU_HIP_ENABLED) && defined(__HIP_DEVICE_COMPILE__))
     }
     
-    
-
     template <typename TAcc, typename T>
     ALPAKA_FN_HOST_ACC ALPAKA_FN_INLINE void blockPrefixScan(const TAcc& acc,
                                                              T* __restrict__ c,
@@ -270,8 +268,6 @@ namespace cms {
         if (!isLastBlockDone)
           return;
 
-        if (!threadIdx)
-          printf("blPerGr=%d, pc=%d\n", blocksPerGrid, *pc);
         assert(int(blocksPerGrid) == *pc);
 
         // good each block has done its work and now we are left in last block
@@ -326,7 +322,6 @@ namespace alpaka::trait {
         int32_t numBlocks,
         int32_t const* /* pc */) {
       std::size_t ret = sizeof(int32_t) * numBlocks;
-      printf("In BlockSharedMemDynSizeBytes<cms::alpakatools::multiBlockPrefixScan<T>, TAcc>: ret=%ld\n", ret);
       return ret;
     }
   };
