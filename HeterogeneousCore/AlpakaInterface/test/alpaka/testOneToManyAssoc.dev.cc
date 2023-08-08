@@ -256,7 +256,9 @@ int main() {
 
     auto dc = make_host_buffer<AtomicPairCounter>(queue);
     alpaka::memcpy(queue, dc, dc_d);
+    printf ("About to wait for queue\n");
     alpaka::wait(queue);
+    printf ("Wait done\n");
 
     alpaka::memset(queue, dc_d, 0);
     auto sa_d = make_device_buffer<SmallAssoc>(queue);

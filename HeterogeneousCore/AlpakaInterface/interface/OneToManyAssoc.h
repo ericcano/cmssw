@@ -230,18 +230,29 @@ namespace cms {
 
       template <typename TAcc>
       ALPAKA_FN_HOST_ACC inline __attribute__((always_inline))  void bulkFinalizeFill(TAcc &acc, AtomicPairCounter const &apc) {
+//        auto threadIx = alpaka::getIdx<alpaka::Grid, alpaka::Threads>(acc)[0];
         int m = apc.get().m;
         auto n = apc.get().n;
+//        if (!threadIx)
+//          printf("In bulkFinalizeFill(): m=%d, n=%d, nOnes()=%d\n",m ,n , nOnes());
         if (m >= nOnes()) {  // overflow!
           off[nOnes()] = uint32_t(off[nOnes() - 1]);
+//          if (!threadIx)
+//            printf("In bulkFinalizeFill(): overflow\n");
           return;
         }
 //        auto first = m + blockDim.x * blockIdx.x + threadIdx.x;
         auto first = m + alpaka::getIdx<alpaka::Grid, alpaka::Threads>(acc)[0];
+//        if (!threadIx)
+//          printf("In bulkFinalizeFill(): first=%d, totOnes()=%d\n", first, totOnes());
 //        for (int i = first; i < totOnes(); i += gridDim.x * blockDim.x) {
-        for (int i = first; i < totOnes(); i += alpaka::getIdx<alpaka::Grid, alpaka::Threads>(acc)[0]) {
+        for (int i = first; i < totOnes(); i += alpaka::getWorkDiv<alpaka::Grid, alpaka::Threads>(acc)[0]) {
+//          if (!threadIx)
+//            printf("i=%d\n", i);
           off[i] = n;
         }
+//        if (!threadIx)
+//          printf("In bulkFinalizeFill(): exit\n");
       }
 
       template <typename TAcc>
