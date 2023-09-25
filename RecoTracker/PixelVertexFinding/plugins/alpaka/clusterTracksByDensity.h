@@ -70,7 +70,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       if (verbose && 0 == threadIdxLocal)
         printf("booked hist with %d bins, size %d for %d tracks\n", hist.totbins(), hist.capacity(), nt);
 
-      ALPAKA_ASSERT_OFFLOAD(nt <= hist.capacity());
+      ALPAKA_ASSERT_OFFLOAD(nt <= static_cast<uint32_t>(hist.capacity()));
 
       // fill hist  (bin shall be wider than "eps")
       for (auto i : cms::alpakatools::elements_with_stride(acc, nt)) {
