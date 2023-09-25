@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -33,7 +32,7 @@ int go(const DevHost& host, const Device& device, Queue& queue) {
 
   using Hist = HistoContainer<T, 128, N, 8 * sizeof(T), uint32_t, nParts>;
   std::cout << "HistoContainer " << (int)(offsetof(Hist, off)) << ' ' << Hist::nbins() << ' ' << Hist::totbins() << ' '
-            << Hist::capacity() << ' ' << offsetof(Hist, bins) - offsetof(Hist, off) << ' '
+            << Hist{}.capacity() << ' ' << offsetof(Hist, content) - offsetof(Hist, off) << ' '
             << (std::numeric_limits<T>::max() - std::numeric_limits<T>::min()) / Hist::nbins() << std::endl;
 
   auto offsets = make_host_buffer<uint32_t[]>(queue, nParts + 1);
@@ -46,7 +45,7 @@ int go(const DevHost& host, const Device& device, Queue& queue) {
     offsets[0] = 0;
     for (uint32_t j = 1; j < nParts + 1; ++j) {
       offsets[j] = offsets[j - 1] + partSize - 3 * j;
-      assert(offsets[j] <= N);
+      ALPAKA_ASSERT_OFFLOAD(offsets[j] <= N);
     }
 
     if (it == 1) {  // special cases...
@@ -95,12 +94,12 @@ int go(const DevHost& host, const Device& device, Queue& queue) {
     //   std::cout << offsets[i] <<" - "<< h->size() << std::endl;
     // }
 
-    assert(0 == h->off[0]);
-    assert(offsets[10] == h->size());
+    ALPAKA_ASSERT_OFFLOAD(0 == h->off[0]);
+    ALPAKA_ASSERT_OFFLOAD(offsets[10] == h->size());
 
     auto verify = [&](uint32_t i, uint32_t k, uint32_t t1, uint32_t t2) {
-      assert(t1 < N);
-      assert(t2 < N);
+      ALPAKA_ASSERT_OFFLOAD(t1 < N);
+      ALPAKA_ASSERT_OFFLOAD(t2 < N);
       if (T(v[t1] - v[t2]) <= 0)
         std::cout << "for " << i << ':' << v[k] << " failed " << v[t1] << ' ' << v[t2] << std::endl;
     };
@@ -122,12 +121,12 @@ int go(const DevHost& host, const Device& device, Queue& queue) {
 #ifndef NDEBUG
         auto bk = h->bin(v[k]);
 #endif
-        assert(bk == i);
-        assert(k < offsets[j + 1]);
+        ALPAKA_ASSERT_OFFLOAD(bk == i);
+        ALPAKA_ASSERT_OFFLOAD(k < offsets[j + 1]);
         auto kl = h->bin(v[k] - window);
         auto kh = h->bin(v[k] + window);
-        assert(kl != i);
-        assert(kh != i);
+        ALPAKA_ASSERT_OFFLOAD(kl != i);
+        ALPAKA_ASSERT_OFFLOAD(kh != i);
         // std::cout << kl << ' ' << kh << std::endl;
 
         auto me = v[k];
@@ -165,7 +164,7 @@ int go(const DevHost& host, const Device& device, Queue& queue) {
           std::cout << "what? " << j << ' ' << i << ' ' << int(me) << '/' << (int)T(me - window) << '/'
                     << (int)T(me + window) << ": " << kl << '/' << kh << ' ' << khh << ' ' << tot << '/' << nm
                     << std::endl;
-        assert(!l);
+        ALPAKA_ASSERT_OFFLOAD(!l);
       }
     }
   }

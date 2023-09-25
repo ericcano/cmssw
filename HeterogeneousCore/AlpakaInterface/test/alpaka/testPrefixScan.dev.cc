@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -18,13 +17,13 @@ using namespace ALPAKA_ACCELERATOR_NAMESPACE;
 template <typename T>
 struct format_traits {
 public:
-  static const constexpr char* failed_msg = "failed %d %d %d: %d %d\n";
+  static const constexpr char* failed_msg = "failed(int) size=%d, i=%d, blockDimension=%d: c[i]=%d c[i-1]=%d\n";
 };
 
 template <>
 struct format_traits<float> {
 public:
-  static const constexpr char* failed_msg = "failed %d %d %d: %f %f\n";
+  static const constexpr char* failed_msg = "failed(float size=%d, i=%d, blockDimension=%d: c[i]=%f c[i-1]=%f\n";
 };
 
 template <typename T>
@@ -42,13 +41,20 @@ struct testPrefixScan {
     blockPrefixScan(acc, c, co, size, ws);
     blockPrefixScan(acc, c, size, ws);
 
-    assert(1 == c[0]);
-    assert(1 == co[0]);
+    ALPAKA_ASSERT_OFFLOAD(1 == c[0]);
+    ALPAKA_ASSERT_OFFLOAD(1 == co[0]);
+
+    // TODO: not needed? Not in multi kernel version, not in CUDA version
+    alpaka::syncBlockThreads(acc);
 
     for_each_element_in_block_strided(acc, size, 1u, [&](uint32_t i) {
-      assert(c[i] == c[i - 1] + 1);
-      assert(c[i] == i + 1);
-      assert(c[i] == co[i]);
+      // TODO: handle both cases (int/float)
+      if constexpr (!std::is_floating_point_v<T>)
+        if (!((c[i] == c[i - 1] + 1) && (c[i] == i + 1) && (c[i] == co[i])))
+          printf("c[%d]=%d, co[%d]=%d\n", i, c[i], i, co[i]);
+      ALPAKA_ASSERT_OFFLOAD(c[i] == c[i - 1] + 1);
+      ALPAKA_ASSERT_OFFLOAD(c[i] == i + 1);
+      ALPAKA_ASSERT_OFFLOAD(c[i] == co[i]);
     });
   }
 };
@@ -60,33 +66,36 @@ template <typename T>
 struct testWarpPrefixScan {
   template <typename TAcc>
   ALPAKA_FN_ACC void operator()(const TAcc& acc, uint32_t size) const {
-#ifndef ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED
-    assert(size <= 32);
-    auto& c = alpaka::declareSharedVar<T[1024], __COUNTER__>(acc);
-    auto& co = alpaka::declareSharedVar<T[1024], __COUNTER__>(acc);
+    if constexpr (!requires_single_thread_per_block_v<TAcc>) {
+      ALPAKA_ASSERT_OFFLOAD(size <= 32);
+      auto& c = alpaka::declareSharedVar<T[1024], __COUNTER__>(acc);
+      auto& co = alpaka::declareSharedVar<T[1024], __COUNTER__>(acc);
 
-    uint32_t const blockDimension = alpaka::getWorkDiv<alpaka::Block, alpaka::Threads>(acc)[0u];
-    uint32_t const blockThreadIdx = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u];
-    auto i = blockThreadIdx;
-    c[i] = 1;
-    alpaka::syncBlockThreads(acc);
-    auto laneId = blockThreadIdx & 0x1f;
+      uint32_t const blockDimension = alpaka::getWorkDiv<alpaka::Block, alpaka::Threads>(acc)[0u];
+      uint32_t const blockThreadIdx = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u];
+      auto i = blockThreadIdx;
+      c[i] = 1;
+      alpaka::syncBlockThreads(acc);
+      auto laneId = blockThreadIdx & 0x1f;
 
-    warpPrefixScan(laneId, c, co, i, 0xffffffff);
-    warpPrefixScan(laneId, c, i, 0xffffffff);
+      warpPrefixScan(acc, laneId, c, co, i);
+      warpPrefixScan(acc, laneId, c, i);
 
-    alpaka::syncBlockThreads(acc);
+      alpaka::syncBlockThreads(acc);
 
-    assert(1 == c[0]);
-    assert(1 == co[0]);
-    if (i != 0) {
-      if (c[i] != c[i - 1] + 1)
-        printf(format_traits<T>::failed_msg, size, i, blockDimension, c[i], c[i - 1]);
-      assert(c[i] == c[i - 1] + 1);
-      assert(c[i] == static_cast<T>(i + 1));
-      assert(c[i] == co[i]);
+      ALPAKA_ASSERT_OFFLOAD(1 == c[0]);
+      ALPAKA_ASSERT_OFFLOAD(1 == co[0]);
+      if (i != 0) {
+        if (c[i] != c[i - 1] + 1)
+          printf(format_traits<T>::failed_msg, size, i, blockDimension, c[i], c[i - 1]);
+        ALPAKA_ASSERT_OFFLOAD(c[i] == c[i - 1] + 1);
+        ALPAKA_ASSERT_OFFLOAD(c[i] == static_cast<T>(i + 1));
+        ALPAKA_ASSERT_OFFLOAD(c[i] == co[i]);
+      }
+    } else {
+      // We should never be called outsie of the GPU.
+      ALPAKA_ASSERT_OFFLOAD(false);
     }
-#endif
   }
 };
 
@@ -106,7 +115,7 @@ struct verify {
   template <typename TAcc>
   ALPAKA_FN_ACC void operator()(const TAcc& acc, uint32_t const* v, uint32_t n) const {
     for_each_element_in_grid_strided(acc, n, [&](uint32_t index) {
-      assert(v[index] == index + 1);
+      ALPAKA_ASSERT_OFFLOAD(v[index] == index + 1);
 
       if (index == 0)
         printf("verify\n");
@@ -128,8 +137,9 @@ int main() {
   for (auto const& device : devices) {
     std::cout << "Test prefix scan on " << alpaka::getName(device) << '\n';
     auto queue = Queue(device);
-    // WARP PREFIXSCAN (OBVIOUSLY GPU-ONLY)
-#if defined(ALPAKA_ACC_GPU_CUDA_ASYNC_BACKEND) || defined(ALPAKA_ACC_GPU_HIP_ASYNC_BACKEND)
+    const auto warpSize = alpaka::getWarpSizes(device)[0];
+    // WARP PREFIXSCAN (OBVIOUSLY GPU-OqNLY)
+#if defined(ALPAKA_ACC_GPU_CUDA_ENABLED) || defined(ALPAKA_ACC_GPU_HIP_ENABLED)
     std::cout << "warp level" << std::endl;
 
     const auto threadsPerBlockOrElementsPerThread = 32;
@@ -161,13 +171,14 @@ int main() {
     }
 
     // PORTABLE MULTI-BLOCK PREFIXSCAN
-    int num_items = 200;
+    uint32_t num_items = 200;
     for (int ksize = 1; ksize < 4; ++ksize) {
       std::cout << "multiblock" << std::endl;
       num_items *= 10;
 
       auto input_d = make_device_buffer<uint32_t[]>(queue, num_items);
       auto output1_d = make_device_buffer<uint32_t[]>(queue, num_items);
+      auto blockCounter_d = make_device_buffer<int32_t>(queue);
 
       const auto nThreadsInit = 256;  // NB: 1024 would be better
       const auto nBlocksInit = divide_up_by(num_items, nThreadsInit);
@@ -175,6 +186,7 @@ int main() {
 
       alpaka::enqueue(queue,
                       alpaka::createTaskKernel<Acc1D>(workDivMultiBlockInit, init(), input_d.data(), 1, num_items));
+      alpaka::memset(queue, blockCounter_d, 0);
 
       const auto nThreads = 1024;
       const auto nBlocks = divide_up_by(num_items, nThreads);
@@ -183,21 +195,13 @@ int main() {
       std::cout << "launch multiBlockPrefixScan " << num_items << ' ' << nBlocks << std::endl;
       alpaka::enqueue(queue,
                       alpaka::createTaskKernel<Acc1D>(workDivMultiBlock,
-                                                      multiBlockPrefixScanFirstStep<uint32_t>(),
-                                                      input_d.data(),
-                                                      output1_d.data(),
-                                                      num_items));
-
-      const auto blocksPerGridSecondStep = 1;
-      const auto workDivMultiBlockSecondStep = make_workdiv<Acc1D>(blocksPerGridSecondStep, nThreads);
-      alpaka::enqueue(queue,
-                      alpaka::createTaskKernel<Acc1D>(workDivMultiBlockSecondStep,
-                                                      multiBlockPrefixScanSecondStep<uint32_t>(),
+                                                      multiBlockPrefixScan<uint32_t>(),
                                                       input_d.data(),
                                                       output1_d.data(),
                                                       num_items,
-                                                      nBlocks));
-
+                                                      nBlocks,
+                                                      blockCounter_d.data(),
+                                                      warpSize));
       alpaka::enqueue(queue, alpaka::createTaskKernel<Acc1D>(workDivMultiBlock, verify(), output1_d.data(), num_items));
 
       alpaka::wait(queue);  // input_d and output1_d end of scope
