@@ -141,20 +141,15 @@ namespace cms {
       }
 
       template <typename TAcc>
-      ALPAKA_FN_ACC ALPAKA_FN_INLINE void countHist(const TAcc &acc, T t) {
+      ALPAKA_FN_ACC ALPAKA_FN_INLINE void count(const TAcc &acc, T t) {
         uint32_t b = bin(t);
         ALPAKA_ASSERT_OFFLOAD(b < nbins());
         Base::atomicIncrement(acc, this->off[b]);
       }
 
-      template <typename TAcc>
-      ALPAKA_FN_ACC ALPAKA_FN_INLINE void count(const TAcc &acc, T b) {
-        ALPAKA_ASSERT_OFFLOAD((uint32_t)b < nbins());
-        Base::atomicIncrement(acc, this->off[b]);
-      }
 
       template <typename TAcc>
-      ALPAKA_FN_ACC ALPAKA_FN_INLINE void fillHist(const TAcc &acc, T t, index_type j) {
+      ALPAKA_FN_ACC ALPAKA_FN_INLINE void fill(const TAcc &acc, T t, index_type j) {
         uint32_t b = bin(t);
         ALPAKA_ASSERT_OFFLOAD(b < nbins());
         auto w = Base::atomicDecrement(acc, this->off[b]);
@@ -162,13 +157,6 @@ namespace cms {
         this->content[w - 1] = j;
       }
 
-      template <typename TAcc>
-      ALPAKA_FN_ACC ALPAKA_FN_INLINE void fill(const TAcc &acc, T b, index_type j) {
-        ALPAKA_ASSERT_OFFLOAD((uint32_t)b < nbins());
-        auto w = Base::atomicDecrement(acc, this->off[b]);
-        ALPAKA_ASSERT_OFFLOAD(w > 0);
-        this->content[w - 1] = j;
-      }
 
       template <typename TAcc>
       ALPAKA_FN_ACC ALPAKA_FN_INLINE void count(const TAcc &acc, T t, uint32_t nh) {

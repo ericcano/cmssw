@@ -38,7 +38,7 @@ struct mykernel {
 
     // count
     for_each_element_in_block_strided(acc, N, [&](uint32_t j) {
-      hist.countHist(acc, v[j]);
+      hist.count(acc, v[j]);
     });
     alpaka::syncBlockThreads(acc);
 
@@ -61,7 +61,7 @@ struct mykernel {
     alpaka::syncBlockThreads(acc);
 
     // fill
-    for_each_element_in_block_strided(acc, N, [&](uint32_t j) { hist.fillHist(acc, v[j], j); });
+    for_each_element_in_block_strided(acc, N, [&](uint32_t j) { hist.fill(acc, v[j], j); });
     alpaka::syncBlockThreads(acc);
 
     ALPAKA_ASSERT_OFFLOAD(0 == hist.off[0]);

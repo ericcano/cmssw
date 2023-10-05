@@ -81,7 +81,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         izt[i] = iz - INT8_MIN;
         ALPAKA_ASSERT_OFFLOAD(iz - INT8_MIN >= 0);
         ALPAKA_ASSERT_OFFLOAD(iz - INT8_MIN < 256);
-        hist.countHist(acc, izt[i]);
+        hist.count(acc, izt[i]);
         iv[i] = i;
         nn[i] = 0;
       }
@@ -93,7 +93,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       alpaka::syncBlockThreads(acc);
       ALPAKA_ASSERT_OFFLOAD(hist.size() == nt);
       for (auto i : cms::alpakatools::elements_with_stride(acc, nt)) {
-        hist.fillHist(acc, izt[i], uint16_t(i));
+        hist.fill(acc, izt[i], uint16_t(i));
       }
       alpaka::syncBlockThreads(acc);
       // count neighbours
