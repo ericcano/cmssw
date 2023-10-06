@@ -2,7 +2,7 @@
 #define DataFormats_Track_interface_TrackLayout_h
 
 #include <Eigen/Core>
-#include "HeterogeneousCore/AlpakaInterface/interface/HistoContainer.h"
+#include "HeterogeneousCore/AlpakaInterface/interface/OneToManyAssoc.h"
 #include "Geometry/CommonTopologies/interface/SimplePixelTopology.h"
 #include "DataFormats/SoATemplate/interface/SoALayout.h"
 #include "DataFormats/TrackSoA/interface/TrackDefinitions.h"
