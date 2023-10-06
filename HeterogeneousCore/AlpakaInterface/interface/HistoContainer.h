@@ -75,6 +75,27 @@ namespace cms {
       alpaka::exec<TAcc>(queue, workDiv, fillFromVector(), h, nh, v, offsets);
     }
 
+    template <typename TAcc, typename Histo, typename T, typename TQueue>
+    inline __attribute__((always_inline)) void fillManyFromVector(Histo *__restrict__ h,
+                                                                  OneToManyAssocView<typename Histo::Base> hv,
+                                                                  uint32_t nh,
+                                                                  T const *v,
+                                                                  uint32_t const *offsets,
+                                                                  uint32_t totSize,
+                                                                  uint32_t nthreads,
+                                                                  TQueue &queue) {
+      launchZero<TAcc>(hv, queue);
+
+      const auto threadsPerBlockOrElementsPerThread = nthreads;
+      const auto blocksPerGrid = divide_up_by(totSize, nthreads);
+      const auto workDiv = make_workdiv<TAcc>(blocksPerGrid, threadsPerBlockOrElementsPerThread);
+
+      alpaka::exec<TAcc>(queue, workDiv, countFromVector(), h, nh, v, offsets);
+      launchFinalize<TAcc>(h, queue);
+
+      alpaka::exec<TAcc>(queue, workDiv, fillFromVector(), h, nh, v, offsets);
+    }
+
     // iteratate over N bins left and right of the one containing "v"
     template <typename Hist, typename V, typename Func>
     ALPAKA_FN_ACC ALPAKA_FN_INLINE void forEachInBins(Hist const &hist, V value, int n, Func func) {

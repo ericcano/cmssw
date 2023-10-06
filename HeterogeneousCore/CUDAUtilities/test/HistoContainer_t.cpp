@@ -9,6 +9,13 @@
 
 using namespace cms::cuda;
 
+//temaplate <typename H>
+//void loopOnBinning() {
+//  for (H::)
+//}
+
+// TODO
+
 template <typename T, int NBINS = 128, int S = 8 * sizeof(T), int DELTA = 1000>
 void go() {
   std::mt19937 eng;

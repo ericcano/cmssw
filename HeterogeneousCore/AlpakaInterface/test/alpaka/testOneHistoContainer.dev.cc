@@ -65,7 +65,7 @@ struct mykernel {
     alpaka::syncBlockThreads(acc);
 
     ALPAKA_ASSERT_OFFLOAD(0 == hist.off[0]);
-    ALPAKA_ASSERT_OFFLOAD(N == hist.size());
+    ALPAKA_ASSERT_OFFLOAD(N == hist.size());    
 
     // bin
 #ifndef NDEBUG
