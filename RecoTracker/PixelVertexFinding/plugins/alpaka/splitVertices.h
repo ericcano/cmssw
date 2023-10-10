@@ -1,7 +1,6 @@
 #ifndef RecoPixelVertexing_PixelVertexFinding_splitVertices_h
 #define RecoPixelVertexing_PixelVertexFinding_splitVertices_h
 
-#pragma GCC optimize("O0")
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
