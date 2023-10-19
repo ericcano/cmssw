@@ -19,9 +19,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   class TestAlpakaProducer : public global::EDProducer<> {
   public:
     TestAlpakaProducer(edm::ParameterSet const& config)
-        : productToken_{produces()},
-          collectionToken_{produces()},
-          size_{config.getParameter<int32_t>("size")} {}
+        : productToken_{produces()}, collectionToken_{produces()}, size_{config.getParameter<int32_t>("size")} {}
 
     void produce(edm::StreamID sid, device::Event& event, device::EventSetup const&) const override {
       // run the algorithm, potentially asynchronously

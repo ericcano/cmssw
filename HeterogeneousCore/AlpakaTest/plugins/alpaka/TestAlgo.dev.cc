@@ -44,9 +44,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   class TestAlgoOtherKernel {
   public:
     template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
-    ALPAKA_FN_ACC void operator()(TAcc const& acc,
-                                  portabletest::TestStruct* prod,
-                                  double xvalue) const {
+    ALPAKA_FN_ACC void operator()(TAcc const& acc, portabletest::TestStruct* prod, double xvalue) const {
       // global index of the thread within the grid
       const int32_t thread = alpaka::getIdx<alpaka::Grid, alpaka::Threads>(acc)[0u];
 
