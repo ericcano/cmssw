@@ -27,6 +27,8 @@
 #include "FWCore/ServiceRegistry/interface/ActivityRegistry.h"
 #include "FWCore/ServiceRegistry/interface/GlobalContext.h"
 #include "FWCore/ServiceRegistry/interface/ModuleCallingContext.h"
+#include "FWCore/ServiceRegistry/interface/ESModuleCallingContext.h"
+#include "FWCore/Framework/interface/ComponentDescription.h"
 #include "FWCore/ServiceRegistry/interface/PathContext.h"
 #include "FWCore/ServiceRegistry/interface/PathsAndConsumesOfModulesBase.h"
 #include "FWCore/ServiceRegistry/interface/ProcessContext.h"
@@ -189,6 +191,32 @@ namespace {
       SpinLock mtx_ = SpinLock{};
   };
 }  // namespace
+
+#define DECLARE_ES_SIGNAL_WATCHER(signal) \
+  void pre##signal(edm::eventsetup::EventSetupRecordKey const& iKey, edm::ESModuleCallingContext const& mcc); \
+  void post##signal(edm::eventsetup::EventSetupRecordKey const& iKey, edm::ESModuleCallingContext const& mcc);
+
+// The global_es_modules_ vector is indexed by the ComponentDescription id_ field
+#define DEFINE_ES_SIGNAL_WATCHER(signal) \
+  void NVProfilerService::pre##signal(edm::eventsetup::EventSetupRecordKey const& iKey, edm::ESModuleCallingContext const& esmcc) { \
+    auto mid = esmcc.componentDescription()->id_; \
+    auto const& label = esmcc.componentDescription()->label_; \
+    auto const& msg = label + " " + #signal " acquire"; \
+    global_modules_[mid].startColorIn(global_domain_, msg.c_str(), nvtxBlue, __func__); \
+  } \
+  void NVProfilerService::post##signal(edm::eventsetup::EventSetupRecordKey const& iKey,edm::ESModuleCallingContext const& esmcc) { \
+    auto mid = esmcc.componentDescription()->id_; \
+    auto const& label = esmcc.componentDescription()->label_; \
+    auto const& msg = label + " " + #signal; \
+    global_modules_[mid].endIn(global_domain_, msg.c_str(), __func__); \
+  }
+
+#define REGISTER_ES_SIGNAL_WATCHER(signal) \
+  registry.watchPre##signal( \
+      this, &NVProfilerService::pre##signal); \
+  registry.watchPost##signal( \
+      this, &NVProfilerService::post##signal);
+
 
 class NVProfilerService {
 public:
@@ -359,6 +387,10 @@ public:
   // these signal pair are guaranteed to be called by the same thread
   void preModuleTransform(edm::StreamContext const&, edm::ModuleCallingContext const&);
   void postModuleTransform(edm::StreamContext const&, edm::ModuleCallingContext const&);
+
+  DECLARE_ES_SIGNAL_WATCHER(ESModulePrefetching)
+  DECLARE_ES_SIGNAL_WATCHER(ESModule)
+  DECLARE_ES_SIGNAL_WATCHER(ESModuleAcquire)
 
 private:
   bool highlight(std::string const& label) const {
@@ -572,6 +604,10 @@ NVProfilerService::NVProfilerService(edm::ParameterSet const& config, edm::Activ
   // these signal pair are guaranteed to be called by the same thread
   registry.watchPreModuleTransformAcquiring(this, &NVProfilerService::preModuleTransformAcquiring);
   registry.watchPostModuleTransformAcquiring(this, &NVProfilerService::postModuleTransformAcquiring);
+
+  REGISTER_ES_SIGNAL_WATCHER(ESModulePrefetching)
+  REGISTER_ES_SIGNAL_WATCHER(ESModule)
+  REGISTER_ES_SIGNAL_WATCHER(ESModuleAcquire)
 }
 
 NVProfilerService::~NVProfilerService() {
@@ -919,6 +955,8 @@ void NVProfilerService::postModuleEventPrefetching(edm::StreamContext const& sc,
 void NVProfilerService::preModuleConstruction(edm::ModuleDescription const& desc) {
   auto mid = desc.id();
   global_modules_.grow_to_at_least(mid + 1);
+  std::cout << "NVProfilerService::preModuleConstruction: module id " << mid
+            << ", label: " << desc.moduleLabel() << "\n";
 
   // This normally does nothing because stream_modules_ is empty when
   // called. But there is a rare case when a looper is used that replacement
@@ -1320,6 +1358,25 @@ void NVProfilerService::postModuleTransform(edm::StreamContext const& sc, edm::M
     stream_modules_[sid][mid].endIn(stream_domain_[sid], msg.c_str(), __func__);
   }
 }
+
+void NVProfilerService::preESModulePrefetching(edm::eventsetup::EventSetupRecordKey const& iKey, edm::ESModuleCallingContext const& esmcc) { 
+  auto mid = esmcc.componentDescription()->id_; 
+  auto const& label = esmcc.componentDescription()->label_;
+   auto const& msg = label + " " + "ESModulePrefetching" " acquire";
+   std::cout << "NVProfilerService::preESModulePrefetching: ES module id " << mid
+            << ", label: " << label << "\n";
+   global_modules_[mid].startColorIn(global_domain_, msg.c_str(), nvtxBlue, __func__); 
+  } 
+  
+  void NVProfilerService::postESModulePrefetching(edm::eventsetup::EventSetupRecordKey const& iKey,edm::ESModuleCallingContext const& esmcc) { 
+    auto mid = esmcc.componentDescription()->id_; 
+    auto const& label = esmcc.componentDescription()->label_; 
+    auto const& msg = label + " " + "ESModulePrefetching"; 
+    global_modules_[mid].endIn(global_domain_, msg.c_str(), __func__); 
+  }
+
+DEFINE_ES_SIGNAL_WATCHER(ESModule)
+DEFINE_ES_SIGNAL_WATCHER(ESModuleAcquire)
 
 #include "FWCore/ServiceRegistry/interface/ServiceMaker.h"
 DEFINE_FWK_SERVICE(NVProfilerService);

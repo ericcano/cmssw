@@ -172,11 +172,11 @@ namespace edm {
                                   common.maxSecondsUntilRampdown_,
                                   allocations);
 
-    areg->preSourceConstructionSignal_(md);
+    areg->preSourceConstructionSignal_.emit(md);
     std::unique_ptr<InputSource> input;
     try {
       //even if we have an exception, send the signal
-      std::shared_ptr<int> sentry(nullptr, [areg, &md](void*) { areg->postSourceConstructionSignal_(md); });
+      std::shared_ptr<int> sentry(nullptr, [areg, &md](void*) { areg->postSourceConstructionSignal_.emit(md); });
       convertException::wrap([&]() {
         input = InputSourceFactory::get()->makeInputSource(*main_input, isdesc);
         input->preEventReadFromSourceSignal_.connect(std::cref(areg->preEventReadFromSourceSignal_));
@@ -613,7 +613,7 @@ namespace edm {
                                  preallocations_.numberOfLuminosityBlocks(),
                                  preallocations_.numberOfRuns(),
                                  preallocations_.numberOfThreads());
-    actReg_->preallocateSignal_(bounds);
+    actReg_->preallocateSignal_.emit(bounds);
     schedule_->convertCurrentProcessAlias(processConfiguration_->processName());
 
     PathsAndConsumesOfModules pathsAndConsumesOfModules;
@@ -674,7 +674,7 @@ namespace edm {
 
     eventsetup::ESRecordsToProductResolverIndices esRecordsToProductResolverIndices = esp_->recordsToResolverIndices();
 
-    actReg_->eventSetupConfigurationSignal_(esRecordsToProductResolverIndices, processContext_);
+    actReg_->eventSetupConfigurationSignal_.emit(esRecordsToProductResolverIndices, processContext_);
     try {
       convertException::wrap([&]() { input_->doBeginJob(*preg_); });
     } catch (cms::Exception& ex) {
@@ -728,7 +728,7 @@ namespace edm {
       std::rethrow_exception(firstException);
     }
     pathsAndConsumesOfModules.initializeForEventSetup(*esp_);
-    actReg_->lookupInitializationCompleteSignal_(pathsAndConsumesOfModules, processContext_);
+    actReg_->lookupInitializationCompleteSignal_.emit(pathsAndConsumesOfModules, processContext_);
     schedule_->releaseMemoryPostLookupSignal();
 
     beginJobSucceeded_ = true;
@@ -862,7 +862,7 @@ namespace edm {
     StatusCode returnCode = epSuccess;
 
     if (checkForAsyncStopRequest(returnCode)) {
-      actReg_->preSourceEarlyTerminationSignal_(TerminationOrigin::ExternalSignal);
+      actReg_->preSourceEarlyTerminationSignal_.emit(TerminationOrigin::ExternalSignal);
       lastSourceTransition_ = InputSource::ItemType::IsStop;
     }
 
@@ -897,8 +897,8 @@ namespace edm {
 
     // make the services available
     ServiceRegistry::Operate operate(serviceToken_);
-    actReg_->beginProcessingSignal_();
-    auto endSignal = [](ActivityRegistry* iReg) { iReg->endProcessingSignal_(); };
+    actReg_->beginProcessingSignal_.emit();
+    auto endSignal = [](ActivityRegistry* iReg) { iReg->endProcessingSignal_.emit(); };
     std::unique_ptr<ActivityRegistry, decltype(endSignal)> guard(actReg_.get(), endSignal);
     try {
       FilesProcessor fp(fileModeNoMerge_);
