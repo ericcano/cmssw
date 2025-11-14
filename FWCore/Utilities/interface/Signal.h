@@ -30,11 +30,15 @@
 #include "FWCore/Utilities/interface/thread_safety_macros.h"
 
 // forward declarations
+namespace edm {
+  class ActivityRegistry;
+}
 
 namespace edm {
   namespace signalslot {
     template <typename T>
     class Signal {
+    friend std::reference_wrapper<const Signal<T>> std::cref(const Signal<T>& t);
     public:
       typedef std::function<T> slot_type;
       typedef std::vector<slot_type> slot_list_type;
@@ -61,11 +65,13 @@ namespace edm {
         }
       }
 
+    private:
       template <typename... Args>
       void operator()(Args&&... args) const {
         emit(std::forward<Args>(args)...);
       }
 
+    public:
       slot_list_type const& slots() const { return m_slots; }
       // ---------- static member functions --------------------
 
