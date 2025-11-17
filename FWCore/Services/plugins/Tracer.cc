@@ -231,6 +231,11 @@ namespace edm {
       void preESModuleAcquire(eventsetup::EventSetupRecordKey const&, ESModuleCallingContext const&);
       void postESModuleAcquire(eventsetup::EventSetupRecordKey const&, ESModuleCallingContext const&);
 
+      void eventSetupConfiguration(eventsetup::ESRecordsToProductResolverIndices const&, 
+                                  edm::ProcessContext const&);
+
+      void postESModuleRegistration(eventsetup::ComponentDescription const&);
+
       void printPaths(LogAbsolute& out, PathsAndConsumesOfModulesBase const& pathsAndConsumes) const;
 
       void printEDModulesWithDependentModules(LogAbsolute& out,
@@ -527,6 +532,9 @@ Tracer::Tracer(ParameterSet const& iPS, ActivityRegistry& iRegistry)
   iRegistry.watchPostESModule(this, &Tracer::postESModule);
   iRegistry.watchPreESModuleAcquire(this, &Tracer::preESModuleAcquire);
   iRegistry.watchPostESModuleAcquire(this, &Tracer::postESModuleAcquire);
+
+  iRegistry.watchEventSetupConfiguration(this, &Tracer::eventSetupConfiguration);
+  iRegistry.watchPostESModuleRegistration(this, &Tracer::postESModuleRegistration);
 
   iRegistry.preSourceEarlyTerminationSignal_.connect([this](edm::TerminationOrigin iOrigin) {
     LogAbsolute out("Tracer");
@@ -2207,6 +2215,26 @@ void Tracer::postESModuleAcquire(eventsetup::EventSetupRecordKey const& iKey, ES
   out << " finished: processing esmodule acquire: label = '" << mcc.componentDescription()->label_
       << "' type = " << mcc.componentDescription()->type_ << " in record = " << iKey.name();
 }
+
+void Tracer::eventSetupConfiguration(eventsetup::ESRecordsToProductResolverIndices const& records, 
+                                  edm::ProcessContext const& processContext) {
+  LogAbsolute out("Tracer");
+  out << TimeStamper(printTimestamps_);
+  out << indention_;
+  out << " eventSetupConfiguration done.";
+}
+
+
+void Tracer::postESModuleRegistration(eventsetup::ComponentDescription const& componentDescription) {
+  LogAbsolute out("Tracer");
+  out << TimeStamper(printTimestamps_);
+  out << indention_;
+  out << " registered ES module with label ='" << componentDescription.label_
+      << "' type = '" << componentDescription.type_
+      << "' id = " << componentDescription.id_;
+}
+
+// constructing module with label 'TriggerResults' id = 1
 
 using edm::service::Tracer;
 DEFINE_FWK_SERVICE(Tracer);
