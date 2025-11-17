@@ -38,7 +38,6 @@ namespace edm {
   namespace signalslot {
     template <typename T>
     class Signal {
-    friend std::reference_wrapper<const Signal<T>> std::cref(const Signal<T>& t);
     public:
       typedef std::function<T> slot_type;
       typedef std::vector<slot_type> slot_list_type;
@@ -76,6 +75,21 @@ namespace edm {
       // ---------- static member functions --------------------
 
       // ---------- member functions ---------------------------
+      
+      // Allow connecting another Signal<T> via std::reference_wrapper<const Signal<T>>
+      // std::function cannot be constructed from std::reference_wrapper<const Signal>
+      // because Signal::operator() is private, so wrap with a lambda that calls emit().
+      void connect(std::reference_wrapper<const Signal> iFunc) {
+        m_slots.emplace_back([iFunc](auto&&... args) {
+          iFunc.get().emit(std::forward<decltype(args)>(args)...);
+        });
+      }
+
+      void connect_front(std::reference_wrapper<const Signal> iFunc) {
+        m_slots.insert(m_slots.begin(),
+                       slot_type([iFunc](auto&&... args) { iFunc.get().emit(std::forward<decltype(args)>(args)...); }));
+      }
+
       template <typename U>
       void connect(U iFunc) {
         m_slots.push_back(std::function<T>(iFunc));
