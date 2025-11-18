@@ -201,14 +201,28 @@ namespace {
   void NVProfilerService::pre##signal(edm::eventsetup::EventSetupRecordKey const& iKey, edm::ESModuleCallingContext const& esmcc) { \
     auto mid = esmcc.componentDescription()->id_; \
     auto const& label = esmcc.componentDescription()->label_; \
-    auto const& msg = label + " " + #signal " acquire"; \
-    global_modules_[mid].startColorIn(global_domain_, msg.c_str(), nvtxBlue, __func__); \
+    auto const& type = esmcc.componentDescription()->type_; \
+    std::string msg; \
+    if (label.size() == 0) { \
+      /*Fallback on the type */ \
+      msg = type + "(type) " + #signal ""; \
+    } else { \
+      msg = label + " " + #signal ""; \
+    } \
+    global_ES_modules_[mid].startColorIn(global_domain_, msg.c_str(), nvtxBlue, __func__); \
   } \
   void NVProfilerService::post##signal(edm::eventsetup::EventSetupRecordKey const& iKey,edm::ESModuleCallingContext const& esmcc) { \
     auto mid = esmcc.componentDescription()->id_; \
     auto const& label = esmcc.componentDescription()->label_; \
-    auto const& msg = label + " " + #signal; \
-    global_modules_[mid].endIn(global_domain_, msg.c_str(), __func__); \
+    auto const& type = esmcc.componentDescription()->type_; \
+    std::string msg; \
+    if (label.size() == 0) { \
+      /* Fallback on the type */ \
+      msg = type + "(type) " + #signal ""; \
+    } else { \
+      msg = label + " " + #signal ""; \
+    } \
+    global_ES_modules_[mid].endIn(global_domain_, msg.c_str(), __func__); \
   }
 
 #define REGISTER_ES_SIGNAL_WATCHER(signal) \
@@ -388,6 +402,9 @@ public:
   void preModuleTransform(edm::StreamContext const&, edm::ModuleCallingContext const&);
   void postModuleTransform(edm::StreamContext const&, edm::ModuleCallingContext const&);
 
+
+  // ES signal watchers
+  void postESModuleRegistration(edm::eventsetup::ComponentDescription const&);
   DECLARE_ES_SIGNAL_WATCHER(ESModulePrefetching)
   DECLARE_ES_SIGNAL_WATCHER(ESModule)
   DECLARE_ES_SIGNAL_WATCHER(ESModuleAcquire)
@@ -414,6 +431,10 @@ private:
   std::vector<std::vector<unique_range_in>> stream_modules_acquire_;  // per-stream, per-module ranges for acquire, which can clash with produce
   // use a tbb::concurrent_vector rather than an std::vector because its final size is not known
   tbb::concurrent_vector<unique_range_in> global_modules_;  // global per-module events
+  std::vector<std::vector<unique_range_in>> stream_ES_modules_;  // per-stream, per-ES-module ranges
+  std::vector<std::vector<unique_range_in>> stream_ES_modules_acquire_;  // per-stream, per-ES-module ranges for acquire, which can clash with produce
+  // use a tbb::concurrent_vector rather than an std::vector because its final size is not known
+  tbb::concurrent_vector<unique_range_in> global_ES_modules_;  // global per-ES-module events
 
   nvtxDomainHandle_t global_domain_;               // NVTX domain for global EDM transitions
   std::vector<nvtxDomainHandle_t> stream_domain_;  // NVTX domains for per-EDM-stream transitions
@@ -605,7 +626,11 @@ NVProfilerService::NVProfilerService(edm::ParameterSet const& config, edm::Activ
   registry.watchPreModuleTransformAcquiring(this, &NVProfilerService::preModuleTransformAcquiring);
   registry.watchPostModuleTransformAcquiring(this, &NVProfilerService::postModuleTransformAcquiring);
 
-  REGISTER_ES_SIGNAL_WATCHER(ESModulePrefetching)
+  // ES signal watchers
+  registry.watchPostESModuleRegistration(this, &NVProfilerService::postESModuleRegistration);
+  if (showModulePrefetching_) {
+    REGISTER_ES_SIGNAL_WATCHER(ESModulePrefetching)
+  }
   REGISTER_ES_SIGNAL_WATCHER(ESModule)
   REGISTER_ES_SIGNAL_WATCHER(ESModuleAcquire)
 }
@@ -1359,21 +1384,41 @@ void NVProfilerService::postModuleTransform(edm::StreamContext const& sc, edm::M
   }
 }
 
+void NVProfilerService::postESModuleRegistration(edm::eventsetup::ComponentDescription const& componentDescription) {
+  auto mid = componentDescription.id_;
+  auto const& label = componentDescription.label_;
+  auto const& msg = label + " " + "ESModuleReRegistration";
+  global_ES_modules_.grow_to_at_least(mid + 1);
+  nvtxDomainMark(global_domain_, msg.c_str());
+}
+
 void NVProfilerService::preESModulePrefetching(edm::eventsetup::EventSetupRecordKey const& iKey, edm::ESModuleCallingContext const& esmcc) { 
   auto mid = esmcc.componentDescription()->id_; 
   auto const& label = esmcc.componentDescription()->label_;
-   auto const& msg = label + " " + "ESModulePrefetching" " acquire";
-   std::cout << "NVProfilerService::preESModulePrefetching: ES module id " << mid
-            << ", label: " << label << "\n";
-   global_modules_[mid].startColorIn(global_domain_, msg.c_str(), nvtxBlue, __func__); 
-  } 
-  
-  void NVProfilerService::postESModulePrefetching(edm::eventsetup::EventSetupRecordKey const& iKey,edm::ESModuleCallingContext const& esmcc) { 
-    auto mid = esmcc.componentDescription()->id_; 
-    auto const& label = esmcc.componentDescription()->label_; 
-    auto const& msg = label + " " + "ESModulePrefetching"; 
-    global_modules_[mid].endIn(global_domain_, msg.c_str(), __func__); 
+  auto const& type = esmcc.componentDescription()->type_;
+  std::string msg;
+  if (label.size() == 0) {
+    // Fallback on the type
+    msg = type + "(type) " + "ES prefetch" " acquire";
+  } else {
+    msg = label + " " + "ES prefetch" " acquire";
   }
+  global_ES_modules_[mid].startColorIn(global_domain_, msg.c_str(), nvtxBlue, __func__); 
+} 
+  
+void NVProfilerService::postESModulePrefetching(edm::eventsetup::EventSetupRecordKey const& iKey,edm::ESModuleCallingContext const& esmcc) { 
+  auto mid = esmcc.componentDescription()->id_;
+  auto const& label = esmcc.componentDescription()->label_;
+  auto const& type = esmcc.componentDescription()->type_;
+  std::string msg;
+  if (label.size() == 0) {
+    // Fallback on the type
+    msg = type + "(type) " + "ES prefetch" " acquire";
+  } else {
+    msg = label + " " + "ES prefetch" " acquire";
+  }
+  global_ES_modules_[mid].endIn(global_domain_, msg.c_str(), __func__); 
+}
 
 DEFINE_ES_SIGNAL_WATCHER(ESModule)
 DEFINE_ES_SIGNAL_WATCHER(ESModuleAcquire)
