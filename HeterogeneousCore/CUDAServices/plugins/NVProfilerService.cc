@@ -427,6 +427,7 @@ private:
   std::atomic<bool> globalFirstEventDone_ = false;
   std::vector<std::atomic<bool>> streamFirstEventDone_;
   std::vector<unique_range_in> event_;                        // per-stream event ranges
+  std::vector<unique_range_in> path_;;                        // per-stream path ranges
   std::vector<std::vector<unique_range_in>> stream_modules_;  // per-stream, per-module ranges
   std::vector<std::vector<unique_range_in>> stream_modules_acquire_;  // per-stream, per-module ranges for acquire, which can clash with produce
   // use a tbb::concurrent_vector rather than an std::vector because its final size is not known
@@ -677,6 +678,7 @@ void NVProfilerService::preallocate(edm::service::SystemBounds const& bounds) {
   }
 
   event_.resize(concurrentStreams);
+  path_.resize(concurrentStreams);
   stream_modules_.resize(concurrentStreams);
   for (auto& modulesForOneStream : stream_modules_) {
     modulesForOneStream.resize(global_modules_.size());
@@ -940,11 +942,10 @@ void NVProfilerService::postEvent(edm::StreamContext const& sc) {
   }
 }
 
-// TODO: this is stream context??
 void NVProfilerService::prePathEvent(edm::StreamContext const& sc, edm::PathContext const& pc) {
   auto sid = sc.streamID();
   if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    nvtxDomainMark(global_domain_, ("before path "s + pc.pathName()).c_str());
+    path_[sid].startColorIn(stream_domain_[sid], ("path " + pc.pathName()).c_str(), nvtxDarkGreen, __func__);
   }
 }
 
@@ -953,7 +954,7 @@ void NVProfilerService::postPathEvent(edm::StreamContext const& sc,
                                       edm::HLTPathStatus const& hlts) {
   auto sid = sc.streamID();
   if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    nvtxDomainMark(global_domain_, ("after path "s + pc.pathName()).c_str());
+    path_[sid].endIn(stream_domain_[sid], ("path " + pc.pathName()).c_str(), __func__);
   }
 }
 
