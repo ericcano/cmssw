@@ -427,7 +427,8 @@ private:
   std::atomic<bool> globalFirstEventDone_ = false;
   std::vector<std::atomic<bool>> streamFirstEventDone_;
   std::vector<unique_range_in> event_;                        // per-stream event ranges
-  std::vector<unique_range_in> path_;;                        // per-stream path ranges
+  std::vector<std::vector<unique_range_in>> path_;            // per-stream, per-path ranges
+  std::vector<std::vector<unique_range_in>> endPath_;         // per-stream, per-endPath ranges
   std::vector<std::vector<unique_range_in>> stream_modules_;  // per-stream, per-module ranges
   std::vector<std::vector<unique_range_in>> stream_modules_acquire_;  // per-stream, per-module ranges for acquire, which can clash with produce
   // use a tbb::concurrent_vector rather than an std::vector because its final size is not known
@@ -679,6 +680,8 @@ void NVProfilerService::preallocate(edm::service::SystemBounds const& bounds) {
 
   event_.resize(concurrentStreams);
   path_.resize(concurrentStreams);
+  endPath_.resize(concurrentStreams);
+  // per stream path and end path arrays will be resized in lookupInitializationComplete()
   stream_modules_.resize(concurrentStreams);
   for (auto& modulesForOneStream : stream_modules_) {
     modulesForOneStream.resize(global_modules_.size());
@@ -707,9 +710,17 @@ void NVProfilerService::postBeginJob() {
   }
 }
 
-void NVProfilerService::lookupInitializationComplete(edm::PathsAndConsumesOfModulesBase const&,
+void NVProfilerService::lookupInitializationComplete(edm::PathsAndConsumesOfModulesBase const& pathsAndConsumes,
                                                      edm::ProcessContext const&) {
   nvtxDomainMark(global_domain_, "lookupInitializationComplete");
+  // We could potentially get all we want from pathsAndConsumes...
+  assert(path_.size() > 0 and endPath_.size() > 0);
+  for (auto& streamPaths : path_) {
+    streamPaths.resize(pathsAndConsumes.paths().size());
+  }
+  for (auto& streamEndPaths : endPath_) {
+    streamEndPaths.resize(pathsAndConsumes.endPaths().size());
+  }
 }
 
 void NVProfilerService::postEndJob() {
@@ -944,8 +955,10 @@ void NVProfilerService::postEvent(edm::StreamContext const& sc) {
 
 void NVProfilerService::prePathEvent(edm::StreamContext const& sc, edm::PathContext const& pc) {
   auto sid = sc.streamID();
+  auto pid = pc.pathID();
+  auto& pathOrEndPath = pc.isEndPath() ? endPath_[sid][pid] : path_[sid][pid];
   if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    path_[sid].startColorIn(stream_domain_[sid], ("path " + pc.pathName()).c_str(), nvtxDarkGreen, __func__);
+    pathOrEndPath.startColorIn(stream_domain_[sid], ("path " + pc.pathName()).c_str(), nvtxDarkGreen, __func__);
   }
 }
 
@@ -953,8 +966,10 @@ void NVProfilerService::postPathEvent(edm::StreamContext const& sc,
                                       edm::PathContext const& pc,
                                       edm::HLTPathStatus const& hlts) {
   auto sid = sc.streamID();
+  auto pid = pc.pathID();
+  auto& pathOrEndPath = pc.isEndPath() ? endPath_[sid][pid] : path_[sid][pid];
   if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    path_[sid].endIn(stream_domain_[sid], ("path " + pc.pathName()).c_str(), __func__);
+    pathOrEndPath.endIn(stream_domain_[sid], ("path " + pc.pathName()).c_str(), __func__);
   }
 }
 
