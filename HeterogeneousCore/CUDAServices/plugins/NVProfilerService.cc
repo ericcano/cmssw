@@ -29,6 +29,7 @@
 #include "FWCore/ServiceRegistry/interface/ModuleCallingContext.h"
 #include "FWCore/ServiceRegistry/interface/ESModuleCallingContext.h"
 #include "FWCore/Framework/interface/ComponentDescription.h"
+#include "FWCore/Framework/interface/EventSetupRecordKey.h"
 #include "FWCore/ServiceRegistry/interface/PathContext.h"
 #include "FWCore/ServiceRegistry/interface/PathsAndConsumesOfModulesBase.h"
 #include "FWCore/ServiceRegistry/interface/ProcessContext.h"
@@ -727,66 +728,77 @@ void NVProfilerService::postEndJob() {
   if (not skipFirstEvent_ or globalFirstEventDone_) {
     nvtxDomainMark(global_domain_, "postEndJob");
   }
+  std::cout << __func__ << "\n";
 }
 
 void NVProfilerService::preSourceEvent(edm::StreamID sid) {
   if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
     nvtxDomainRangePush(stream_domain_[sid], "source");
   }
+  std::cout << __func__ << "\n";
 }
 
 void NVProfilerService::postSourceEvent(edm::StreamID sid) {
   if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
     nvtxDomainRangePop(stream_domain_[sid]);
   }
+  std::cout << __func__ << "\n";
 }
 
 void NVProfilerService::preSourceLumi(edm::LuminosityBlockIndex index) {
   if (not skipFirstEvent_ or globalFirstEventDone_) {
     nvtxDomainRangePush(global_domain_, "source lumi");
   }
+  std::cout << __func__ << "\n";
 }
 
 void NVProfilerService::postSourceLumi(edm::LuminosityBlockIndex index) {
   if (not skipFirstEvent_ or globalFirstEventDone_) {
     nvtxDomainRangePop(global_domain_);
   }
+  std::cout << __func__ << "\n";
 }
 
 void NVProfilerService::preSourceRun(edm::RunIndex index) {
   if (not skipFirstEvent_ or globalFirstEventDone_) {
     nvtxDomainRangePush(global_domain_, "source run");
   }
+  std::cout << __func__ << "\n";
 }
 
 void NVProfilerService::postSourceRun(edm::RunIndex index) {
   if (not skipFirstEvent_ or globalFirstEventDone_) {
     nvtxDomainRangePop(global_domain_);
   }
+  std::cout << __func__ << "\n";
 }
 
 void NVProfilerService::preOpenFile(std::string const& lfn) {
   if (not skipFirstEvent_ or globalFirstEventDone_) {
     nvtxDomainRangePush(global_domain_, ("open file "s + lfn).c_str());
   }
+  std::cout << __func__ << "\n";
 }
 
 void NVProfilerService::postOpenFile(std::string const& lfn) {
   if (not skipFirstEvent_ or globalFirstEventDone_) {
     nvtxDomainRangePop(global_domain_);
   }
+  std::cout << __func__ << "\n";
 }
 
 void NVProfilerService::preCloseFile(std::string const& lfn) {
   if (not skipFirstEvent_ or globalFirstEventDone_) {
     nvtxDomainRangePush(global_domain_, ("close file "s + lfn).c_str());
   }
+  std::cout << __func__ << "\n";
 }
 
 void NVProfilerService::postCloseFile(std::string const& lfn) {
   if (not skipFirstEvent_ or globalFirstEventDone_) {
     nvtxDomainRangePop(global_domain_);
   }
+  std::cout << __func__ << "\n";
 }
 
 void NVProfilerService::preModuleBeginStream(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
@@ -814,7 +826,7 @@ void NVProfilerService::preModuleEndStream(edm::StreamContext const& sc, edm::Mo
   if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
     auto mid = mcc.moduleDescription()->id();
     auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " end stream";
+      auto const& msg = label + " end stream";
     stream_modules_[sid][mid].startColorIn(stream_domain_[sid], msg.c_str(), labelColor(label), __func__);
   }
 }
@@ -934,6 +946,7 @@ void NVProfilerService::postStreamEndLumi(edm::StreamContext const& sc) {
 void NVProfilerService::preEvent(edm::StreamContext const& sc) {
   auto sid = sc.streamID();
   if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
+    std::string msg = fmt::sprintf("event run = %d event = %d", sc.eventID().run(), sc.eventID().event());
     event_[sid].startColorIn(stream_domain_[sid], "event", nvtxDarkGreen, __func__);
   }
 }
@@ -1115,53 +1128,44 @@ void NVProfilerService::postModuleEvent(edm::StreamContext const& sc, edm::Modul
   }
 }
 
-// TODO: re-enable.
 void NVProfilerService::preModuleEventDelayedGet(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  /* FIXME
   auto sid = sc.streamID();
   if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
     auto mid = mcc.moduleDescription()->id();
     auto const & label = mcc.moduleDescription()->moduleLabel();
     auto const & msg = label + " delayed get";
-    assert(stream_modules_[sid][mid] == nvtxInvalidRangeId);
-    stream_modules_[sid][mid] = nvtxDomainRangeStartColor(stream_domain_[sid], label.c_str(), labelColorLight(label));
+    stream_modules_[sid][mid].startColorIn(stream_domain_[sid], msg.c_str(), labelColorLight(label), __func__);
   }
-  */
 }
 
 void NVProfilerService::postModuleEventDelayedGet(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  /* FIXME
   auto sid = sc.streamID();
   if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
     auto mid = mcc.moduleDescription()->id();
-    nvtxDomainRangeEnd(stream_domain_[sid], stream_modules_[sid][mid]);
-    stream_modules_[sid][mid] = nvtxInvalidRangeId;
+    auto const & label = mcc.moduleDescription()->moduleLabel();
+    auto const & msg = label + " delayed get";
+    stream_modules_[sid][mid].endIn(stream_domain_[sid], msg.c_str(), __func__);
   }
-  */
 }
 
 void NVProfilerService::preEventReadFromSource(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  /* FIXME
   auto sid = sc.streamID();
   if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
     auto mid = mcc.moduleDescription()->id();
     auto const & label = mcc.moduleDescription()->moduleLabel();
     auto const & msg = label + " read from source";
-    assert(stream_modules_[sid][mid] == nvtxInvalidRangeId);
-    stream_modules_[sid][mid] = nvtxDomainRangeStartColor(stream_domain_[sid], msg.c_str(), labelColorLight(label));
+    stream_modules_[sid][mid].startColorIn(stream_domain_[sid], msg.c_str(), labelColorLight(label), __func__);
   }
-  */
 }
 
 void NVProfilerService::postEventReadFromSource(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  /* FIXME
   auto sid = sc.streamID();
   if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
     auto mid = mcc.moduleDescription()->id();
-    nvtxDomainRangeEnd(stream_domain_[sid], stream_modules_[sid][mid]);
-    stream_modules_[sid][mid] = nvtxInvalidRangeId;
+    auto const & label = mcc.moduleDescription()->moduleLabel();
+    auto const & msg = label + " read from source";
+    stream_modules_[sid][mid].endIn(stream_domain_[sid], msg.c_str(), __func__);
   }
-  */
 }
 
 void NVProfilerService::preModuleStreamBeginRun(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
@@ -1436,7 +1440,27 @@ void NVProfilerService::postESModulePrefetching(edm::eventsetup::EventSetupRecor
   global_ES_modules_[mid].endIn(global_domain_, msg.c_str(), __func__); 
 }
 
-DEFINE_ES_SIGNAL_WATCHER(ESModule)
+/*DEFINE_ES_SIGNAL_WATCHER(ESModule)*/
+void NVProfilerService::preESModule(edm::eventsetup::EventSetupRecordKey const& iKey,
+                                    edm::ESModuleCallingContext const& esmcc) {
+  auto mid = esmcc.componentDescription()->id_;
+  auto const& label = esmcc.componentDescription()->label_;
+  auto const& type = esmcc.componentDescription()->type_;
+  auto const& context = iKey.name();
+  std::string msg = "ESModule: label = '" + label + "', type = '" + type + "', record = '" + context + "'";
+  global_ES_modules_[mid].startColorIn(global_domain_, msg.c_str(), nvtxBlue, __func__);
+}
+
+void NVProfilerService::postESModule(edm::eventsetup::EventSetupRecordKey const& iKey,
+                                     edm::ESModuleCallingContext const& esmcc) {
+  auto mid = esmcc.componentDescription()->id_;
+  auto const& label = esmcc.componentDescription()->label_;
+  auto const& type = esmcc.componentDescription()->type_;
+  auto const& context = iKey.name();
+  std::string msg = "ESModule: label = '" + label + "', type = '" + type + "', record = '" + context + "'";
+  global_ES_modules_[mid].endIn(global_domain_, msg.c_str(), __func__);
+}
+
 DEFINE_ES_SIGNAL_WATCHER(ESModuleAcquire)
 
 #include "FWCore/ServiceRegistry/interface/ServiceMaker.h"
