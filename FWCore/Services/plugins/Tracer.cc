@@ -275,7 +275,7 @@ namespace {
 
     friend std::ostream& operator<<(std::ostream& out, TimeStamper const& timestamp) {
       if (timestamp.enabled_)
-        out << std::setprecision(2) << edm::TimeOfDay() << "  ";
+        out << std::setprecision(6) << edm::TimeOfDay() << "  ";
       return out;
     }
 
