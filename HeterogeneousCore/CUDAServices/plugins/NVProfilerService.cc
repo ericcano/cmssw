@@ -428,6 +428,7 @@ private:
   std::atomic<bool> globalFirstEventDone_ = false;
   std::vector<std::atomic<bool>> streamFirstEventDone_;
   std::vector<unique_range_in> event_;                        // per-stream event ranges
+  std::vector<unique_range_in> source_;                       // per-stream source ranges TODO: it might be possible to merge this with event_
   std::vector<std::vector<unique_range_in>> path_;            // per-stream, per-path ranges
   std::vector<std::vector<unique_range_in>> endPath_;         // per-stream, per-endPath ranges
   std::vector<std::vector<unique_range_in>> stream_modules_;  // per-stream, per-module ranges
@@ -682,6 +683,7 @@ void NVProfilerService::preallocate(edm::service::SystemBounds const& bounds) {
   event_.resize(concurrentStreams);
   path_.resize(concurrentStreams);
   endPath_.resize(concurrentStreams);
+  source_.resize(concurrentStreams);
   // per stream path and end path arrays will be resized in lookupInitializationComplete()
   stream_modules_.resize(concurrentStreams);
   for (auto& modulesForOneStream : stream_modules_) {
@@ -733,16 +735,14 @@ void NVProfilerService::postEndJob() {
 
 void NVProfilerService::preSourceEvent(edm::StreamID sid) {
   if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    nvtxDomainRangePush(stream_domain_[sid], "source");
+    source_[sid].startColorIn(stream_domain_[sid], "source", nvtxAmber, __func__);
   }
-  std::cout << __func__ << "\n";
 }
 
 void NVProfilerService::postSourceEvent(edm::StreamID sid) {
   if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    nvtxDomainRangePop(stream_domain_[sid]);
+    source_[sid].endIn(stream_domain_[sid], "source", __func__);
   }
-  std::cout << __func__ << "\n";
 }
 
 void NVProfilerService::preSourceLumi(edm::LuminosityBlockIndex index) {
