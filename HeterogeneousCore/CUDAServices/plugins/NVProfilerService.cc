@@ -349,16 +349,6 @@ public:
   void preModuleEndJob(edm::ModuleDescription const&);
   void postModuleEndJob(edm::ModuleDescription const&);
 
-  /******** Module stream context signals *********************************************/
-
-  // these signal pair are guaranteed to be called by the same thread
-  void preModuleBeginStream(edm::StreamContext const&, edm::ModuleCallingContext const&);
-  void postModuleBeginStream(edm::StreamContext const&, edm::ModuleCallingContext const&);
-
-  // these signal pair are guaranteed to be called by the same thread
-  void preModuleEndStream(edm::StreamContext const&, edm::ModuleCallingContext const&);
-  void postModuleEndStream(edm::StreamContext const&, edm::ModuleCallingContext const&);
-
   /******** Module global context signals *********************************************/
 
   // these signal pair are guaranteed to be called by the same thread
@@ -381,6 +371,8 @@ public:
 
   DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginRun)
   DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamEndRun)
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleBeginStream)
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEndStream)
   DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginLumi)
   DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamEndLumi)
   DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventAcquire)
@@ -544,22 +536,6 @@ NVProfilerService::NVProfilerService(edm::ParameterSet const& config, edm::Activ
   registry.watchPostModuleDestruction(this, &NVProfilerService::postModuleDestruction);
 
   // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreModuleBeginJob(this, &NVProfilerService::preModuleBeginJob);
-  registry.watchPostModuleBeginJob(this, &NVProfilerService::postModuleBeginJob);
-
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreModuleEndJob(this, &NVProfilerService::preModuleEndJob);
-  registry.watchPostModuleEndJob(this, &NVProfilerService::postModuleEndJob);
-
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreModuleBeginStream(this, &NVProfilerService::preModuleBeginStream);
-  registry.watchPostModuleBeginStream(this, &NVProfilerService::postModuleBeginStream);
-
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreModuleEndStream(this, &NVProfilerService::preModuleEndStream);
-  registry.watchPostModuleEndStream(this, &NVProfilerService::postModuleEndStream);
-
-  // these signal pair are guaranteed to be called by the same thread
   registry.watchPreModuleGlobalBeginRun(this, &NVProfilerService::preModuleGlobalBeginRun);
   registry.watchPostModuleGlobalBeginRun(this, &NVProfilerService::postModuleGlobalBeginRun);
 
@@ -577,6 +553,10 @@ NVProfilerService::NVProfilerService(edm::ParameterSet const& config, edm::Activ
 
   /******** Module stream context signals *********************************************/
 
+  REGISTER_SIGNAL_WATCHER(ModuleBeginJob)
+  REGISTER_SIGNAL_WATCHER(ModuleEndJob)
+  REGISTER_SIGNAL_WATCHER(ModuleBeginStream)
+  REGISTER_SIGNAL_WATCHER(ModuleEndStream)
   REGISTER_SIGNAL_WATCHER(ModuleStreamBeginRun)
   REGISTER_SIGNAL_WATCHER(ModuleStreamEndRun)
   REGISTER_SIGNAL_WATCHER(ModuleStreamBeginLumi)
@@ -754,46 +734,6 @@ void NVProfilerService::preCloseFile(std::string const& lfn) {
 void NVProfilerService::postCloseFile(std::string const& lfn) {
   if (not skipFirstEvent_ or globalFirstEventDone_) {
     globalRange_.endIn(global_domain_, ("close file "s + lfn).c_str(), __func__);
-  }
-}
-
-void NVProfilerService::preModuleBeginStream(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " begin stream";
-    stream_modules_[sid][mid].startColorIn(stream_domain_[sid], msg.c_str(), labelColor(label), __func__);
-  }
-}
-
-void NVProfilerService::postModuleBeginStream(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " begin stream";
-    stream_modules_[sid][mid].endIn(stream_domain_[sid], msg.c_str(), __func__);
-  }
-}
-
-void NVProfilerService::preModuleEndStream(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-      auto const& msg = label + " end stream";
-    stream_modules_[sid][mid].startColorIn(stream_domain_[sid], msg.c_str(), labelColor(label), __func__);
-  }
-}
-
-void NVProfilerService::postModuleEndStream(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " end stream";
-    stream_modules_[sid][mid].endIn(stream_domain_[sid], msg.c_str(), __func__);
   }
 }
 
@@ -1030,6 +970,8 @@ void NVProfilerService::postModuleEndJob(edm::ModuleDescription const& desc) {
 
 /******** Module stream context signals *********************************************/
 
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleBeginStream)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEndStream)
 DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginRun)
 DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamEndRun)
 DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginLumi)
