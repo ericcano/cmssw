@@ -188,12 +188,36 @@ namespace {
     global_ES_modules_[mid].endIn(global_domain_, msg.c_str(), __func__); \
   }
 
-#define REGISTER_ES_SIGNAL_WATCHER(signal) \
+#define DECLARE_MODULE_STREAM_SIGNAL_WATCHER(signal) \
+  void pre##signal(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc); \
+  void post##signal(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc);
+
+#define DEFINE_MODULE_STREAM_SIGNAL_WATCHER(signal) \
+  void NVProfilerService::pre##signal(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) { \
+    auto sid = sc.streamID(); \
+    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) { \
+      auto mid = mcc.moduleDescription()->id(); \
+      auto const& label = mcc.moduleDescription()->moduleLabel(); \
+      auto const& msg = label + " " + #signal ""; \
+      stream_modules_[sid][mid].startColorIn(stream_domain_[sid], msg.c_str(), labelColor(label) , __func__); \
+    } \
+  } \
+  void NVProfilerService::post##signal(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) { \
+    auto sid = sc.streamID(); \
+    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) { \
+      auto mid = mcc.moduleDescription()->id(); \
+      auto const& label = mcc.moduleDescription()->moduleLabel(); \
+      auto const& msg = label + " " + #signal ""; \
+      stream_modules_[sid][mid].endIn(stream_domain_[sid], msg.c_str(), __func__); \
+    } \
+  }
+
+// This macro registers signal watchers pairs. Same for all.
+#define REGISTER_SIGNAL_WATCHER(signal) \
   registry.watchPre##signal( \
       this, &NVProfilerService::pre##signal); \
   registry.watchPost##signal( \
       this, &NVProfilerService::post##signal);
-
 
 class NVProfilerService {
 public:
@@ -213,6 +237,9 @@ public:
   void preEndJob();
   void postEndJob();
 
+
+/******* Global context signals  **********************************************/
+
   // these signal pair are NOT guaranteed to be called by the same thread
   void preGlobalBeginRun(edm::GlobalContext const&);
   void postGlobalBeginRun(edm::GlobalContext const&);
@@ -220,6 +247,9 @@ public:
   // these signal pair are NOT guaranteed to be called by the same thread
   void preGlobalEndRun(edm::GlobalContext const&);
   void postGlobalEndRun(edm::GlobalContext const&);
+
+
+/******* Stream context signals  **********************************************/
 
   // these signal pair are NOT guaranteed to be called by the same thread
   void preStreamBeginRun(edm::StreamContext const&);
@@ -229,6 +259,8 @@ public:
   void preStreamEndRun(edm::StreamContext const&);
   void postStreamEndRun(edm::StreamContext const&);
 
+  /******** Global context lumi signals **********************************************/
+
   // these signal pair are NOT guaranteed to be called by the same thread
   void preGlobalBeginLumi(edm::GlobalContext const&);
   void postGlobalBeginLumi(edm::GlobalContext const&);
@@ -236,6 +268,8 @@ public:
   // these signal pair are NOT guaranteed to be called by the same thread
   void preGlobalEndLumi(edm::GlobalContext const&);
   void postGlobalEndLumi(edm::GlobalContext const&);
+
+  /******** Stream context lumi signals **********************************************/
 
   // these signal pair are NOT guaranteed to be called by the same thread
   void preStreamBeginLumi(edm::StreamContext const&);
@@ -245,17 +279,25 @@ public:
   void preStreamEndLumi(edm::StreamContext const&);
   void postStreamEndLumi(edm::StreamContext const&);
 
+  /******** Stream context events signal **********************************************/
+
   // these signal pair are NOT guaranteed to be called by the same thread
   void preEvent(edm::StreamContext const&);
   void postEvent(edm::StreamContext const&);
+
+  /******** Path context event signals **********************************************/
 
   // these signal pair are NOT guaranteed to be called by the same thread
   void prePathEvent(edm::StreamContext const&, edm::PathContext const&);
   void postPathEvent(edm::StreamContext const&, edm::PathContext const&, edm::HLTPathStatus const&);
 
+  /******** Module context signals *********************************************/
+
   // these signal pair are NOT guaranteed to be called by the same thread
   void preModuleEventPrefetching(edm::StreamContext const&, edm::ModuleCallingContext const&);
   void postModuleEventPrefetching(edm::StreamContext const&, edm::ModuleCallingContext const&);
+
+  /******** File context signals **********************************************/
 
   // these signal pair are guaranteed to be called by the same thread
   void preOpenFile(std::string const&);
@@ -265,21 +307,31 @@ public:
   void preCloseFile(std::string const&);
   void postCloseFile(std::string const&);
 
+  /******** Source module context signals *************************************/
+
   // these signal pair are guaranteed to be called by the same thread
   void preSourceConstruction(edm::ModuleDescription const&);
   void postSourceConstruction(edm::ModuleDescription const&);
+
+  /******** Source run context signals *************************************/
 
   // these signal pair are guaranteed to be called by the same thread
   void preSourceRun(edm::RunIndex);
   void postSourceRun(edm::RunIndex);
 
+  /******** Source lumi context signals *************************************/
+
   // these signal pair are guaranteed to be called by the same thread
   void preSourceLumi(edm::LuminosityBlockIndex);
   void postSourceLumi(edm::LuminosityBlockIndex);
 
+  /******** Source stream context signals *************************************/
+
   // these signal pair are guaranteed to be called by the same thread
   void preSourceEvent(edm::StreamID);
   void postSourceEvent(edm::StreamID);
+
+  /******** Module no-context signals *********************************************/
 
   // these signal pair are guaranteed to be called by the same thread
   void preModuleConstruction(edm::ModuleDescription const&);
@@ -297,6 +349,8 @@ public:
   void preModuleEndJob(edm::ModuleDescription const&);
   void postModuleEndJob(edm::ModuleDescription const&);
 
+  /******** Module stream context signals *********************************************/
+
   // these signal pair are guaranteed to be called by the same thread
   void preModuleBeginStream(edm::StreamContext const&, edm::ModuleCallingContext const&);
   void postModuleBeginStream(edm::StreamContext const&, edm::ModuleCallingContext const&);
@@ -304,6 +358,8 @@ public:
   // these signal pair are guaranteed to be called by the same thread
   void preModuleEndStream(edm::StreamContext const&, edm::ModuleCallingContext const&);
   void postModuleEndStream(edm::StreamContext const&, edm::ModuleCallingContext const&);
+
+  /******** Module global context signals *********************************************/
 
   // these signal pair are guaranteed to be called by the same thread
   void preModuleGlobalBeginRun(edm::GlobalContext const&, edm::ModuleCallingContext const&);
@@ -321,53 +377,25 @@ public:
   void preModuleGlobalEndLumi(edm::GlobalContext const&, edm::ModuleCallingContext const&);
   void postModuleGlobalEndLumi(edm::GlobalContext const&, edm::ModuleCallingContext const&);
 
-  // these signal pair are guaranteed to be called by the same thread
-  void preModuleStreamBeginRun(edm::StreamContext const&, edm::ModuleCallingContext const&);
-  void postModuleStreamBeginRun(edm::StreamContext const&, edm::ModuleCallingContext const&);
+  /******** Module stream context signals *********************************************/
 
-  // these signal pair are guaranteed to be called by the same thread
-  void preModuleStreamEndRun(edm::StreamContext const&, edm::ModuleCallingContext const&);
-  void postModuleStreamEndRun(edm::StreamContext const&, edm::ModuleCallingContext const&);
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginRun)
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamEndRun)
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginLumi)
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamEndLumi)
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventAcquire)
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEvent)
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventDelayedGet)
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(EventReadFromSource)
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransformPrefetching)
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransformAcquiring)
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransform)
 
-  // these signal pair are guaranteed to be called by the same thread
-  void preModuleStreamBeginLumi(edm::StreamContext const&, edm::ModuleCallingContext const&);
-  void postModuleStreamBeginLumi(edm::StreamContext const&, edm::ModuleCallingContext const&);
-
-  // these signal pair are guaranteed to be called by the same thread
-  void preModuleStreamEndLumi(edm::StreamContext const&, edm::ModuleCallingContext const&);
-  void postModuleStreamEndLumi(edm::StreamContext const&, edm::ModuleCallingContext const&);
-
-  // these signal pair are guaranteed to be called by the same thread
-  void preModuleEventAcquire(edm::StreamContext const&, edm::ModuleCallingContext const&);
-  void postModuleEventAcquire(edm::StreamContext const&, edm::ModuleCallingContext const&);
-
-  // these signal pair are guaranteed to be called by the same thread
-  void preModuleEvent(edm::StreamContext const&, edm::ModuleCallingContext const&);
-  void postModuleEvent(edm::StreamContext const&, edm::ModuleCallingContext const&);
-
-  // these signal pair are guaranteed to be called by the same thread
-  void preModuleEventDelayedGet(edm::StreamContext const&, edm::ModuleCallingContext const&);
-  void postModuleEventDelayedGet(edm::StreamContext const&, edm::ModuleCallingContext const&);
-
-  // these signal pair are guaranteed to be called by the same thread
-  void preEventReadFromSource(edm::StreamContext const&, edm::ModuleCallingContext const&);
-  void postEventReadFromSource(edm::StreamContext const&, edm::ModuleCallingContext const&);
-
-  // these signal pair are NOT guaranteed to be called by the same thread
-  void preModuleTransformPrefetching(edm::StreamContext const&, edm::ModuleCallingContext const&);
-  void postModuleTransformPrefetching(edm::StreamContext const&, edm::ModuleCallingContext const&);
-
-  // these signal pair are guaranteed to be called by the same thread
-  void preModuleTransformAcquiring(edm::StreamContext const&, edm::ModuleCallingContext const&);
-  void postModuleTransformAcquiring(edm::StreamContext const&, edm::ModuleCallingContext const&);
-
-  // these signal pair are guaranteed to be called by the same thread
-  void preModuleTransform(edm::StreamContext const&, edm::ModuleCallingContext const&);
-  void postModuleTransform(edm::StreamContext const&, edm::ModuleCallingContext const&);
-
-
+  /******** ES module context signals *********************************************/
   // ES signal watchers
   void postESModuleRegistration(edm::eventsetup::ComponentDescription const&);
+  // Prefetching is optionally watched
+  // (see constructor)
   DECLARE_ES_SIGNAL_WATCHER(ESModulePrefetching)
   DECLARE_ES_SIGNAL_WATCHER(ESModule)
   DECLARE_ES_SIGNAL_WATCHER(ESModuleAcquire)
@@ -547,59 +575,29 @@ NVProfilerService::NVProfilerService(edm::ParameterSet const& config, edm::Activ
   registry.watchPreModuleGlobalEndLumi(this, &NVProfilerService::preModuleGlobalEndLumi);
   registry.watchPostModuleGlobalEndLumi(this, &NVProfilerService::postModuleGlobalEndLumi);
 
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreModuleStreamBeginRun(this, &NVProfilerService::preModuleStreamBeginRun);
-  registry.watchPostModuleStreamBeginRun(this, &NVProfilerService::postModuleStreamBeginRun);
+  /******** Module stream context signals *********************************************/
 
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreModuleStreamEndRun(this, &NVProfilerService::preModuleStreamEndRun);
-  registry.watchPostModuleStreamEndRun(this, &NVProfilerService::postModuleStreamEndRun);
-
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreModuleStreamBeginLumi(this, &NVProfilerService::preModuleStreamBeginLumi);
-  registry.watchPostModuleStreamBeginLumi(this, &NVProfilerService::postModuleStreamBeginLumi);
-
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreModuleStreamEndLumi(this, &NVProfilerService::preModuleStreamEndLumi);
-  registry.watchPostModuleStreamEndLumi(this, &NVProfilerService::postModuleStreamEndLumi);
-
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreModuleEventAcquire(this, &NVProfilerService::preModuleEventAcquire);
-  registry.watchPostModuleEventAcquire(this, &NVProfilerService::postModuleEventAcquire);
-
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreModuleEvent(this, &NVProfilerService::preModuleEvent);
-  registry.watchPostModuleEvent(this, &NVProfilerService::postModuleEvent);
-
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreModuleEventDelayedGet(this, &NVProfilerService::preModuleEventDelayedGet);
-  registry.watchPostModuleEventDelayedGet(this, &NVProfilerService::postModuleEventDelayedGet);
-
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreEventReadFromSource(this, &NVProfilerService::preEventReadFromSource);
-  registry.watchPostEventReadFromSource(this, &NVProfilerService::postEventReadFromSource);
-
+  REGISTER_SIGNAL_WATCHER(ModuleStreamBeginRun)
+  REGISTER_SIGNAL_WATCHER(ModuleStreamEndRun)
+  REGISTER_SIGNAL_WATCHER(ModuleStreamBeginLumi)
+  REGISTER_SIGNAL_WATCHER(ModuleStreamEndLumi)
+  REGISTER_SIGNAL_WATCHER(ModuleEventAcquire)
+  REGISTER_SIGNAL_WATCHER(ModuleEvent)
+  REGISTER_SIGNAL_WATCHER(ModuleEventDelayedGet)
+  REGISTER_SIGNAL_WATCHER(EventReadFromSource)
   if (showModulePrefetching_) {
-    // these signal pair are NOT guaranteed to be called by the same thread
-    registry.watchPreModuleTransformPrefetching(this, &NVProfilerService::preModuleTransformPrefetching);
-    registry.watchPostModuleTransformPrefetching(this, &NVProfilerService::postModuleTransformPrefetching);
+    REGISTER_SIGNAL_WATCHER(ModuleTransformPrefetching)
   }
-
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreModuleTransform(this, &NVProfilerService::preModuleTransform);
-  registry.watchPostModuleTransform(this, &NVProfilerService::postModuleTransform);
-
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreModuleTransformAcquiring(this, &NVProfilerService::preModuleTransformAcquiring);
-  registry.watchPostModuleTransformAcquiring(this, &NVProfilerService::postModuleTransformAcquiring);
+  REGISTER_SIGNAL_WATCHER(ModuleTransformAcquiring)
+  REGISTER_SIGNAL_WATCHER(ModuleTransform)
 
   // ES signal watchers
   registry.watchPostESModuleRegistration(this, &NVProfilerService::postESModuleRegistration);
   if (showModulePrefetching_) {
-    REGISTER_ES_SIGNAL_WATCHER(ESModulePrefetching)
+    REGISTER_SIGNAL_WATCHER(ESModulePrefetching)
   }
-  REGISTER_ES_SIGNAL_WATCHER(ESModule)
-  REGISTER_ES_SIGNAL_WATCHER(ESModuleAcquire)
+  REGISTER_SIGNAL_WATCHER(ESModule)
+  REGISTER_SIGNAL_WATCHER(ESModuleAcquire)
 }
 
 NVProfilerService::~NVProfilerService() {
@@ -946,26 +944,6 @@ void NVProfilerService::postPathEvent(edm::StreamContext const& sc,
   }
 }
 
-void NVProfilerService::preModuleEventPrefetching(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " prefetching";
-    stream_modules_[sid][mid].startColorIn(stream_domain_[sid], msg.c_str(), labelColorLight(label), __func__);
-  }
-}
-
-void NVProfilerService::postModuleEventPrefetching(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " prefetching";
-    stream_modules_[sid][mid].endIn(stream_domain_[sid], msg.c_str(), __func__);
-  }
-}
-
 void NVProfilerService::preModuleConstruction(edm::ModuleDescription const& desc) {
   auto mid = desc.id();
   global_modules_.grow_to_at_least(mid + 1);
@@ -1050,163 +1028,20 @@ void NVProfilerService::postModuleEndJob(edm::ModuleDescription const& desc) {
   }
 }
 
-void NVProfilerService::preModuleEventAcquire(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " acquire";
-    stream_modules_acquire_[sid][mid].startColorIn(stream_domain_[sid], msg.c_str(), labelColor(label), __func__);
-  }
-}
+/******** Module stream context signals *********************************************/
 
-void NVProfilerService::postModuleEventAcquire(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " acquire";
-    stream_modules_acquire_[sid][mid].endIn(stream_domain_[sid], msg.c_str(), __func__);
-  }
-}
-
-void NVProfilerService::preModuleEvent(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    stream_modules_[sid][mid].startColorIn(stream_domain_[sid], label.c_str(), labelColor(label), __func__);
-  }
-}
-
-void NVProfilerService::postModuleEvent(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    stream_modules_[sid][mid].endIn(stream_domain_[sid], label.c_str(), __func__);
-  }
-}
-
-void NVProfilerService::preModuleEventDelayedGet(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const & label = mcc.moduleDescription()->moduleLabel();
-    auto const & msg = label + " delayed get";
-    stream_modules_[sid][mid].startColorIn(stream_domain_[sid], msg.c_str(), labelColorLight(label), __func__);
-  }
-}
-
-void NVProfilerService::postModuleEventDelayedGet(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const & label = mcc.moduleDescription()->moduleLabel();
-    auto const & msg = label + " delayed get";
-    stream_modules_[sid][mid].endIn(stream_domain_[sid], msg.c_str(), __func__);
-  }
-}
-
-void NVProfilerService::preEventReadFromSource(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const & label = mcc.moduleDescription()->moduleLabel();
-    auto const & msg = label + " read from source";
-    stream_modules_[sid][mid].startColorIn(stream_domain_[sid], msg.c_str(), labelColorLight(label), __func__);
-  }
-}
-
-void NVProfilerService::postEventReadFromSource(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const & label = mcc.moduleDescription()->moduleLabel();
-    auto const & msg = label + " read from source";
-    stream_modules_[sid][mid].endIn(stream_domain_[sid], msg.c_str(), __func__);
-  }
-}
-
-void NVProfilerService::preModuleStreamBeginRun(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " stream begin run";
-    stream_modules_[sid][mid].startColorIn(stream_domain_[sid], msg.c_str(), labelColor(label), __func__);
-  }
-}
-
-void NVProfilerService::postModuleStreamBeginRun(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " stream begin run";
-    stream_modules_[sid][mid].endIn(stream_domain_[sid], msg.c_str(), __func__);
-  }
-}
-
-void NVProfilerService::preModuleStreamEndRun(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " stream end run";
-    stream_modules_[sid][mid].startColorIn(stream_domain_[sid], msg.c_str(), labelColor(label), __func__);
-  }
-}
-
-void NVProfilerService::postModuleStreamEndRun(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " stream end run";
-    stream_modules_[sid][mid].endIn(stream_domain_[sid], msg.c_str(), __func__);
-  }
-}
-
-void NVProfilerService::preModuleStreamBeginLumi(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " stream begin lumi";
-    stream_modules_[sid][mid].startColorIn(stream_domain_[sid], msg.c_str(), labelColor(label), __func__);
-  }
-}
-
-void NVProfilerService::postModuleStreamBeginLumi(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " stream begin lumi";
-    stream_modules_[sid][mid].endIn(stream_domain_[sid], msg.c_str(), __func__);
-  }
-}
-
-void NVProfilerService::preModuleStreamEndLumi(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " stream end lumi";
-    stream_modules_[sid][mid].startColorIn(stream_domain_[sid], msg.c_str(), labelColor(label), __func__);
-  }
-}
-
-void NVProfilerService::postModuleStreamEndLumi(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " stream end lumi";
-    stream_modules_[sid][mid].endIn(stream_domain_[sid], msg.c_str(), __func__);
-  }
-}
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginRun)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamEndRun)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginLumi)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamEndLumi)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventPrefetching)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventAcquire)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEvent)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventDelayedGet)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(EventReadFromSource)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransformPrefetching)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransformAcquiring)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransform)
 
 void NVProfilerService::preModuleGlobalBeginRun(edm::GlobalContext const& gc, edm::ModuleCallingContext const& mcc) {
   if (not skipFirstEvent_ or globalFirstEventDone_) {
@@ -1297,70 +1132,6 @@ void NVProfilerService::postSourceConstruction(edm::ModuleDescription const& des
     auto const& label = desc.moduleLabel();
     auto const& msg = label + " construction";
     global_modules_[mid].endIn(global_domain_, msg.c_str(), __func__);
-  }
-}
-
-void NVProfilerService::preModuleTransformPrefetching(edm::StreamContext const& sc,
-                                                      edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " transform prefetching";
-    stream_modules_[sid][mid].startColorIn(stream_domain_[sid], msg.c_str(), labelColorLight(label), __func__);
-  }
-}
-
-void NVProfilerService::postModuleTransformPrefetching(edm::StreamContext const& sc,
-                                                       edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " transform prefetching";
-    stream_modules_[sid][mid].endIn(stream_domain_[sid], msg.c_str(), __func__);
-  }
-}
-
-void NVProfilerService::preModuleTransformAcquiring(edm::StreamContext const& sc,
-                                                    edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " transform acquire";
-    stream_modules_[sid][mid].startColorIn(stream_domain_[sid], msg.c_str(), labelColor(label), __func__);
-  }
-}
-
-void NVProfilerService::postModuleTransformAcquiring(edm::StreamContext const& sc,
-                                                     edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " transform acquire";
-    stream_modules_[sid][mid].endIn(stream_domain_[sid], msg.c_str(), __func__);
-  }
-}
-
-void NVProfilerService::preModuleTransform(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " transform";
-    stream_modules_[sid][mid].startColorIn(stream_domain_[sid], msg.c_str(), labelColor(label), __func__);
-  }
-}
-
-void NVProfilerService::postModuleTransform(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " transform";
-    stream_modules_[sid][mid].endIn(stream_domain_[sid], msg.c_str(), __func__);
   }
 }
 
