@@ -285,6 +285,9 @@ public:
   void preEvent(edm::StreamContext const&);
   void postEvent(edm::StreamContext const&);
 
+  void preClearEvent(edm::StreamContext const&);
+  void postClearEvent(edm::StreamContext const&);
+
   /******** Path context event signals **********************************************/
 
   // these signal pair are NOT guaranteed to be called by the same thread
@@ -306,6 +309,11 @@ public:
   // these signal pair are guaranteed to be called by the same thread
   void preCloseFile(std::string const&);
   void postCloseFile(std::string const&);
+
+  /******** Source transition signals *********************************************/
+
+  void preSourceNextTransition();
+  void postSourceNextTransition();
 
   /******** Source module context signals *************************************/
 
@@ -493,6 +501,9 @@ NVProfilerService::NVProfilerService(edm::ParameterSet const& config, edm::Activ
   registry.watchPreEvent(this, &NVProfilerService::preEvent);
   registry.watchPostEvent(this, &NVProfilerService::postEvent);
 
+  registry.watchPreClearEvent(this, &NVProfilerService::preClearEvent);
+  registry.watchPostClearEvent(this, &NVProfilerService::postClearEvent);
+
   // these signal pair are NOT guaranteed to be called by the same thread
   registry.watchPrePathEvent(this, &NVProfilerService::prePathEvent);
   registry.watchPostPathEvent(this, &NVProfilerService::postPathEvent);
@@ -510,6 +521,9 @@ NVProfilerService::NVProfilerService(edm::ParameterSet const& config, edm::Activ
   // these signal pair are guaranteed to be called by the same thread
   registry.watchPreCloseFile(this, &NVProfilerService::preCloseFile);
   registry.watchPostCloseFile(this, &NVProfilerService::postCloseFile);
+
+  registry.watchPreSourceNextTransition(this, &NVProfilerService::preSourceNextTransition);
+  registry.watchPostSourceNextTransition(this, &NVProfilerService::postSourceNextTransition);
 
   // these signal pair are guaranteed to be called by the same thread
   registry.watchPreSourceConstruction(this, &NVProfilerService::preSourceConstruction);
@@ -864,6 +878,20 @@ void NVProfilerService::postEvent(edm::StreamContext const& sc) {
   }
 }
 
+void NVProfilerService::preClearEvent(edm::StreamContext const& sc) {
+  auto sid = sc.streamID();
+  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
+    event_[sid].startColorIn(stream_domain_[sid], "clear event", nvtxAmber, __func__);
+  }
+}
+
+void NVProfilerService::postClearEvent(edm::StreamContext const& sc) {
+  auto sid = sc.streamID();
+  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
+    event_[sid].endIn(stream_domain_[sid], "clear event", __func__);
+  }
+}
+
 void NVProfilerService::prePathEvent(edm::StreamContext const& sc, edm::PathContext const& pc) {
   auto sid = sc.streamID();
   auto pid = pc.pathID();
@@ -1055,6 +1083,14 @@ void NVProfilerService::postModuleGlobalEndLumi(edm::GlobalContext const& gc, ed
     auto const& msg = label + " global end lumi";
     global_modules_[mid].endIn(global_domain_, msg.c_str(), __func__);
   }
+}
+
+void NVProfilerService::preSourceNextTransition() {
+  globalRange_.startColorIn(global_domain_, "source transition", nvtxAmber, __func__);
+}
+
+void NVProfilerService::postSourceNextTransition() {
+  globalRange_.endIn(global_domain_, "source transition", __func__);
 }
 
 void NVProfilerService::preSourceConstruction(edm::ModuleDescription const& desc) {
