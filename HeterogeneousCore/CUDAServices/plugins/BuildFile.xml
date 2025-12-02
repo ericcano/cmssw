@@ -12,6 +12,7 @@
   <use name="HLTrigger/Timer"/>
   <use name="HeterogeneousCore/CUDAServices"/>
   <use name="HeterogeneousCore/CUDAUtilities"/>
+  <use name="HeterogeneousCore/Common"/>
   <library file="CUDAMonitoringService.cc CUDAService.cc NVProfilerService.cc" name="HeterogeneousCoreCUDAServicesPlugins">
     <flags EDM_PLUGIN="1"/>
   </library>

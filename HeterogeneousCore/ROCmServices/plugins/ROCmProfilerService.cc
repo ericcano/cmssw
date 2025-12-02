@@ -41,7 +41,7 @@
 #include "FWCore/Utilities/interface/TimeOfDay.h"
 #include "HeterogeneousCore/CUDAServices/interface/CUDAInterface.h"
 
-#include "HeterogeneousCore/CUDAServices/interface/ProfilerService.h"
+#include "HeterogeneousCore/Common/interface/ProfilerService.h"
 
 namespace {
   /**
@@ -173,7 +173,7 @@ namespace {
       SpinLock mtx_ = SpinLock{};
     };
 
-    static std::string shortName() { return "NV"; }
+    static std::string shortName() { return "ROCm"; }
     static std::string serviceComment() { return R"(This Service provides CMSSW-aware annotations to nvprof/nvvm.
 
 Notes on nvprof options:

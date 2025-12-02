@@ -9,6 +9,7 @@
   <use name="FWCore/Utilities"/>
   <use name="HeterogeneousCore/ROCmServices"/>
   <use name="HeterogeneousCore/ROCmUtilities" source_only="true"/>
+  <use name="HeterogeneousCore/Common"/>
   <library file="ROCmMonitoringService.cc ROCmService.cc ROCmProfilerService.cc" name="HeterogeneousCoreROCmServicesPlugins">
     <flags EDM_PLUGIN="1"/>
   </library>

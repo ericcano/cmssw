@@ -43,7 +43,7 @@
 #include "FWCore/Utilities/interface/TimeOfDay.h"
 #include "HeterogeneousCore/CUDAServices/interface/CUDAInterface.h"
 
-#include "HeterogeneousCore/CUDAServices/interface/ProfilerService.h"
+#include "HeterogeneousCore/Common/interface/ProfilerService.h"
 
 namespace {
   /**
