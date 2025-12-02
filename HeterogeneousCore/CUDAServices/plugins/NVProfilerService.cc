@@ -61,6 +61,9 @@ namespace {
     std::atomic_flag flag_;
   };
   
+  /**
+   * \brief Backend for NVidia's Nsight Systems profiling.
+   */
   class NVTXBackend {
   public:  
     // Forward definitions
@@ -68,6 +71,10 @@ namespace {
     class Range;
     class Domain;
     static void mark(const Domain& domain, const char* message, Color color);
+    /**
+     * \note These functions can be used multiple times. See doc at:
+     * https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__PROFILER.html
+     */
     static void profilerStart() {
       cudaProfilerStart();
     }

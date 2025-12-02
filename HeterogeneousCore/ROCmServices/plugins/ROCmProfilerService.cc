@@ -60,18 +60,29 @@ namespace {
     std::atomic_flag flag_;
   };
   
-  class NVTXBackend {
+  /**
+   * \brief Backend for ROCm profiling.
+   * \note All APIs used are part of ROCTX. See documentation at 
+   * https://rocm.docs.amd.com/projects/rocprofiler-sdk/en/latest/how-to/using-rocprofiler-sdk-roctx.html
+   */
+  class ROCmBackend {
   public:  
     // Forward definitions
     using Color = ProfilerServiceColor;
     class Range;
     class Domain;
     static void mark(const Domain& domain, const char* message, Color color);
+    /**
+     * \note Latest doc is broken at time of writing, but older version is useful:
+     * https://rocm.docs.amd.com/projects/rocprofiler-sdk/en/docs-7.0.2/api-reference/rocprofiler-sdk-roctx_api/roctx_modules/profiler-control.html
+     */
     static void profilerStart() {
-      cudaProfilerStart();
+      // 0 for all threads.
+      roctxProfilerResume(0);
     }
     static void profilerStop() {
-      cudaProfilerStop();
+      // 0 for all threads.
+      roctxProfilerPause(0);
     }
    private:
      static __attribute__((unused)) void nvtxDomainMarkColor(nvtxDomainHandle_t domain, const char* message, uint32_t color) {
@@ -199,15 +210,15 @@ Notes on nvprof options:
  - the option '--cpu-thread-tracing on' is not compatible with jemalloc, and should only be used with cmsRunGlibC.)"; }
   };
 
-  void NVTXBackend::mark(const NVTXBackend::Domain& domain, const char* message, Color color) {
-    NVTXBackend::nvtxDomainMarkColor(domain.nativeHandle(), message, NVTXBackend::Range::colorMap[to_underlying(color)]);
+  void ROCmBackend::mark(const ROCmBackend::Domain& domain, const char* message, Color color) {
+    ROCmBackend::nvtxDomainMarkColor(domain.nativeHandle(), message, ROCmBackend::Range::colorMap[to_underlying(color)]);
   }
 }  // namespace
 
-class NVProfilerService: public ProfilerService<NVTXBackend> {
+class ROCmProfilerService: public ProfilerService<ROCmBackend> {
 public:
-  using ProfilerService<NVTXBackend>::ProfilerService;
+  using ProfilerService<ROCmBackend>::ProfilerService;
 };
 
 #include "FWCore/ServiceRegistry/interface/ServiceMaker.h"
-DEFINE_FWK_SERVICE(NVProfilerService);
+DEFINE_FWK_SERVICE(ROCmProfilerService);

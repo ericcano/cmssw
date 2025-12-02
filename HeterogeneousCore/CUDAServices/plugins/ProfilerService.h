@@ -354,8 +354,11 @@ ProfilerService<Backend>::ProfilerService(edm::ParameterSet const& config, edm::
   global_domain_.create("EDM Global");
 
   // enables profile collection; if profiling is already enabled it has no effect
+  // otherwise, make sure it is stopped.
   if (not skipFirstEvent_) {
     Backend::profilerStart();
+  } else {
+    Backend::profilerStop();
   }
 
   registry.watchPreallocate(this, &ProfilerService::preallocate);
@@ -816,7 +819,7 @@ void ProfilerService<Backend>::postEvent(edm::StreamContext const& sc) {
     if (std::all_of(streamFirstEventDone_.begin(), streamFirstEventDone_.end(), identity)) {
       bool expected = false;
       if (globalFirstEventDone_.compare_exchange_strong(expected, true))
-        cudaProfilerStart();
+        Backend::profilerStart();
     }
   }
 }
