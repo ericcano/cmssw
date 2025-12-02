@@ -113,7 +113,7 @@ using namespace std::string_literals;
     White
   };
 
-  static size_t to_underlying(ProfilerServiceColor c) noexcept {
+  [[maybe_unused]] static size_t to_underlying(ProfilerServiceColor c) noexcept {
     return static_cast<std::size_t>(c);
   }
 
