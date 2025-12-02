@@ -903,8 +903,8 @@ namespace edm {
                           ProcessBlockHelperBase const& processBlockHelperBase,
                           std::string const& iProcessName) {
     {
-      preModulesInitializationFinalizedSignal_();
-      auto post = [this](void*) { postModulesInitializationFinalizedSignal_(); };
+      preModulesInitializationFinalizedSignal_.emit();
+      auto post = [this](void*) { postModulesInitializationFinalizedSignal_.emit(); };
       std::unique_ptr<void, decltype(post)> const postGuard(this, post);
       finishModulesInitialization(*moduleRegistry_, iRegistry, iESIndices, processBlockHelperBase, iProcessName);
     }

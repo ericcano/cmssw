@@ -439,7 +439,7 @@ namespace edm {
     auto& serviceSets = processDesc->getServicesPSets();
     ServiceToken token = items.initServices(serviceSets, *parameterSet, iToken, iLegacy);
     serviceToken_ = items.addTNS(*parameterSet, token);
-    items.actReg_->postServicesConstructionSignal_();
+    items.actReg_->postServicesConstructionSignal_.emit();
 
     //make the services available
     ServiceRegistry::Operate operate(serviceToken_);
@@ -454,9 +454,9 @@ namespace edm {
       std::shared_ptr<CommonParams> common(items.initMisc(*parameterSet));
 
       // intialize the event setup provider
-      items.actReg_->preEventSetupModulesConstructionSignal_();
+      items.actReg_->preEventSetupModulesConstructionSignal_.emit();
       {
-        auto guard = makeGuard([&items]() { items.actReg_->postEventSetupModulesConstructionSignal_(); });
+        auto guard = makeGuard([&items]() { items.actReg_->postEventSetupModulesConstructionSignal_.emit(); });
         ParameterSet const& eventSetupPset(optionsPset.getUntrackedParameterSet("eventSetup"));
         esp_ = espController_->makeProvider(
             *parameterSet, items.actReg_.get(), &eventSetupPset, maxConcurrentIOVs, dumpOptions);
@@ -515,8 +515,8 @@ namespace edm {
         group.wait();
         items.preg()->addFromInput(input_->productRegistry());
         {
-          items.actReg_->preFinishScheduleSignal_();
-          auto guard = makeGuard([&items]() { items.actReg_->postFinishScheduleSignal_(); });
+          items.actReg_->preFinishScheduleSignal_.emit();
+          auto guard = makeGuard([&items]() { items.actReg_->postFinishScheduleSignal_.emit(); });
           auto const& tns = ServiceRegistry::instance().get<service::TriggerNamesService>();
           schedule_ = items.finishSchedule(
               std::move(*madeModules), *parameterSet, tns, preallocations_, &processContext_, *processBlockHelper_);
@@ -543,8 +543,8 @@ namespace edm {
       }
 
       {
-        actReg_->prePrincipalsCreationSignal_();
-        auto guard = makeGuard([this]() { actReg_->postPrincipalsCreationSignal_(); });
+        actReg_->prePrincipalsCreationSignal_.emit();
+        auto guard = makeGuard([this]() { actReg_->postPrincipalsCreationSignal_.emit(); });
         principalCache_.setNumberOfConcurrentPrincipals(preallocations_);
         for (unsigned int index = 0; index < preallocations_.numberOfStreams(); ++index) {
           // Reusable event principal
@@ -640,8 +640,8 @@ namespace edm {
 
     PathsAndConsumesOfModules pathsAndConsumesOfModules;
     {
-      actReg_->preScheduleConsistencyCheckSignal_();
-      auto guard = makeGuard([this]() { actReg_->postScheduleConsistencyCheckSignal_(); });
+      actReg_->preScheduleConsistencyCheckSignal_.emit();
+      auto guard = makeGuard([this]() { actReg_->postScheduleConsistencyCheckSignal_.emit(); });
       pathsAndConsumesOfModules.initialize(schedule_.get(), preg());
 
       // Note: all these may throw
@@ -697,8 +697,8 @@ namespace edm {
     //   looper_->beginOfJob(es);
     //}
     {
-      actReg_->preEventSetupConfigurationFinalizedSignal_();
-      auto guard = makeGuard([this]() { actReg_->postEventSetupConfigurationFinalizedSignal_(); });
+      actReg_->preEventSetupConfigurationFinalizedSignal_.emit();
+      auto guard = makeGuard([this]() { actReg_->postEventSetupConfigurationFinalizedSignal_.emit(); });
       espController_->finishConfiguration();
     }
     eventsetup::ESRecordsToProductResolverIndices esRecordsToProductResolverIndices = esp_->recordsToResolverIndices();
