@@ -127,7 +127,7 @@ namespace {
       }
     private:
       roctx_range_id_t roctxDomainRangeStartColor(const Domain& domain, const char* message, uint32_t color) {
-        return roctxRangeStartA(("[" + domain.nativeHandle() + "]: " + message).c_str());
+        return roctxRangeStartA((domain.nativeHandle() + "-" + message).c_str());
       }
 
       static constexpr roctx_range_id_t roctxInvalidRangeId = ~0ul;
@@ -149,11 +149,12 @@ namespace {
         std::scoped_lock lock(mtx_);
         if (range_ != roctxInvalidRangeId) {
           std::string fullmsg = fmt::sprintf("Warning: previous range not ended before starting a new one in %s for %s", where, message);
-          roctxMarkA(("[" + domain_ + "]: " + fullmsg).c_str());
+          roctxMarkA((domain_ + "-" + fullmsg).c_str());
+          std::cout << "Mark1" << std::endl;
           roctxRangeStop(range_);
         }
         domain_ = domain.nativeHandle();
-        range_ = roctxRangeStartA(("[" + domain_ + "]: " + message).c_str());
+        range_ = roctxRangeStartA((domain_ + "-" + message).c_str());
       }
 
       void endIn(const Domain& domain, const char* message, const char * where) {
@@ -164,7 +165,8 @@ namespace {
           domain_.clear();
         } else {
           std::string fullmsg = fmt::sprintf("Warning: trying to end a range that is not started in %s for %s", where, message);
-          roctxMarkA(("[" + domain_ + "]: " + fullmsg).c_str());
+          roctxMarkA((domain_ + "-" + fullmsg).c_str());
+          std::cout << "Mark1" << std::endl;
         }
       }
     private:
@@ -184,6 +186,7 @@ Notes on nvprof options:
 
   void ROCmBackend::mark(const ROCmBackend::Domain& domain, const char* message, Color color) {
     roctxMark(("[" + domain.nativeHandle() + "]: " + std::string(message)).c_str());
+    std::cout << "Mark1" << std::endl;
   }
 }  // namespace
 

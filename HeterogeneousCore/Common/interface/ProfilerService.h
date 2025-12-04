@@ -345,8 +345,12 @@ ProfilerService<Backend>::ProfilerService(edm::ParameterSet const& config, edm::
       skipFirstEvent_(config.getUntrackedParameter<bool>("skipFirstEvent")) {
   // make sure that CUDA is initialised, and that the CUDAInterface destructor is called after this service's destructor
   typename Backend::EDMService service;
-  if (not service or not service->enabled())
+  std::cout << "ProfilerService: initializing..." << std::endl;
+  if (not service or not service->enabled()) {
+    std::cout << "ProfilerService: EDM service not available or not enabled, disabling profiling service" << std::endl;
     return;
+  }
+  std::cout << "ProfilerService: EDM service service initialized successfully" << std::endl;
 
   std::sort(highlightModules_.begin(), highlightModules_.end());
 
