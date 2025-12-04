@@ -1,6 +1,6 @@
 <iftool name="rocm">
   <use name="rocm"/>
-  <use name="rocm-profiler-sdk-roctx"/>
+  <use name="rocm-rocprofiler-sdk"/>
   <use name="DataFormats/Provenance"/>
   <use name="FWCore/AbstractServices"/>
   <use name="FWCore/MessageLogger"/>
