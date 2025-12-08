@@ -39,7 +39,7 @@
 #include "FWCore/Utilities/interface/Exception.h"
 #include "FWCore/Utilities/interface/ProductKindOfType.h"
 #include "FWCore/Utilities/interface/TimeOfDay.h"
-#include "HeterogeneousCore/CUDAServices/interface/CUDAInterface.h"
+#include "HeterogeneousCore/ROCmServices/interface/ROCmInterface.h"
 
 #include "HeterogeneousCore/Common/interface/ProfilerService.h"
 
@@ -85,7 +85,7 @@ namespace {
     }
   public:
 
-    using EDMService = edm::Service<CUDAInterface>;
+    using EDMService = edm::Service<ROCmInterface>;
     class Domain {
     public:
       friend class Range;
@@ -150,7 +150,6 @@ namespace {
         if (range_ != roctxInvalidRangeId) {
           std::string fullmsg = fmt::sprintf("Warning: previous range not ended before starting a new one in %s for %s", where, message);
           roctxMarkA((domain_ + "-" + fullmsg).c_str());
-          std::cout << "Mark1" << std::endl;
           roctxRangeStop(range_);
         }
         domain_ = domain.nativeHandle();
@@ -166,7 +165,6 @@ namespace {
         } else {
           std::string fullmsg = fmt::sprintf("Warning: trying to end a range that is not started in %s for %s", where, message);
           roctxMarkA((domain_ + "-" + fullmsg).c_str());
-          std::cout << "Mark1" << std::endl;
         }
       }
     private:
@@ -186,7 +184,6 @@ Notes on nvprof options:
 
   void ROCmBackend::mark(const ROCmBackend::Domain& domain, const char* message, Color color) {
     roctxMark(("[" + domain.nativeHandle() + "]: " + std::string(message)).c_str());
-    std::cout << "Mark1" << std::endl;
   }
 }  // namespace
 
