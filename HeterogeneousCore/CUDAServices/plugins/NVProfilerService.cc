@@ -131,7 +131,7 @@ namespace {
       // copy constructor deleted
       Range(const Range&) = delete;
       /// Move copy constructor: we take a lock and move the contents
-      /// We need it to resize vectors of unique_range_in
+      /// We need it to resize vectors
       Range(Range&& o) noexcept {
         std::scoped_lock lock(o.mtx_);
         std::scoped_lock lock2(mtx_);
