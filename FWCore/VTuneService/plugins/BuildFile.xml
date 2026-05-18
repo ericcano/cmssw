@@ -1,0 +1,16 @@
+<iftool name="ittnotify">
+  <use name="ittnotify"/>
+  <use name="tbb"/>
+  <use name="fmt"/>
+  <use name="DataFormats/Common"/>
+  <use name="DataFormats/Provenance"/>
+  <use name="FWCore/AbstractServices"/>
+  <use name="FWCore/MessageLogger"/>
+  <use name="FWCore/ParameterSet"/>
+  <use name="FWCore/ServiceRegistry"/>
+  <use name="FWCore/Utilities"/>
+  <use name="FWCore/Services"/>
+  <library file="VTuneProfilerService.cc" name="FWCoreVTuneServicePlugins">
+    <flags EDM_PLUGIN="1"/>
+  </library>
+</iftool>
