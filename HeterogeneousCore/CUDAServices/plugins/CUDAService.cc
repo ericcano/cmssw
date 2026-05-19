@@ -202,18 +202,19 @@ CUDAService::CUDAService(edm::ParameterSet const& config) : verbose_(config.getU
   // NVIDIA system driver version, e.g. 470.57.02
   // The NVML interface is not available on gaming GPUs. Just report "unknown" in that case.
   char systemDriverVersion[NVML_SYSTEM_DRIVER_VERSION_BUFFER_SIZE];
-  try {
-    nvmlCheck(nvmlInitWithFlags(NVML_INIT_FLAG_NO_GPUS | NVML_INIT_FLAG_NO_ATTACH));
-  } catch (const std::exception& e) {
-    edm::LogWarning("CUDAService") << "Failed to initialize NVML to query the NVIDIA driver version: " << e.what()
-                                   << "\nReporting NVIDIA driver version as \"unknown\".";
-    std::strncpy(systemDriverVersion, "unknown", sizeof(systemDriverVersion) - 1);
-    systemDriverVersion[sizeof(systemDriverVersion) - 1] = '\0';
-    goto fellBack;
-  }
-  nvmlCheck(nvmlSystemGetDriverVersion(systemDriverVersion, sizeof(systemDriverVersion)));
-  nvmlCheck(nvmlShutdown());
-fellBack:
+  [&systemDriverVersion]() {
+    try {
+      nvmlCheck(nvmlInitWithFlags(NVML_INIT_FLAG_NO_GPUS | NVML_INIT_FLAG_NO_ATTACH));
+    } catch (const std::exception& e) {
+      edm::LogWarning("CUDAService") << "Failed to initialize NVML to query the NVIDIA driver version: " << e.what()
+                                     << "\nReporting NVIDIA driver version as \"unknown\".";
+      std::strncpy(systemDriverVersion, "unknown", sizeof(systemDriverVersion) - 1);
+      systemDriverVersion[sizeof(systemDriverVersion) - 1] = '\0';
+      return;
+    }
+    nvmlCheck(nvmlSystemGetDriverVersion(systemDriverVersion, sizeof(systemDriverVersion)));
+    nvmlCheck(nvmlShutdown());
+  }();
 
   // CUDA driver version, e.g. 11.4
   // the full version, like 11.4.1 or 11.4.100, is not reported
