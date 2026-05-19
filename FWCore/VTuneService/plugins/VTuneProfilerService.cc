@@ -143,7 +143,7 @@ namespace {
     public:
       friend void VTuneBackend::mark(const Domain&, const char*, Color);
 
-      Range() = default; 
+      Range() = default;
       // copy constructor deleted
       Range(const Range&) = delete;
       /// Move copy constructor: we take a lock and move the contents
