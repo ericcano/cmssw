@@ -1251,7 +1251,8 @@ void FedRawDataInputSource::readSupervisor() {
 void FedRawDataInputSource::readWorker(unsigned int tid) {
   bool init = true;
   // We the thread name
-  edm::LogInfo("FedRawDataInputSource") << "Starting reader thread with TID: " << tid << " and setting thread name to " << "FEDReadWkr" + std::to_string(tid);
+  edm::LogInfo("FedRawDataInputSource") << "Starting reader thread with TID: " << tid << " and setting thread name to "
+                                        << "FEDReadWkr" + std::to_string(tid);
   std::string threadName = "FEDReadWkr" + std::to_string(tid);
   pthread_setname_np(pthread_self(), threadName.c_str());
 
