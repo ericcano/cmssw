@@ -121,6 +121,7 @@ namespace {
       void create(const std::string& name) {
         assert(domain_ == nullptr);
         domain_ = __itt_domain_create(name.c_str());
+        name_ = name;
       }
 
       /**
@@ -135,8 +136,11 @@ namespace {
 
       __itt_domain* nativeHandle() const { return domain_; }
 
+      const std::string& name() const { return name_; }
+
     private:
       __itt_domain* domain_ = nullptr;
+      std::string name_;
     };
 
     class Range {
@@ -163,7 +167,8 @@ namespace {
         std::scoped_lock lock(mtx_);
         if (active_ && domain_) {
           __itt_task_end_overlapped(domain_, taskId_);
-          __itt_id_destroy(domain_, taskId_);
+          // TEST: no deletion?
+          // __itt_id_destroy(domain_, taskId_);
         }
       }
 
@@ -181,6 +186,7 @@ namespace {
         if (domain_) {
           taskId_ = __itt_id_make(this, itt_extra_counter_.fetch_add(1, std::memory_order_relaxed));
           __itt_id_create(domain_, taskId_);
+          std::cout << "Starting task " << message << " with ID " << taskId_.d2 << " in domain " << domain.name() << std::endl;
           __itt_task_begin_overlapped(domain_, taskId_, __itt_null, __itt_string_handle_create(message));
           active_ = true;
         }
@@ -190,7 +196,8 @@ namespace {
         std::scoped_lock lock(mtx_);
         if (active_ && domain_) {
           __itt_task_end_overlapped(domain_, taskId_);
-          __itt_id_destroy(domain_, taskId_);
+          // TEST: no deletion?
+          // __itt_id_destroy(domain_, taskId_);
           active_ = false;
           domain_ = nullptr;
           taskId_ = __itt_null;
