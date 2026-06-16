@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstdio>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -175,9 +176,20 @@ namespace {
     public:
       void startColorIn(const Domain& domain, const char* message, Color color, const char* where) {
         std::scoped_lock lock(mtx_);
+#define NVTX_RANGE_DEBUG
+#ifdef NVTX_RANGE_DEBUG
+        std::fprintf(stderr,
+                     "[NVTX_RANGE] start this=%p domain=%p range=%lu msg=%s where=%s\n",
+                     static_cast<const void*>(this),
+                     static_cast<const void*>(domain_),
+                     static_cast<unsigned long>(range_),
+                     message ? message : "(null)",
+                     where ? where : "(null)");
+#endif
         if (range_ != nvtxInvalidRangeId) {
           std::string fullmsg =
               fmt::sprintf("Warning: previous range not ended before starting a new one in %s for %s", where, message);
+          abort();
           nvtxDomainMarkColor(domain_, fullmsg.c_str(), colorMap[to_underlying(Color::Red)]);
           nvtxDomainRangeEnd(domain_, range_);
         }
@@ -187,6 +199,15 @@ namespace {
 
       void endIn(const Domain& domain, const char* message, const char* where) {
         std::scoped_lock lock(mtx_);
+#ifdef NVTX_RANGE_DEBUG
+        std::fprintf(stderr,
+                     "[NVTX_RANGE] end   this=%p domain=%p range=%lu msg=%s where=%s\n",
+                     static_cast<const void*>(this),
+                     static_cast<const void*>(domain_),
+                     static_cast<unsigned long>(range_),
+                     message ? message : "(null)",
+                     where ? where : "(null)");
+#endif
         if (range_ != nvtxInvalidRangeId) {
           nvtxDomainRangeEnd(domain_, range_);
           range_ = nvtxInvalidRangeId;
@@ -194,6 +215,7 @@ namespace {
         } else {
           std::string fullmsg =
               fmt::sprintf("Warning: trying to end a range that is not started in %s for %s", where, message);
+          abort();
           nvtxDomainMarkColor(domain.nativeHandle(), fullmsg.c_str(), colorMap[to_underlying(Color::Red)]);
         }
       }
