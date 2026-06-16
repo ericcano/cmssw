@@ -78,6 +78,31 @@
   registry.watchPre##signal(this, &ProfilerService::pre##signal); \
   registry.watchPost##signal(this, &ProfilerService::post##signal);
 
+// Macro for global-module (GlobalContext, ModuleCallingContext) signal pairs, using global_modules_
+#define DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(signal)                                      \
+  void pre##signal(edm::GlobalContext const& gc, edm::ModuleCallingContext const& mcc);   \
+  void post##signal(edm::GlobalContext const& gc, edm::ModuleCallingContext const& mcc);
+
+#define DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(signal)                                                                   \
+  template <class Backend>                                                                                            \
+  void ProfilerService<Backend>::pre##signal(edm::GlobalContext const& gc, edm::ModuleCallingContext const& mcc) {    \
+    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                               \
+      auto mid = mcc.moduleDescription()->id();                                                                       \
+      auto const& label = mcc.moduleDescription()->moduleLabel();                                                     \
+      auto const& msg = label + " " + #signal "";                                                                     \
+      global_modules_[mid].startColorIn(global_domain_, msg.c_str(), labelColor(label), __func__);                    \
+    }                                                                                                                 \
+  }                                                                                                                   \
+  template <class Backend>                                                                                            \
+  void ProfilerService<Backend>::post##signal(edm::GlobalContext const& gc, edm::ModuleCallingContext const& mcc) {   \
+    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                               \
+      auto mid = mcc.moduleDescription()->id();                                                                       \
+      auto const& label = mcc.moduleDescription()->moduleLabel();                                                     \
+      auto const& msg = label + " " + #signal "";                                                                     \
+      global_modules_[mid].endIn(global_domain_, msg.c_str(), __func__);                                              \
+    }                                                                                                                 \
+  }
+
 /**
  * @brief Base class for profiling services.
  * @tparam Backend The backend implementation class.
@@ -289,6 +314,112 @@ public:
   DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransformPrefetching)
   DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransformAcquiring)
   DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransform)
+
+  /******** Job-level single signals *********************************************/
+
+  void beginProcessing();
+  void endProcessing();
+  void jobFailure();
+  void postServicesConstruction();
+
+  /******** Infrastructure/setup signal pairs *************************************/
+
+  void preBeginStream(edm::StreamContext const&);
+  void postBeginStream(edm::StreamContext const&);
+
+  void preEndStream(edm::StreamContext const&);
+  void postEndStream(edm::StreamContext const&);
+
+  void preEventSetupConfigurationFinalized();
+  void postEventSetupConfigurationFinalized();
+
+  void eventSetupConfiguration(edm::eventsetup::ESRecordsToProductResolverIndices const&,
+                                edm::ProcessContext const&);
+
+  void preEventSetupModulesConstruction();
+  void postEventSetupModulesConstruction();
+
+  void preModulesAndSourceConstruction();
+  void postModulesAndSourceConstruction();
+
+  void preFinishSchedule();
+  void postFinishSchedule();
+
+  void prePrincipalsCreation();
+  void postPrincipalsCreation();
+
+  void preScheduleConsistencyCheck();
+  void postScheduleConsistencyCheck();
+
+  void preModulesInitializationFinalized();
+  void postModulesInitializationFinalized();
+
+  /******** Process block signals **********************************************/
+
+  void preBeginProcessBlock(edm::GlobalContext const&);
+  void postBeginProcessBlock(edm::GlobalContext const&);
+
+  void preEndProcessBlock(edm::GlobalContext const&);
+  void postEndProcessBlock(edm::GlobalContext const&);
+
+  void preAccessInputProcessBlock(edm::GlobalContext const&);
+  void postAccessInputProcessBlock(edm::GlobalContext const&);
+
+  void preWriteProcessBlock(edm::GlobalContext const&);
+  void postWriteProcessBlock(edm::GlobalContext const&);
+
+  /******** Global write signals **********************************************/
+
+  void preGlobalWriteRun(edm::GlobalContext const&);
+  void postGlobalWriteRun(edm::GlobalContext const&);
+
+  void preGlobalWriteLumi(edm::GlobalContext const&);
+  void postGlobalWriteLumi(edm::GlobalContext const&);
+
+  /******** Output file signals **********************************************/
+
+  void preOpenOutputFiles();
+  void postOpenOutputFiles();
+
+  void preCloseOutputFiles();
+  void postCloseOutputFiles();
+
+  /******** Source process block signals *************************************/
+
+  void preSourceProcessBlock();
+  void postSourceProcessBlock(std::string const&);
+
+  /******** ES IOV sync signals **********************************************/
+
+  void esSyncIOVQueuing(edm::IOVSyncValue const&);
+
+  void preESSyncIOV(edm::IOVSyncValue const&);
+  void postESSyncIOV(edm::IOVSyncValue const&);
+
+  /******** ES module construction signals **********************************************/
+
+  void preESModuleConstruction(edm::eventsetup::ComponentDescription const&);
+  void postESModuleConstruction(edm::eventsetup::ComponentDescription const&);
+
+  /******** Early termination signals (Pre only, no Post) *****************************/
+
+  void preStreamEarlyTermination(edm::StreamContext const&, edm::TerminationOrigin);
+  void preGlobalEarlyTermination(edm::GlobalContext const&, edm::TerminationOrigin);
+  void preSourceEarlyTermination(edm::TerminationOrigin);
+
+  /******** Module stream prefetching signals **********************************************/
+
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamPrefetching)
+
+  /******** Module global prefetching and process block signals **********************************************/
+
+  DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleGlobalPrefetching)
+  DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleBeginProcessBlock)
+  DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleEndProcessBlock)
+  DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleAccessInputProcessBlock)
+  DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleWriteProcessBlock)
+  DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleWriteRun)
+  DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleWriteLumi)
 
   /******** ES module context signals *********************************************/
   // ES signal watchers
@@ -508,6 +639,83 @@ ProfilerService<Backend>::ProfilerService(edm::ParameterSet const& config, edm::
   }
   REGISTER_SIGNAL_WATCHER(ESModule)
   REGISTER_SIGNAL_WATCHER(ESModuleAcquire)
+
+  // Job-level single signals
+  registry.watchBeginProcessing(this, &ProfilerService::beginProcessing);
+  registry.watchEndProcessing(this, &ProfilerService::endProcessing);
+  registry.watchJobFailure(this, &ProfilerService::jobFailure);
+  registry.watchPostServicesConstruction(this, &ProfilerService::postServicesConstruction);
+
+  // Infrastructure/setup signal pairs
+  registry.watchPreBeginStream(this, &ProfilerService::preBeginStream);
+  registry.watchPostBeginStream(this, &ProfilerService::postBeginStream);
+  registry.watchPreEndStream(this, &ProfilerService::preEndStream);
+  registry.watchPostEndStream(this, &ProfilerService::postEndStream);
+
+  registry.watchPreEventSetupConfigurationFinalized(this, &ProfilerService::preEventSetupConfigurationFinalized);
+  registry.watchPostEventSetupConfigurationFinalized(this, &ProfilerService::postEventSetupConfigurationFinalized);
+  registry.watchEventSetupConfiguration(this, &ProfilerService::eventSetupConfiguration);
+  registry.watchPreEventSetupModulesConstruction(this, &ProfilerService::preEventSetupModulesConstruction);
+  registry.watchPostEventSetupModulesConstruction(this, &ProfilerService::postEventSetupModulesConstruction);
+  registry.watchPreModulesAndSourceConstruction(this, &ProfilerService::preModulesAndSourceConstruction);
+  registry.watchPostModulesAndSourceConstruction(this, &ProfilerService::postModulesAndSourceConstruction);
+  registry.watchPreFinishSchedule(this, &ProfilerService::preFinishSchedule);
+  registry.watchPostFinishSchedule(this, &ProfilerService::postFinishSchedule);
+  registry.watchPrePrincipalsCreation(this, &ProfilerService::prePrincipalsCreation);
+  registry.watchPostPrincipalsCreation(this, &ProfilerService::postPrincipalsCreation);
+  registry.watchPreScheduleConsistencyCheck(this, &ProfilerService::preScheduleConsistencyCheck);
+  registry.watchPostScheduleConsistencyCheck(this, &ProfilerService::postScheduleConsistencyCheck);
+  registry.watchPreModulesInitializationFinalized(this, &ProfilerService::preModulesInitializationFinalized);
+  registry.watchPostModulesInitializationFinalized(this, &ProfilerService::postModulesInitializationFinalized);
+
+  // Process block signal pairs
+  REGISTER_SIGNAL_WATCHER(BeginProcessBlock)
+  REGISTER_SIGNAL_WATCHER(EndProcessBlock)
+  REGISTER_SIGNAL_WATCHER(AccessInputProcessBlock)
+  REGISTER_SIGNAL_WATCHER(WriteProcessBlock)
+
+  // Global write signal pairs
+  REGISTER_SIGNAL_WATCHER(GlobalWriteRun)
+  REGISTER_SIGNAL_WATCHER(GlobalWriteLumi)
+
+  // Output file signal pairs (void() signals, must use std::bind/lambda since AR_WATCH_USING_METHOD_1 expects an arg)
+  registry.watchPreOpenOutputFiles(std::bind(&ProfilerService::preOpenOutputFiles, this));
+  registry.watchPostOpenOutputFiles(std::bind(&ProfilerService::postOpenOutputFiles, this));
+  registry.watchPreCloseOutputFiles(std::bind(&ProfilerService::preCloseOutputFiles, this));
+  registry.watchPostCloseOutputFiles(std::bind(&ProfilerService::postCloseOutputFiles, this));
+
+  // Source process block signal pair
+  registry.watchPreSourceProcessBlock(this, &ProfilerService::preSourceProcessBlock);
+  registry.watchPostSourceProcessBlock(this, &ProfilerService::postSourceProcessBlock);
+
+  // ES IOV sync signals
+  registry.watchESSyncIOVQueuing(this, &ProfilerService::esSyncIOVQueuing);
+  REGISTER_SIGNAL_WATCHER(ESSyncIOV)
+
+  // ES module construction signal pair
+  registry.watchPreESModuleConstruction(this, &ProfilerService::preESModuleConstruction);
+  registry.watchPostESModuleConstruction(this, &ProfilerService::postESModuleConstruction);
+
+  // Early termination signals (Pre only)
+  registry.watchPreStreamEarlyTermination(this, &ProfilerService::preStreamEarlyTermination);
+  registry.watchPreGlobalEarlyTermination(this, &ProfilerService::preGlobalEarlyTermination);
+  registry.watchPreSourceEarlyTermination(this, &ProfilerService::preSourceEarlyTermination);
+
+  // Module stream prefetching signal pair
+  if (showModulePrefetching_) {
+    REGISTER_SIGNAL_WATCHER(ModuleStreamPrefetching)
+  }
+
+  // Module global prefetching and process block signal pairs
+  if (showModulePrefetching_) {
+    REGISTER_SIGNAL_WATCHER(ModuleGlobalPrefetching)
+  }
+  REGISTER_SIGNAL_WATCHER(ModuleBeginProcessBlock)
+  REGISTER_SIGNAL_WATCHER(ModuleEndProcessBlock)
+  REGISTER_SIGNAL_WATCHER(ModuleAccessInputProcessBlock)
+  REGISTER_SIGNAL_WATCHER(ModuleWriteProcessBlock)
+  REGISTER_SIGNAL_WATCHER(ModuleWriteRun)
+  REGISTER_SIGNAL_WATCHER(ModuleWriteLumi)
 }
 
 template <typename Backend>
@@ -969,7 +1177,33 @@ DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginRun)
 DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamEndRun)
 DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginLumi)
 DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamEndLumi)
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventPrefetching)
+// DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventPrefetching)
+template <class Backend>
+void ProfilerService<Backend>::preModuleEventPrefetching(edm::StreamContext const& sc,
+                                                         edm::ModuleCallingContext const& mcc) {
+  auto sid = sc.streamID();
+  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
+    auto mid = mcc.moduleDescription()->id();
+    auto const& label = mcc.moduleDescription()->moduleLabel();
+    auto const& msg = label + " " +
+                      "ModuleEventPrefetching"
+                      "";
+    stream_modules_[sid][mid].startColorIn(stream_domain_[sid], msg.c_str(), labelColor(label), __func__);
+  }
+}
+template <class Backend>
+void ProfilerService<Backend>::postModuleEventPrefetching(edm::StreamContext const& sc,
+                                                          edm::ModuleCallingContext const& mcc) {
+  auto sid = sc.streamID();
+  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
+    auto mid = mcc.moduleDescription()->id();
+    auto const& label = mcc.moduleDescription()->moduleLabel();
+    auto const& msg = label + " " +
+                      "ModuleEventPrefetching"
+                      "";
+    stream_modules_[sid][mid].endIn(stream_domain_[sid], msg.c_str(), __func__);
+  }
+}
 DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventAcquire)
 DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEvent)
 DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventDelayedGet)
@@ -1173,10 +1407,394 @@ void ProfilerService<Backend>::postESModule(edm::eventsetup::EventSetupRecordKey
 
 DEFINE_ES_SIGNAL_WATCHER(ESModuleAcquire)
 
+/******** Job-level single signal implementations *************************************/
+
+template <class Backend>
+void ProfilerService<Backend>::beginProcessing() {
+  Backend::mark(global_domain_, "beginProcessing", Color::Amber);
+}
+
+template <class Backend>
+void ProfilerService<Backend>::endProcessing() {
+  Backend::mark(global_domain_, "endProcessing", Color::Amber);
+}
+
+template <class Backend>
+void ProfilerService<Backend>::jobFailure() {
+  Backend::mark(global_domain_, "jobFailure", Color::Red);
+}
+
+template <class Backend>
+void ProfilerService<Backend>::postServicesConstruction() {
+  Backend::mark(global_domain_, "postServicesConstruction", Color::Amber);
+}
+
+/******** Infrastructure/setup signal implementations *************************************/
+
+template <class Backend>
+void ProfilerService<Backend>::preBeginStream(edm::StreamContext const& sc) {
+  auto sid = sc.streamID();
+  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
+    event_[sid].startColorIn(stream_domain_[sid], "begin stream", Color::Amber, __func__);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::postBeginStream(edm::StreamContext const& sc) {
+  auto sid = sc.streamID();
+  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
+    event_[sid].endIn(stream_domain_[sid], "begin stream", __func__);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::preEndStream(edm::StreamContext const& sc) {
+  auto sid = sc.streamID();
+  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
+    event_[sid].startColorIn(stream_domain_[sid], "end stream", Color::Amber, __func__);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::postEndStream(edm::StreamContext const& sc) {
+  auto sid = sc.streamID();
+  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
+    event_[sid].endIn(stream_domain_[sid], "end stream", __func__);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::preEventSetupConfigurationFinalized() {
+  if (not skipFirstEvent_) {
+    Backend::mark(global_domain_, "preEventSetupConfigurationFinalized", Color::Amber);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::postEventSetupConfigurationFinalized() {
+  if (not skipFirstEvent_) {
+    Backend::mark(global_domain_, "postEventSetupConfigurationFinalized", Color::Amber);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::eventSetupConfiguration(
+    edm::eventsetup::ESRecordsToProductResolverIndices const&, edm::ProcessContext const&) {
+  if (not skipFirstEvent_) {
+    Backend::mark(global_domain_, "eventSetupConfiguration", Color::Amber);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::preEventSetupModulesConstruction() {
+  if (not skipFirstEvent_) {
+    Backend::mark(global_domain_, "preEventSetupModulesConstruction", Color::Amber);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::postEventSetupModulesConstruction() {
+  if (not skipFirstEvent_) {
+    Backend::mark(global_domain_, "postEventSetupModulesConstruction", Color::Amber);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::preModulesAndSourceConstruction() {
+  if (not skipFirstEvent_) {
+    Backend::mark(global_domain_, "preModulesAndSourceConstruction", Color::Amber);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::postModulesAndSourceConstruction() {
+  if (not skipFirstEvent_) {
+    Backend::mark(global_domain_, "postModulesAndSourceConstruction", Color::Amber);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::preFinishSchedule() {
+  if (not skipFirstEvent_) {
+    globalRange_.startColorIn(global_domain_, "finish schedule", Color::Amber, __func__);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::postFinishSchedule() {
+  if (not skipFirstEvent_) {
+    globalRange_.endIn(global_domain_, "finish schedule", __func__);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::prePrincipalsCreation() {
+  if (not skipFirstEvent_) {
+    Backend::mark(global_domain_, "prePrincipalsCreation", Color::Amber);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::postPrincipalsCreation() {
+  if (not skipFirstEvent_) {
+    Backend::mark(global_domain_, "postPrincipalsCreation", Color::Amber);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::preScheduleConsistencyCheck() {
+  if (not skipFirstEvent_) {
+    Backend::mark(global_domain_, "preScheduleConsistencyCheck", Color::Amber);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::postScheduleConsistencyCheck() {
+  if (not skipFirstEvent_) {
+    Backend::mark(global_domain_, "postScheduleConsistencyCheck", Color::Amber);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::preModulesInitializationFinalized() {
+  if (not skipFirstEvent_) {
+    Backend::mark(global_domain_, "preModulesInitializationFinalized", Color::Amber);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::postModulesInitializationFinalized() {
+  if (not skipFirstEvent_) {
+    Backend::mark(global_domain_, "postModulesInitializationFinalized", Color::Amber);
+  }
+}
+
+/******** Process block signal implementations *************************************/
+
+template <class Backend>
+void ProfilerService<Backend>::preBeginProcessBlock(edm::GlobalContext const& gc) {
+  if (not skipFirstEvent_ or globalFirstEventDone_) {
+    globalRange_.startColorIn(global_domain_, "begin process block", Color::Amber, __func__);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::postBeginProcessBlock(edm::GlobalContext const& gc) {
+  if (not skipFirstEvent_ or globalFirstEventDone_) {
+    globalRange_.endIn(global_domain_, "begin process block", __func__);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::preEndProcessBlock(edm::GlobalContext const& gc) {
+  if (not skipFirstEvent_ or globalFirstEventDone_) {
+    globalRange_.startColorIn(global_domain_, "end process block", Color::Amber, __func__);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::postEndProcessBlock(edm::GlobalContext const& gc) {
+  if (not skipFirstEvent_ or globalFirstEventDone_) {
+    globalRange_.endIn(global_domain_, "end process block", __func__);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::preAccessInputProcessBlock(edm::GlobalContext const& gc) {
+  if (not skipFirstEvent_ or globalFirstEventDone_) {
+    globalRange_.startColorIn(global_domain_, "access input process block", Color::Amber, __func__);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::postAccessInputProcessBlock(edm::GlobalContext const& gc) {
+  if (not skipFirstEvent_ or globalFirstEventDone_) {
+    globalRange_.endIn(global_domain_, "access input process block", __func__);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::preWriteProcessBlock(edm::GlobalContext const& gc) {
+  if (not skipFirstEvent_ or globalFirstEventDone_) {
+    globalRange_.startColorIn(global_domain_, "write process block", Color::Amber, __func__);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::postWriteProcessBlock(edm::GlobalContext const& gc) {
+  if (not skipFirstEvent_ or globalFirstEventDone_) {
+    globalRange_.endIn(global_domain_, "write process block", __func__);
+  }
+}
+
+/******** Global write signal implementations *************************************/
+
+template <class Backend>
+void ProfilerService<Backend>::preGlobalWriteRun(edm::GlobalContext const& gc) {
+  if (not skipFirstEvent_ or globalFirstEventDone_) {
+    globalRange_.startColorIn(global_domain_, "global write run", Color::Amber, __func__);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::postGlobalWriteRun(edm::GlobalContext const& gc) {
+  if (not skipFirstEvent_ or globalFirstEventDone_) {
+    globalRange_.endIn(global_domain_, "global write run", __func__);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::preGlobalWriteLumi(edm::GlobalContext const& gc) {
+  if (not skipFirstEvent_ or globalFirstEventDone_) {
+    globalRange_.startColorIn(global_domain_, "global write lumi", Color::Amber, __func__);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::postGlobalWriteLumi(edm::GlobalContext const& gc) {
+  if (not skipFirstEvent_ or globalFirstEventDone_) {
+    globalRange_.endIn(global_domain_, "global write lumi", __func__);
+  }
+}
+
+/******** Output file signal implementations *************************************/
+
+template <class Backend>
+void ProfilerService<Backend>::preOpenOutputFiles() {
+  if (not skipFirstEvent_ or globalFirstEventDone_) {
+    globalRange_.startColorIn(global_domain_, "open output files", Color::Amber, __func__);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::postOpenOutputFiles() {
+  if (not skipFirstEvent_ or globalFirstEventDone_) {
+    globalRange_.endIn(global_domain_, "open output files", __func__);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::preCloseOutputFiles() {
+  if (not skipFirstEvent_ or globalFirstEventDone_) {
+    globalRange_.startColorIn(global_domain_, "close output files", Color::Amber, __func__);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::postCloseOutputFiles() {
+  if (not skipFirstEvent_ or globalFirstEventDone_) {
+    globalRange_.endIn(global_domain_, "close output files", __func__);
+  }
+}
+
+/******** Source process block signal implementations *************************************/
+
+template <class Backend>
+void ProfilerService<Backend>::preSourceProcessBlock() {
+  if (not skipFirstEvent_ or globalFirstEventDone_) {
+    globalRange_.startColorIn(global_domain_, "source process block", Color::Amber, __func__);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::postSourceProcessBlock(std::string const& processName) {
+  if (not skipFirstEvent_ or globalFirstEventDone_) {
+    globalRange_.endIn(global_domain_, "source process block", __func__);
+  }
+}
+
+/******** ES IOV sync signal implementations *************************************/
+
+template <class Backend>
+void ProfilerService<Backend>::esSyncIOVQueuing(edm::IOVSyncValue const&) {
+  Backend::mark(global_domain_, "esSyncIOVQueuing", Color::Blue);
+}
+
+template <class Backend>
+void ProfilerService<Backend>::preESSyncIOV(edm::IOVSyncValue const&) {
+  globalRange_.startColorIn(global_domain_, "ES sync IOV", Color::Blue, __func__);
+}
+
+template <class Backend>
+void ProfilerService<Backend>::postESSyncIOV(edm::IOVSyncValue const&) {
+  globalRange_.endIn(global_domain_, "ES sync IOV", __func__);
+}
+
+/******** ES module construction signal implementations *****************************/
+
+template <class Backend>
+void ProfilerService<Backend>::preESModuleConstruction(edm::eventsetup::ComponentDescription const& desc) {
+  auto mid = desc.id_;
+  global_ES_modules_.grow_to_at_least(mid + 1);
+  if (not skipFirstEvent_) {
+    auto const& label = desc.label_;
+    auto const& type = desc.type_;
+    std::string msg;
+    if (label.empty()) {
+      msg = type + "(type) construction";
+    } else {
+      msg = label + " construction";
+    }
+    global_ES_modules_[mid].startColorIn(global_domain_, msg.c_str(), Color::Blue, __func__);
+  }
+}
+
+template <class Backend>
+void ProfilerService<Backend>::postESModuleConstruction(edm::eventsetup::ComponentDescription const& desc) {
+  if (not skipFirstEvent_) {
+    auto mid = desc.id_;
+    auto const& label = desc.label_;
+    auto const& type = desc.type_;
+    std::string msg;
+    if (label.empty()) {
+      msg = type + "(type) construction";
+    } else {
+      msg = label + " construction";
+    }
+    global_ES_modules_[mid].endIn(global_domain_, msg.c_str(), __func__);
+  }
+}
+
+/******** Early termination signal implementations *****************************/
+
+template <class Backend>
+void ProfilerService<Backend>::preStreamEarlyTermination(edm::StreamContext const& sc,
+                                                         edm::TerminationOrigin origin) {
+  auto sid = sc.streamID();
+  Backend::mark(stream_domain_[sid], "early termination", Color::Red);
+}
+
+template <class Backend>
+void ProfilerService<Backend>::preGlobalEarlyTermination(edm::GlobalContext const& gc,
+                                                         edm::TerminationOrigin origin) {
+  Backend::mark(global_domain_, "global early termination", Color::Red);
+}
+
+template <class Backend>
+void ProfilerService<Backend>::preSourceEarlyTermination(edm::TerminationOrigin origin) {
+  Backend::mark(global_domain_, "source early termination", Color::Red);
+}
+
+/******** Module stream prefetching signal implementations *****************************/
+
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamPrefetching)
+
+/******** Module global prefetching and process block signal implementations ***********/
+
+DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleGlobalPrefetching)
+DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleBeginProcessBlock)
+DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleEndProcessBlock)
+DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleAccessInputProcessBlock)
+DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleWriteProcessBlock)
+DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleWriteRun)
+DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleWriteLumi)
+
 #undef DECLARE_ES_SIGNAL_WATCHER
 #undef DEFINE_ES_SIGNAL_WATCHER
 #undef DECLARE_MODULE_STREAM_SIGNAL_WATCHER
 #undef DEFINE_MODULE_STREAM_SIGNAL_WATCHER
+#undef DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER
+#undef DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER
 #undef REGISTER_SIGNAL_WATCHER
 
 #endif  // __FWCore_Services_ProfilerService_h__
