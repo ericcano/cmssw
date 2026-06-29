@@ -1,6 +1,38 @@
 #ifndef __FWCore_Services_ProfilerService_h__
 #define __FWCore_Services_ProfilerService_h__
 
+#include <mutex>
+#include <optional>
+#include <string_view>
+#include <unordered_map>
+
+#include "DataFormats/Common/interface/HLTPathStatus.h"
+#include "DataFormats/Provenance/interface/EventID.h"
+#include "DataFormats/Provenance/interface/LuminosityBlockID.h"
+#include "DataFormats/Provenance/interface/ModuleDescription.h"
+#include "DataFormats/Provenance/interface/RunID.h"
+#include "DataFormats/Provenance/interface/Timestamp.h"
+#include "FWCore/MessageLogger/interface/MessageLogger.h"
+#include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
+#include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
+#include "FWCore/ServiceRegistry/interface/ActivityRegistry.h"
+#include "FWCore/ServiceRegistry/interface/GlobalContext.h"
+#include "FWCore/ServiceRegistry/interface/ModuleCallingContext.h"
+#include "FWCore/ServiceRegistry/interface/ESModuleCallingContext.h"
+#include "FWCore/Framework/interface/ComponentDescription.h"
+#include "FWCore/Framework/interface/EventSetupRecordKey.h"
+#include "FWCore/ServiceRegistry/interface/PathContext.h"
+#include "FWCore/ServiceRegistry/interface/PathsAndConsumesOfModulesBase.h"
+#include "FWCore/ServiceRegistry/interface/ProcessContext.h"
+#include "FWCore/ServiceRegistry/interface/Service.h"
+#include "FWCore/ServiceRegistry/interface/StreamContext.h"
+#include "FWCore/ServiceRegistry/interface/SystemBounds.h"
+#include "FWCore/Utilities/interface/BranchType.h"
+#include "FWCore/Utilities/interface/Exception.h"
+#include "FWCore/Utilities/interface/ProductKindOfType.h"
+#include "FWCore/Utilities/interface/TimeOfDay.h"
+
 /**
  * Based template class for range/mark based profiling services, targeting
  * NVidia NVTX, AMP ROCmTX, or VTune.
@@ -14,37 +46,39 @@
   void pre##signal(edm::eventsetup::EventSetupRecordKey const& iKey, edm::ESModuleCallingContext const& mcc); \
   void post##signal(edm::eventsetup::EventSetupRecordKey const& iKey, edm::ESModuleCallingContext const& mcc);
 
-// The global_es_modules_ vector is indexed by the ComponentDescription id_ field
+// ES module signal ranges are keyed dynamically to avoid collisions from overlapping calls.
 #define DEFINE_ES_SIGNAL_WATCHER(signal)                                                        \
   template <class Backend>                                                                      \
   void ProfilerService<Backend>::pre##signal(edm::eventsetup::EventSetupRecordKey const& iKey,  \
                                              edm::ESModuleCallingContext const& esmcc) {        \
     auto mid = esmcc.componentDescription()->id_;                                               \
+    auto const& record = iKey.name();                                                           \
     auto const& label = esmcc.componentDescription()->label_;                                   \
     auto const& type = esmcc.componentDescription()->type_;                                     \
     std::string msg;                                                                            \
     if (label.size() == 0) {                                                                    \
       /*Fallback on the type */                                                                 \
-      msg = type + "(type) " + #signal "";                                                      \
+      msg = type + "(type) " + #signal " record=" + record;                                    \
     } else {                                                                                    \
-      msg = label + " " + #signal "";                                                           \
+      msg = label + " " + #signal " record=" + record;                                         \
     }                                                                                           \
-    global_ES_modules_[mid].startColorIn(global_domain_, msg.c_str(), Color::Blue, __func__);   \
+    startGlobalESRange_(mid, iKey.name(), #signal, msg, Color::Blue, __func__);                \
   }                                                                                             \
   template <class Backend>                                                                      \
   void ProfilerService<Backend>::post##signal(edm::eventsetup::EventSetupRecordKey const& iKey, \
                                               edm::ESModuleCallingContext const& esmcc) {       \
     auto mid = esmcc.componentDescription()->id_;                                               \
+    auto const& record = iKey.name();                                                           \
     auto const& label = esmcc.componentDescription()->label_;                                   \
     auto const& type = esmcc.componentDescription()->type_;                                     \
     std::string msg;                                                                            \
     if (label.size() == 0) {                                                                    \
       /* Fallback on the type */                                                                \
-      msg = type + "(type) " + #signal "";                                                      \
+      msg = type + "(type) " + #signal " record=" + record;                                    \
     } else {                                                                                    \
-      msg = label + " " + #signal "";                                                           \
+      msg = label + " " + #signal " record=" + record;                                         \
     }                                                                                           \
-    global_ES_modules_[mid].endIn(global_domain_, msg.c_str(), __func__);                       \
+    endGlobalESRange_(mid, iKey.name(), #signal, msg, __func__);                               \
   }
 
 #define DECLARE_MODULE_STREAM_SIGNAL_WATCHER(signal)                                    \
@@ -431,6 +465,74 @@ public:
   DECLARE_ES_SIGNAL_WATCHER(ESModuleAcquire)
 
 private:
+  std::string makeGlobalESInFlightKey_(unsigned int mid,
+                                       std::string_view record,
+                                       std::string_view signal) const {
+    std::string key;
+    key.reserve(32 + record.size() + signal.size());
+    key += std::to_string(mid);
+    key += '|';
+    key.append(record.data(), record.size());
+    key += '|';
+    key.append(signal.data(), signal.size());
+    return key;
+  }
+
+  size_t acquireGlobalESRangeSlot_() {
+    if (not free_global_es_range_slots_.empty()) {
+      auto slot = free_global_es_range_slots_.back();
+      free_global_es_range_slots_.pop_back();
+      return slot;
+    }
+    global_es_ranges_.emplace_back();
+    return global_es_ranges_.size() - 1;
+  }
+
+  void releaseGlobalESRangeSlot_(size_t slot) { free_global_es_range_slots_.push_back(slot); }
+
+  void startGlobalESRange_(unsigned int mid,
+                           std::string_view record,
+                           std::string_view signal,
+                           std::string const& msg,
+                           Color color,
+                           char const* func) {
+    size_t slot = 0;
+    {
+      std::lock_guard<std::mutex> guard(global_es_ranges_mutex_);
+      auto key = makeGlobalESInFlightKey_(mid, record, signal);
+      slot = acquireGlobalESRangeSlot_();
+      global_es_in_flight_[std::move(key)].push_back(slot);
+    }
+    global_es_ranges_[slot].startColorIn(global_domain_, msg.c_str(), color, func);
+  }
+
+  void endGlobalESRange_(unsigned int mid,
+                         std::string_view record,
+                         std::string_view signal,
+                         std::string const& msg,
+                         char const* func) {
+    std::optional<size_t> slot;
+    {
+      std::lock_guard<std::mutex> guard(global_es_ranges_mutex_);
+      auto key = makeGlobalESInFlightKey_(mid, record, signal);
+      auto found = global_es_in_flight_.find(key);
+      if (found != global_es_in_flight_.end() and not found->second.empty()) {
+        slot = found->second.back();
+        found->second.pop_back();
+        if (found->second.empty()) {
+          global_es_in_flight_.erase(found);
+        }
+      }
+    }
+    if (slot.has_value()) {
+      global_es_ranges_[*slot].endIn(global_domain_, msg.c_str(), func);
+      std::lock_guard<std::mutex> guard(global_es_ranges_mutex_);
+      releaseGlobalESRangeSlot_(*slot);
+    } else {
+      Backend::mark(global_domain_, ("unmatched ES range end: "s + msg).c_str(), Color::Red);
+    }
+  }
+
   bool highlight(std::string const& label) const {
     return (std::binary_search(highlightModules_.begin(), highlightModules_.end(), label));
   }
@@ -462,6 +564,11 @@ private:
       stream_ES_modules_acquire_;  // per-stream, per-ES-module ranges for acquire, which can clash with produce
   // use a tbb::concurrent_vector rather than an std::vector because its final size is not known
   tbb::concurrent_vector<Range> global_ES_modules_;  // global per-ES-module events
+  std::mutex global_es_ranges_mutex_;
+  std::vector<Range> global_es_ranges_;  // dynamically allocated ES ranges for overlapping calls
+  std::vector<size_t> free_global_es_range_slots_;
+  std::unordered_map<std::string, std::vector<size_t>>
+      global_es_in_flight_;  // key=(module id, record, signal), value=stack of active slots
 
   Domain global_domain_;               // NVTX domain for global EDM transitions
   std::vector<Domain> stream_domain_;  // NVTX domains for per-EDM-stream transitions
@@ -1346,6 +1453,7 @@ template <class Backend>
 void ProfilerService<Backend>::preESModulePrefetching(edm::eventsetup::EventSetupRecordKey const& iKey,
                                                       edm::ESModuleCallingContext const& esmcc) {
   auto mid = esmcc.componentDescription()->id_;
+  auto const& record = iKey.name();
   auto const& label = esmcc.componentDescription()->label_;
   auto const& type = esmcc.componentDescription()->type_;
   std::string msg;
@@ -1353,19 +1461,24 @@ void ProfilerService<Backend>::preESModulePrefetching(edm::eventsetup::EventSetu
     // Fallback on the type
     msg = type + "(type) " +
           "ES prefetch"
-          " acquire";
+          " acquire"
+          " record=" +
+          record;
   } else {
     msg = label + " " +
           "ES prefetch"
-          " acquire";
+          " acquire"
+          " record=" +
+          record;
   }
-  global_ES_modules_[mid].startColorIn(global_domain_, msg.c_str(), Color::Blue, __func__);
+  startGlobalESRange_(mid, iKey.name(), "ESModulePrefetching", msg, Color::Blue, __func__);
 }
 
 template <class Backend>
 void ProfilerService<Backend>::postESModulePrefetching(edm::eventsetup::EventSetupRecordKey const& iKey,
                                                        edm::ESModuleCallingContext const& esmcc) {
   auto mid = esmcc.componentDescription()->id_;
+  auto const& record = iKey.name();
   auto const& label = esmcc.componentDescription()->label_;
   auto const& type = esmcc.componentDescription()->type_;
   std::string msg;
@@ -1373,13 +1486,17 @@ void ProfilerService<Backend>::postESModulePrefetching(edm::eventsetup::EventSet
     // Fallback on the type
     msg = type + "(type) " +
           "ES prefetch"
-          " acquire";
+          " acquire"
+          " record=" +
+          record;
   } else {
     msg = label + " " +
           "ES prefetch"
-          " acquire";
+          " acquire"
+          " record=" +
+          record;
   }
-  global_ES_modules_[mid].endIn(global_domain_, msg.c_str(), __func__);
+  endGlobalESRange_(mid, iKey.name(), "ESModulePrefetching", msg, __func__);
 }
 
 /*DEFINE_ES_SIGNAL_WATCHER(ESModule)*/
@@ -1390,8 +1507,9 @@ void ProfilerService<Backend>::preESModule(edm::eventsetup::EventSetupRecordKey 
   auto const& label = esmcc.componentDescription()->label_;
   auto const& type = esmcc.componentDescription()->type_;
   auto const& context = iKey.name();
-  std::string msg = "ESModule: label = '" + label + "', type = '" + type + "', record = '" + context + "'";
-  global_ES_modules_[mid].startColorIn(global_domain_, msg.c_str(), Color::Blue, __func__);
+  std::string msg = "ESModule: label = '" + label + "', type = '" + type + "', record = '" + context + "' mid=" +
+                    std::to_string(mid) + " context=" + context;
+  startGlobalESRange_(mid, context, "ESModule", msg, Color::Blue, __func__);
 }
 
 template <class Backend>
@@ -1402,7 +1520,7 @@ void ProfilerService<Backend>::postESModule(edm::eventsetup::EventSetupRecordKey
   auto const& type = esmcc.componentDescription()->type_;
   auto const& context = iKey.name();
   std::string msg = "ESModule: label = '" + label + "', type = '" + type + "', record = '" + context + "'";
-  global_ES_modules_[mid].endIn(global_domain_, msg.c_str(), __func__);
+  endGlobalESRange_(mid, context, "ESModule", msg, __func__);
 }
 
 DEFINE_ES_SIGNAL_WATCHER(ESModuleAcquire)
