@@ -1315,7 +1315,36 @@ DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventAcquire)
 DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEvent)
 DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventDelayedGet)
 DEFINE_MODULE_STREAM_SIGNAL_WATCHER(EventReadFromSource)
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransformPrefetching)
+// DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransformPrefetching)
+
+// Expands to
+template <class Backend>
+void ProfilerService<Backend>::preModuleTransformPrefetching(edm ::StreamContext const& sc,
+                                                             edm ::ModuleCallingContext const& mcc) {
+  auto sid = sc.streamID();
+  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
+    auto mid = mcc.moduleDescription()->id();
+    auto const& label = mcc.moduleDescription()->moduleLabel();
+    auto const& msg = label + " " +
+                      "ModuleTransformPrefetching"
+                      "";
+    stream_modules_[sid][mid].startColorIn(stream_domain_[sid], msg.c_str(), labelColor(label), __func__);
+  }
+}
+template <class Backend>
+void ProfilerService<Backend>::postModuleTransformPrefetching(edm ::StreamContext const& sc,
+                                                              edm ::ModuleCallingContext const& mcc) {
+  auto sid = sc.streamID();
+  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
+    auto mid = mcc.moduleDescription()->id();
+    auto const& label = mcc.moduleDescription()->moduleLabel();
+    auto const& msg = label + " " +
+                      "ModuleTransformPrefetching"
+                      "";
+    stream_modules_[sid][mid].endIn(stream_domain_[sid], msg.c_str(), __func__);
+  }
+}
+
 DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransformAcquiring)
 DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransform)
 
