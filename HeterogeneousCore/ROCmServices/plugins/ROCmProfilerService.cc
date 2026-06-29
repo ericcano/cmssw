@@ -19,22 +19,6 @@
 
 namespace {
   /**
-   * \brief Spinlock mutex for thread safety without returning to kernel.
-   */
-  class SpinLock {
-  public:
-    SpinLock() : flag_(ATOMIC_FLAG_INIT) {}
-    void lock() {
-      while (flag_.test_and_set(std::memory_order_acquire))
-        ;
-    }
-    void unlock() { flag_.clear(std::memory_order_release); }
-
-  private:
-    std::atomic_flag flag_;
-  };
-
-  /**
    * \brief Backend for ROCm profiling.
    * \note All APIs used are part of ROCTX. See documentation at 
    * https://rocm.docs.amd.com/projects/rocprofiler-sdk/en/latest/how-to/using-rocprofiler-sdk-roctx.html
