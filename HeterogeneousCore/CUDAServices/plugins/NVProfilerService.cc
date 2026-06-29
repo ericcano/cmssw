@@ -134,7 +134,7 @@ namespace {
     public:
       void startColorIn(const Domain& domain, const char* message, Color color, const char* where) {
         std::scoped_lock lock(mtx_);
-#define NVTX_RANGE_DEBUG
+#undef NVTX_RANGE_DEBUG
 #ifdef NVTX_RANGE_DEBUG
         std::fprintf(stderr,
                      "[NVTX_RANGE] start this=%p domain=%p range=%lu msg=%s where=%s\n",

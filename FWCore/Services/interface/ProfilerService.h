@@ -110,7 +110,7 @@ private:
       auto mid = mcc.moduleDescription()->id();                                                                     \
       auto const& label = mcc.moduleDescription()->moduleLabel();                                                   \
       auto const& msg = label + " " + #signal "";                                                                   \
-      stream_modules_[sid][mid].startColorIn(stream_domain_[sid], msg.c_str(), labelColor(label), __func__);        \
+      startStreamModuleRange_(sid, mid, msg, labelColor(label), __func__);                                         \
     }                                                                                                               \
   }                                                                                                                 \
   template <class Backend>                                                                                          \
@@ -120,7 +120,7 @@ private:
       auto mid = mcc.moduleDescription()->id();                                                                     \
       auto const& label = mcc.moduleDescription()->moduleLabel();                                                   \
       auto const& msg = label + " " + #signal "";                                                                   \
-      stream_modules_[sid][mid].endIn(stream_domain_[sid], msg.c_str(), __func__);                                  \
+      endStreamModuleRange_(sid, mid, msg, __func__);                                                               \
     }                                                                                                               \
   }
 
@@ -482,6 +482,35 @@ public:
   DECLARE_ES_SIGNAL_WATCHER(ESModuleAcquire)
 
 private:
+  void startStreamModuleRange_(unsigned int sid,
+                               unsigned int mid,
+                               std::string const& msg,
+                               Color color,
+                               char const* func) {
+    std::lock_guard<SpinLock> guard(stream_modules_mutex_);
+    auto& ranges = stream_modules_[sid][mid];
+    if (not ranges.empty()) {
+      auto fullmsg = "Warning: previous range not ended before starting a new one in "s + func + " for " + msg;
+      Backend::mark(stream_domain_[sid], fullmsg.c_str(), Color::Red);
+      std::cout << fullmsg << std::endl;
+    }
+    ranges.emplace_back();
+    ranges.back().startColorIn(stream_domain_[sid], msg.c_str(), color, func);
+  }
+
+  void endStreamModuleRange_(unsigned int sid, unsigned int mid, std::string const& msg, char const* func) {
+    std::lock_guard<SpinLock> guard(stream_modules_mutex_);
+    auto& ranges = stream_modules_[sid][mid];
+    if (ranges.empty()) {
+      auto fullmsg = "Warning: trying to end a range that is not started in "s + func + " for " + msg;
+      Backend::mark(stream_domain_[sid], fullmsg.c_str(), Color::Red);
+      std::cout << fullmsg << std::endl;
+      return;
+    }
+    ranges.back().endIn(stream_domain_[sid], msg.c_str(), func);
+    ranges.pop_back();
+  }
+
   class GlobalESInFlightRanges {
   public:
     void start(unsigned int mid,
@@ -589,9 +618,10 @@ private:
   std::vector<Range> source_;  // per-stream source ranges TODO: it might be possible to merge this with event_
   std::vector<std::vector<Range>> path_;            // per-stream, per-path ranges
   std::vector<std::vector<Range>> endPath_;         // per-stream, per-endPath ranges
-  std::vector<std::vector<Range>> stream_modules_;  // per-stream, per-module ranges
+  std::vector<std::vector<std::vector<Range>>> stream_modules_;  // per-stream, per-module stacks of ranges
   std::vector<std::vector<Range>>
       stream_modules_acquire_;  // per-stream, per-module ranges for acquire, which can clash with produce
+  SpinLock stream_modules_mutex_;
   // use a tbb::concurrent_vector rather than an std::vector because its final size is not known
   tbb::concurrent_vector<Range> global_modules_;       // global per-module events
   std::vector<std::vector<Range>> stream_ES_modules_;  // per-stream, per-ES-module ranges
@@ -1326,7 +1356,7 @@ void ProfilerService<Backend>::preModuleEventPrefetching(edm::StreamContext cons
     auto const& msg = label + " " +
                       "ModuleEventPrefetching"
                       "";
-    stream_modules_[sid][mid].startColorIn(stream_domain_[sid], msg.c_str(), labelColor(label), __func__);
+    startStreamModuleRange_(sid, mid, msg, labelColor(label), __func__);
   }
 }
 template <class Backend>
@@ -1339,7 +1369,7 @@ void ProfilerService<Backend>::postModuleEventPrefetching(edm::StreamContext con
     auto const& msg = label + " " +
                       "ModuleEventPrefetching"
                       "";
-    stream_modules_[sid][mid].endIn(stream_domain_[sid], msg.c_str(), __func__);
+    endStreamModuleRange_(sid, mid, msg, __func__);
   }
 }
 DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventAcquire)
@@ -1359,7 +1389,7 @@ void ProfilerService<Backend>::preModuleTransformPrefetching(edm ::StreamContext
     auto const& msg = label + " " +
                       "ModuleTransformPrefetching"
                       "";
-    stream_modules_[sid][mid].startColorIn(stream_domain_[sid], msg.c_str(), labelColor(label), __func__);
+    startStreamModuleRange_(sid, mid, msg, labelColor(label), __func__);
   }
 }
 template <class Backend>
@@ -1372,7 +1402,7 @@ void ProfilerService<Backend>::postModuleTransformPrefetching(edm ::StreamContex
     auto const& msg = label + " " +
                       "ModuleTransformPrefetching"
                       "";
-    stream_modules_[sid][mid].endIn(stream_domain_[sid], msg.c_str(), __func__);
+    endStreamModuleRange_(sid, mid, msg, __func__);
   }
 }
 
