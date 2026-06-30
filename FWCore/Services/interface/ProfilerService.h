@@ -102,7 +102,7 @@ private:
   void pre##signal(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc); \
   void post##signal(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc);
 
-#define DEFINE_MODULE_STREAM_SIGNAL_WATCHER(signal)                                                                 \
+#define DEFINE_MODULE_STREAM_SIGNAL_WATCHER(signal, streamModules)                                                  \
   template <class Backend>                                                                                          \
   void ProfilerService<Backend>::pre##signal(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {  \
     auto sid = sc.streamID();                                                                                       \
@@ -110,7 +110,7 @@ private:
       auto mid = mcc.moduleDescription()->id();                                                                     \
       auto const& label = mcc.moduleDescription()->moduleLabel();                                                   \
       auto const& msg = label + " " + #signal "";                                                                   \
-      startStreamModuleRange_(sid, mid, msg, labelColor(label), __func__);                                         \
+      startStreamModuleRange_(streamModules, sid, mid, msg, labelColor(label), __func__);                         \
     }                                                                                                               \
   }                                                                                                                 \
   template <class Backend>                                                                                          \
@@ -120,7 +120,27 @@ private:
       auto mid = mcc.moduleDescription()->id();                                                                     \
       auto const& label = mcc.moduleDescription()->moduleLabel();                                                   \
       auto const& msg = label + " " + #signal "";                                                                   \
-      endStreamModuleRange_(sid, mid, msg, __func__);                                                               \
+      endStreamModuleRange_(streamModules, sid, mid, msg, __func__);                                               \
+    }                                                                                                               \
+  }
+
+#define DEFINE_MODULE_TRANSFORM_SIGNAL_WATCHER(signal)                                                              \
+  template <class Backend>                                                                                          \
+  void ProfilerService<Backend>::pre##signal(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {  \
+    auto sid = sc.streamID();                                                                                       \
+    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                        \
+      auto mid = mcc.moduleDescription()->id();                                                                     \
+      auto const msg = transformMessage_(mcc, #signal);                                                            \
+      transform_in_flight_ranges_.start(sid, mid, #signal, global_domain_, msg, Color::Blue, __func__);            \
+    }                                                                                                               \
+  }                                                                                                                 \
+  template <class Backend>                                                                                          \
+  void ProfilerService<Backend>::post##signal(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) { \
+    auto sid = sc.streamID();                                                                                       \
+    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                        \
+      auto mid = mcc.moduleDescription()->id();                                                                     \
+      auto const msg = transformMessage_(mcc, #signal);                                                            \
+      transform_in_flight_ranges_.end(sid, mid, #signal, global_domain_, msg, __func__);                            \
     }                                                                                                               \
   }
 
@@ -482,15 +502,110 @@ public:
   DECLARE_ES_SIGNAL_WATCHER(ESModuleAcquire)
 
 private:
-  void startStreamModuleRange_(unsigned int sid,
+  using StreamModuleRangeStacks = std::vector<std::vector<std::vector<Range>>>;
+
+  class TransformInFlightRanges {
+  public:
+    void start(unsigned int sid,
+               unsigned int mid,
+               std::string_view signal,
+               Domain& domain,
+               std::string const& msg,
+               Color color,
+               char const* func) {
+      size_t slot = 0;
+      {
+        std::lock_guard<SpinLock> guard(mutex_);
+        auto key = makeKey_(sid, mid, signal);
+        auto found = in_flight_.find(key);
+        if (found != in_flight_.end() and not found->second.empty()) {
+          auto fullmsg = "Warning: previous range not ended before starting a new one in "s + func +
+                          " name=" + msg + " mid=" + std::to_string(mid) +
+                          " stream id=" + std::to_string(sid) + " signal=" + std::string(signal);
+          Backend::mark(domain, fullmsg.c_str(), Color::Red);
+          std::cout << fullmsg << std::endl;
+          return;
+        }
+        slot = acquireSlot_();
+        in_flight_[std::move(key)].push_back(slot);
+      }
+      ranges_[slot].startColorIn(domain, msg.c_str(), color, func);
+    }
+
+    void end(unsigned int sid,
+             unsigned int mid,
+             std::string_view signal,
+             Domain& domain,
+             std::string const& msg,
+             char const* func) {
+      std::optional<size_t> slot;
+      {
+        std::lock_guard<SpinLock> guard(mutex_);
+        auto key = makeKey_(sid, mid, signal);
+        auto found = in_flight_.find(key);
+        if (found != in_flight_.end() and not found->second.empty()) {
+          slot = found->second.back();
+          found->second.pop_back();
+          if (found->second.empty()) {
+            in_flight_.erase(found);
+          }
+        }
+      }
+      if (not slot.has_value()) {
+        auto fullmsg = "Warning: trying to end a range that is not started in "s + func + " name=" + msg +
+                        " mid=" + std::to_string(mid) + " stream id=" + std::to_string(sid) +
+                        " signal=" + std::string(signal);
+        Backend::mark(domain, fullmsg.c_str(), Color::Red);
+        std::cout << fullmsg << std::endl;
+        return;
+      }
+      ranges_[*slot].endIn(domain, msg.c_str(), func);
+      std::lock_guard<SpinLock> guard(mutex_);
+      releaseSlot_(*slot);
+    }
+
+  private:
+    static std::string makeKey_(unsigned int sid, unsigned int mid, std::string_view signal) {
+      std::string key;
+      key.reserve(32 + signal.size());
+      key += std::to_string(sid);
+      key += '|';
+      key += std::to_string(mid);
+      key += '|';
+      key.append(signal.data(), signal.size());
+      return key;
+    }
+
+    size_t acquireSlot_() {
+      if (not free_slots_.empty()) {
+        auto slot = free_slots_.back();
+        free_slots_.pop_back();
+        return slot;
+      }
+      ranges_.emplace_back();
+      return ranges_.size() - 1;
+    }
+
+    void releaseSlot_(size_t slot) { free_slots_.push_back(slot); }
+
+    SpinLock mutex_;
+    std::vector<Range> ranges_;
+    std::vector<size_t> free_slots_;
+    std::unordered_map<std::string, std::vector<size_t>> in_flight_;
+  };
+
+  void startStreamModuleRange_(StreamModuleRangeStacks& streamModules,
+                               unsigned int sid,
                                unsigned int mid,
                                std::string const& msg,
                                Color color,
                                char const* func) {
     std::lock_guard<SpinLock> guard(stream_modules_mutex_);
-    auto& ranges = stream_modules_[sid][mid];
+    auto& ranges = streamModules[sid][mid];
     if (not ranges.empty()) {
-      auto fullmsg = "Warning: previous range not ended before starting a new one in "s + func + " for " + msg;
+      auto fullmsg = "Warning: previous range not ended before starting a new one in "s + func +
+                      " name=" + msg + " mid=" + std::to_string(mid) +
+                      " stream id=" + std::to_string(sid);
       Backend::mark(stream_domain_[sid], fullmsg.c_str(), Color::Red);
       std::cout << fullmsg << std::endl;
     }
@@ -498,17 +613,27 @@ private:
     ranges.back().startColorIn(stream_domain_[sid], msg.c_str(), color, func);
   }
 
-  void endStreamModuleRange_(unsigned int sid, unsigned int mid, std::string const& msg, char const* func) {
+  void endStreamModuleRange_(StreamModuleRangeStacks& streamModules,
+                             unsigned int sid,
+                             unsigned int mid,
+                             std::string const& msg,
+                             char const* func) {
     std::lock_guard<SpinLock> guard(stream_modules_mutex_);
-    auto& ranges = stream_modules_[sid][mid];
+    auto& ranges = streamModules[sid][mid];
     if (ranges.empty()) {
-      auto fullmsg = "Warning: trying to end a range that is not started in "s + func + " for " + msg;
+      auto fullmsg = "Warning: trying to end a range that is not started in "s + func + " name=" + msg +
+                      " mid=" + std::to_string(mid) + " stream id=" + std::to_string(sid);
       Backend::mark(stream_domain_[sid], fullmsg.c_str(), Color::Red);
       std::cout << fullmsg << std::endl;
       return;
     }
     ranges.back().endIn(stream_domain_[sid], msg.c_str(), func);
     ranges.pop_back();
+  }
+
+  std::string transformMessage_(edm::ModuleCallingContext const& mcc, char const* signal) const {
+    auto const& label = mcc.moduleDescription()->moduleLabel();
+    return label + " " + signal;
   }
 
   class GlobalESInFlightRanges {
@@ -526,7 +651,9 @@ private:
         auto key = makeKey_(mid, record, signal);
         auto found = in_flight_.find(key);
         if (found != in_flight_.end() and not found->second.empty()) {
-          auto fullmsg = "Warning: previous range not ended before starting a new one in "s + func + " for " + msg;
+          auto fullmsg = "Warning: previous range not ended before starting a new one in "s + func +
+                          " name=" + msg + " mid=" + std::to_string(mid) +
+                          " record id=" + std::string(record) + " signal=" + std::string(signal);
           Backend::mark(domain, fullmsg.c_str(), Color::Red);
           std::cout << fullmsg << std::endl;
           return;
@@ -557,7 +684,9 @@ private:
         }
       }
       if (not slot.has_value()) {
-        auto fullmsg = "Warning: trying to end a range that is not started in "s + func + " for " + msg;
+        auto fullmsg = "Warning: trying to end a range that is not started in "s + func + " name=" + msg +
+                        " mid=" + std::to_string(mid) + " record id=" + std::string(record) +
+                        " signal=" + std::string(signal);
         Backend::mark(domain, fullmsg.c_str(), Color::Red);
         std::cout << fullmsg << std::endl;
         return;
@@ -618,9 +747,10 @@ private:
   std::vector<Range> source_;  // per-stream source ranges TODO: it might be possible to merge this with event_
   std::vector<std::vector<Range>> path_;            // per-stream, per-path ranges
   std::vector<std::vector<Range>> endPath_;         // per-stream, per-endPath ranges
-  std::vector<std::vector<std::vector<Range>>> stream_modules_;  // per-stream, per-module stacks of ranges
-  std::vector<std::vector<Range>>
-      stream_modules_acquire_;  // per-stream, per-module ranges for acquire, which can clash with produce
+  StreamModuleRangeStacks stream_modules_;  // generic per-stream, per-module stacks of ranges
+  StreamModuleRangeStacks stream_modules_event_;
+  StreamModuleRangeStacks stream_modules_event_acquire_;
+  TransformInFlightRanges transform_in_flight_ranges_;
   SpinLock stream_modules_mutex_;
   // use a tbb::concurrent_vector rather than an std::vector because its final size is not known
   tbb::concurrent_vector<Range> global_modules_;       // global per-module events
@@ -941,8 +1071,18 @@ void ProfilerService<Backend>::preallocate(edm::service::SystemBounds const& bou
   for (auto& modulesForOneStream : stream_modules_) {
     modulesForOneStream.resize(global_modules_.size());
   }
-  stream_modules_acquire_.resize(concurrentStreams);
-  for (auto& modulesForOneStream : stream_modules_acquire_) {
+  for (auto& modulesForOneStream : stream_modules_event_) {
+    modulesForOneStream.resize(global_modules_.size());
+  }
+  for (auto& modulesForOneStream : stream_modules_event_acquire_) {
+    modulesForOneStream.resize(global_modules_.size());
+  }
+  stream_modules_event_.resize(concurrentStreams);
+  for (auto& modulesForOneStream : stream_modules_event_) {
+    modulesForOneStream.resize(global_modules_.size());
+  }
+  stream_modules_event_acquire_.resize(concurrentStreams);
+  for (auto& modulesForOneStream : stream_modules_event_acquire_) {
     modulesForOneStream.resize(global_modules_.size());
   }
 
@@ -1339,12 +1479,12 @@ void ProfilerService<Backend>::postModuleEndJob(edm::ModuleDescription const& de
 
 /******** Module stream context signals *********************************************/
 
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleBeginStream)
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEndStream)
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginRun)
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamEndRun)
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginLumi)
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamEndLumi)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleBeginStream, stream_modules_)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEndStream, stream_modules_)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginRun, stream_modules_)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamEndRun, stream_modules_)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginLumi, stream_modules_)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamEndLumi, stream_modules_)
 // DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventPrefetching)
 template <class Backend>
 void ProfilerService<Backend>::preModuleEventPrefetching(edm::StreamContext const& sc,
@@ -1356,7 +1496,7 @@ void ProfilerService<Backend>::preModuleEventPrefetching(edm::StreamContext cons
     auto const& msg = label + " " +
                       "ModuleEventPrefetching"
                       "";
-    startStreamModuleRange_(sid, mid, msg, labelColor(label), __func__);
+    startStreamModuleRange_(stream_modules_, sid, mid, msg, labelColor(label), __func__);
   }
 }
 template <class Backend>
@@ -1369,45 +1509,16 @@ void ProfilerService<Backend>::postModuleEventPrefetching(edm::StreamContext con
     auto const& msg = label + " " +
                       "ModuleEventPrefetching"
                       "";
-    endStreamModuleRange_(sid, mid, msg, __func__);
+    endStreamModuleRange_(stream_modules_, sid, mid, msg, __func__);
   }
 }
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventAcquire)
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEvent)
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventDelayedGet)
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(EventReadFromSource)
-// DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransformPrefetching)
-
-// Expands to
-template <class Backend>
-void ProfilerService<Backend>::preModuleTransformPrefetching(edm ::StreamContext const& sc,
-                                                             edm ::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " " +
-                      "ModuleTransformPrefetching"
-                      "";
-    startStreamModuleRange_(sid, mid, msg, labelColor(label), __func__);
-  }
-}
-template <class Backend>
-void ProfilerService<Backend>::postModuleTransformPrefetching(edm ::StreamContext const& sc,
-                                                              edm ::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " " +
-                      "ModuleTransformPrefetching"
-                      "";
-    endStreamModuleRange_(sid, mid, msg, __func__);
-  }
-}
-
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransformAcquiring)
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransform)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventAcquire, stream_modules_event_acquire_)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEvent, stream_modules_event_)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventDelayedGet, stream_modules_)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(EventReadFromSource, stream_modules_)
+DEFINE_MODULE_TRANSFORM_SIGNAL_WATCHER(ModuleTransformPrefetching)
+DEFINE_MODULE_TRANSFORM_SIGNAL_WATCHER(ModuleTransformAcquiring)
+DEFINE_MODULE_TRANSFORM_SIGNAL_WATCHER(ModuleTransform)
 
 template <class Backend>
 void ProfilerService<Backend>::preModuleGlobalBeginRun(edm::GlobalContext const& gc,
@@ -1986,7 +2097,7 @@ void ProfilerService<Backend>::preSourceEarlyTermination(edm::TerminationOrigin 
 
 /******** Module stream prefetching signal implementations *****************************/
 
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamPrefetching)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamPrefetching, stream_modules_)
 
 /******** Module global prefetching and process block signal implementations ***********/
 
