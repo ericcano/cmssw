@@ -130,8 +130,9 @@ private:
     auto sid = sc.streamID();                                                                                       \
     if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                        \
       auto mid = mcc.moduleDescription()->id();                                                                     \
+      auto const callId = mcc.callID();                                                                                       \
       auto const msg = transformMessage_(mcc, #signal);                                                            \
-      transform_in_flight_ranges_.start(sid, mid, #signal, global_domain_, msg, Color::Blue, __func__);            \
+      transform_in_flight_ranges_.start(sid, mid, callId ,#signal, global_domain_, msg, Color::Blue, __func__);            \
     }                                                                                                               \
   }                                                                                                                 \
   template <class Backend>                                                                                          \
@@ -139,8 +140,9 @@ private:
     auto sid = sc.streamID();                                                                                       \
     if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                        \
       auto mid = mcc.moduleDescription()->id();                                                                     \
+      auto const callId = mcc.callID();                                                                                       \
       auto const msg = transformMessage_(mcc, #signal);                                                            \
-      transform_in_flight_ranges_.end(sid, mid, #signal, global_domain_, msg, __func__);                            \
+      transform_in_flight_ranges_.end(sid, mid, callId, #signal, global_domain_, msg, __func__);                            \
     }                                                                                                               \
   }
 
@@ -508,6 +510,7 @@ private:
   public:
     void start(unsigned int sid,
                unsigned int mid,
+               std::uintptr_t callId,
                std::string_view signal,
                Domain& domain,
                std::string const& msg,
@@ -516,7 +519,7 @@ private:
       size_t slot = 0;
       {
         std::lock_guard<SpinLock> guard(mutex_);
-        auto key = makeKey_(sid, mid, signal);
+        auto key = makeKey_(sid, mid, callId, signal);
         auto found = in_flight_.find(key);
         if (found != in_flight_.end() and not found->second.empty()) {
           auto fullmsg = "Warning: previous range not ended before starting a new one in "s + func +
@@ -534,6 +537,7 @@ private:
 
     void end(unsigned int sid,
              unsigned int mid,
+             std::uintptr_t callId,
              std::string_view signal,
              Domain& domain,
              std::string const& msg,
@@ -541,7 +545,7 @@ private:
       std::optional<size_t> slot;
       {
         std::lock_guard<SpinLock> guard(mutex_);
-        auto key = makeKey_(sid, mid, signal);
+        auto key = makeKey_(sid, mid, callId, signal);
         auto found = in_flight_.find(key);
         if (found != in_flight_.end() and not found->second.empty()) {
           slot = found->second.back();
@@ -565,12 +569,14 @@ private:
     }
 
   private:
-    static std::string makeKey_(unsigned int sid, unsigned int mid, std::string_view signal) {
+    static std::string makeKey_(unsigned int sid, unsigned int mid, std::uintptr_t callId, std::string_view signal) {
       std::string key;
       key.reserve(32 + signal.size());
       key += std::to_string(sid);
       key += '|';
       key += std::to_string(mid);
+      key += '|';
+      key += std::to_string(callId);
       key += '|';
       key.append(signal.data(), signal.size());
       return key;
