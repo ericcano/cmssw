@@ -1661,8 +1661,10 @@ void ProfilerService<Backend>::preESModulePrefetching(edm::eventsetup::EventSetu
                                                       edm::ESModuleCallingContext const& esmcc) {
   auto mid = esmcc.componentDescription()->id_;
   auto const& record = iKey.name();
-  auto const& label = esmcc.componentDescription()->label_;
-  auto const& type = esmcc.componentDescription()->type_;
+  auto const& cd = esmcc.componentDescription();
+  auto const& label = cd->label_;
+  auto const& type = cd->type_;
+  auto const& pid = cd->pid_.smallHash();
   std::string msg;
   if (label.size() == 0) {
     // Fallback on the type
@@ -1670,13 +1672,16 @@ void ProfilerService<Backend>::preESModulePrefetching(edm::eventsetup::EventSetu
           "ES prefetch"
           " acquire"
           " record=" +
-          record;
+          record +
+          " pid=" + std::to_string(pid);
   } else {
     msg = label + " " +
           "ES prefetch"
           " acquire"
           " record=" +
-          record;
+          record +
+          " pid=" + std::to_string(pid) +
+          " type=" + type;
   }
   global_es_in_flight_ranges_.start(mid, iKey.name(), "ESModulePrefetching", global_domain_, msg, Color::Blue,
                                     __func__);
