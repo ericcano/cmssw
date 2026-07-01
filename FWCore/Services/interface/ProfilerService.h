@@ -132,7 +132,7 @@ private:
       auto mid = mcc.moduleDescription()->id();                                                                     \
       auto const callId = mcc.callID();                                                                                       \
       auto const msg = transformMessage_(mcc, #signal);                                                            \
-      transform_in_flight_ranges_.start(sid, mid, callId ,#signal, global_domain_, msg, Color::Blue, __func__);            \
+      transform_in_flight_ranges_.start(sid, mid, callId ,#signal, stream_domain_[sid], msg, Color::Blue, __func__);            \
     }                                                                                                               \
   }                                                                                                                 \
   template <class Backend>                                                                                          \
@@ -142,7 +142,7 @@ private:
       auto mid = mcc.moduleDescription()->id();                                                                     \
       auto const callId = mcc.callID();                                                                                       \
       auto const msg = transformMessage_(mcc, #signal);                                                            \
-      transform_in_flight_ranges_.end(sid, mid, callId, #signal, global_domain_, msg, __func__);                            \
+      transform_in_flight_ranges_.end(sid, mid, callId, #signal, stream_domain_[sid], msg, __func__);                            \
     }                                                                                                               \
   }
 
