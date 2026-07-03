@@ -1,6 +1,13 @@
 #ifndef __FWCore_Services_ProfilerService_h__
 #define __FWCore_Services_ProfilerService_h__
 
+// define PROFILER_SERVICE_DEBUG_CONFLICTS before including ProfilerServiceBase.h to add local checking,
+// printouts and stack trace tracking to help understand pre-post double or mismaches.
+// The Backend class is expected to implement its own checks and conflicts but to handle them
+// quietly (adding a mark in the timeline is the current convention)
+#define PROFILER_SERVICE_DEBUG_CONFLICTS
+//#include "FWCore/Services/interface/ProfilerServiceBase.h"
+
 #include <atomic>
 #include <iostream>
 #include <mutex>
@@ -9,6 +16,8 @@
 #include <unordered_map>
 
 #include <fmt/printf.h>
+
+#include <boost/stacktrace.hpp>
 
 #include "DataFormats/Common/interface/HLTPathStatus.h"
 #include "DataFormats/Provenance/interface/EventID.h"
@@ -32,7 +41,6 @@
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "FWCore/ServiceRegistry/interface/StreamContext.h"
 #include "FWCore/ServiceRegistry/interface/SystemBounds.h"
-#include "FWCore/Services/interface/Backtrace.h"
 #include "FWCore/Utilities/interface/BranchType.h"
 #include "FWCore/Utilities/interface/ESInputTag.h"
 #include "FWCore/Utilities/interface/Exception.h"
@@ -184,23 +192,7 @@ private:
     }                                                                                                                 \
   }
 
-/**
- * @brief Base class for profiling services.
- * @tparam Backend The backend implementation class.
- * The backend will have to implement the actual range/mark operations, plus
- * capture and domains management.
- * Current expected classes and functions are:
- * - Range class with:
- *   - startColorIn(domain, message, color, func)
- *   - endIn(domain, message, func)
- * - markColorIn(domain, message, color, func)
- * - Domain management class with:
- *   - domainCreate(name)
- *   - domainDestroy(domain) (maybe destructor will be enough)
- * - Start/stop the underlying EDM service.
- * - profilerStart()
- * - profilerStop() (maybe wrapped into a class with the previous function)
- */
+
 
 using namespace std::string_literals;
 
@@ -221,8 +213,31 @@ enum class ProfilerServiceColor : std::size_t {
 
 [[maybe_unused]] static size_t to_underlying(ProfilerServiceColor c) noexcept { return static_cast<std::size_t>(c); }
 
+/// @brief Base class for profiling services.
+/// @note This class contains the undelying utility classes.
+class ProfilerServiceBase {
+
+};
+
+/**
+ * @brief Base class for profiling services.
+ * @tparam Backend The backend implementation class.
+ * The backend will have to implement the actual range/mark operations, plus
+ * capture and domains management.
+ * Current expected classes and functions are:
+ * - Range class with:
+ *   - startColorIn(domain, message, color, func)
+ *   - endIn(domain, message, func)
+ * - markColorIn(domain, message, color, func)
+ * - Domain management class with:
+ *   - domainCreate(name)
+ *   - domainDestroy(domain) (maybe destructor will be enough)
+ * - Start/stop the underlying EDM service.
+ * - profilerStart()
+ * - profilerStop() (maybe wrapped into a class with the previous function)
+ */
 template <typename Backend>
-class ProfilerService {
+class ProfilerService: public ProfilerServiceBase {
 public:
   using Color = ProfilerServiceColor;
   using Range = typename Backend::Range;
@@ -672,20 +687,20 @@ private:
         [[maybe_unused]] bool target = (mid == 78 and record ==  "HcalPedestalWidthsRcd");
         if (found != in_flight_.end() and not found->second.empty()) {
           auto const& existingMsg = found->second.back().startMsg;
-          auto const& existingBacktrace = found->second.back().backtrace;
+          auto const& existingStacktrace = found->second.back().stacktrace;
           auto fullmsg = "\n\nWarning: previous range not ended before starting a new one in "s + func +
                           "\n  existing range: '" + existingMsg + "'" +
-                          "\n  existing backtrace: " + existingBacktrace +
+                          "\n  existing backtrace: " + existingStacktrace +
                           "\n  new range: name=" + msg + " mid=" + std::to_string(mid) +
                           " record=" + std::string(record) + " signal=" + std::string(signal) +
                           " label=" + std::string(label) + " type=" + std::string(type) +
-                          " pid=" + pidString_(pid) + "\n  new backtrace: " + cta::exception::Backtrace{}.str();
+                          " pid=" + pidString_(pid) + "\n  new stacktrace: " + to_string(boost::stacktrace::stacktrace{});
           Backend::mark(domain, fullmsg.c_str(), Color::Red);
           std::cout << fullmsg << std::endl;
           return;
         }
         slot = acquireSlot_();
-        in_flight_[std::move(key)].push_back({slot, msg, cta::exception::Backtrace{}.str()});
+        in_flight_[std::move(key)].push_back({slot, msg, to_string(boost::stacktrace::stacktrace{})});
       }
       ranges_[slot].startColorIn(domain, msg.c_str(), color, func);
     }
@@ -731,7 +746,7 @@ private:
     struct InFlightEntry {
       size_t slot;
       std::string startMsg;
-      std::string backtrace;
+      std::string stacktrace;
     };
 
     static std::string pidString_(std::size_t pid) { return fmt::sprintf("0x%zx", pid); }
