@@ -1,12 +1,7 @@
 #ifndef __FWCore_Services_ProfilerService_h__
 #define __FWCore_Services_ProfilerService_h__
 
-// define PROFILER_SERVICE_DEBUG_CONFLICTS before including ProfilerServiceBase.h to add local checking,
-// printouts and stack trace tracking to help understand pre-post double or mismaches.
-// The Backend class is expected to implement its own checks and conflicts but to handle them
-// quietly (adding a mark in the timeline is the current convention)
-#define PROFILER_SERVICE_DEBUG_CONFLICTS
-//#include "FWCore/Services/interface/ProfilerServiceBase.h"
+#include "FWCore/Services/interface/ProfilerServiceBase.h"
 
 #include <atomic>
 #include <iostream>
@@ -55,22 +50,6 @@
 /**
  * Helper marcos to declare similar functions (for pre/post couples).
  */
-
-class SpinLock {
-public:
-  SpinLock() : flag_(ATOMIC_FLAG_INIT) {}
-
-  void lock() {
-    while (flag_.test_and_set(std::memory_order_acquire))
-      ;
-  }
-
-  void unlock() { flag_.clear(std::memory_order_release); }
-
-private:
-  std::atomic_flag flag_;
-};
-
 #define DECLARE_ES_SIGNAL_WATCHER(signal)                                                                     \
   void pre##signal(edm::eventsetup::EventSetupRecordKey const& iKey, edm::ESModuleCallingContext const& mcc); \
   void post##signal(edm::eventsetup::EventSetupRecordKey const& iKey, edm::ESModuleCallingContext const& mcc);
@@ -194,30 +173,8 @@ private:
 
 
 
+// Useful for starting constructs using std::string::operator+() with a litteral string.
 using namespace std::string_literals;
-
-/**
-   * @brief Abstract color enumeration the derived classes can translate (or disregard).
-   */
-enum class ProfilerServiceColor : std::size_t {
-  Black = 0,
-  Red,
-  DarkGreen,
-  Green,
-  LightGreen,
-  Blue,
-  Amber,
-  LightAmber,
-  White
-};
-
-[[maybe_unused]] static size_t to_underlying(ProfilerServiceColor c) noexcept { return static_cast<std::size_t>(c); }
-
-/// @brief Base class for profiling services.
-/// @note This class contains the undelying utility classes.
-class ProfilerServiceBase {
-
-};
 
 /**
  * @brief Base class for profiling services.
@@ -239,7 +196,6 @@ class ProfilerServiceBase {
 template <typename Backend>
 class ProfilerService: public ProfilerServiceBase {
 public:
-  using Color = ProfilerServiceColor;
   using Range = typename Backend::Range;
   using Domain = typename Backend::Domain;
 
