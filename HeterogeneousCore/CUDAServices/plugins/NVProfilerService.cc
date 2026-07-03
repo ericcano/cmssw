@@ -27,7 +27,9 @@ namespace {
   class NVTXBackend {
   public:
     // Forward definitions
-    using Color = ProfilerServiceColor;
+    using Color = ProfilerServiceBase::Color;
+    static constexpr auto to_underlying = ProfilerServiceBase::to_underlying;
+    using SpinLock = ProfilerServiceBase::SpinLock;
     class Range;
     class Domain;
     static void mark(const Domain& domain, const char* message, Color color);

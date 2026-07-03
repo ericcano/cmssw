@@ -43,23 +43,6 @@
 #include "FWCore/Services/interface/ProfilerService.h"
 
 namespace {
-
-  /**
-   * \brief Spinlock mutex for thread safety without returning to kernel.
-   */
-  class SpinLock {
-  public:
-    SpinLock() : flag_(ATOMIC_FLAG_INIT) {}
-    void lock() {
-      while (flag_.test_and_set(std::memory_order_acquire))
-        ;
-    }
-    void unlock() { flag_.clear(std::memory_order_release); }
-
-  private:
-    std::atomic_flag flag_;
-  };
-
   /**
    * \brief Backend for Intel VTune Profiler using the ITT API.
    *
@@ -79,7 +62,9 @@ namespace {
    */
   class VTuneBackend {
   public:
-    using Color = ProfilerServiceColor;
+    using Color = ProfilerServiceBase::Color;
+    static constexpr auto to_underlying = ProfilerServiceBase::to_underlying;
+    using SpinLock = ProfilerServiceBase::SpinLock;
     class Range;
     class Domain;
 
