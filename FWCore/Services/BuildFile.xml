@@ -7,8 +7,6 @@
 <use name="tinyxml2"/>
 <use name="rootcore"/>
 <use name="roothistmatrix"/>
-<!-- linking with lib bfd -->
-<flags LDFLAGS="-lbfd" />
 <export>
   <lib name="1"/>
 </export>
