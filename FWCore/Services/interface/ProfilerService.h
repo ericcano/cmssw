@@ -65,6 +65,7 @@
     auto const& type = esmcc.componentDescription()->type_;                                     \
     auto const pid = esmcc.componentDescription()->pid_.smallHash();                           \
     auto const& state = esmcc.state();                                                            \
+    auto const callId = esmcc.callID();                                                         \
     std::string msg;                                                                            \
     if (label.size() == 0) {                                                                    \
       /*Fallback on the type */                                                                 \
@@ -72,7 +73,7 @@
     } else {                                                                                    \
       msg = label + " " + #signal " record=" + record + " state=" + (state == edm::ESModuleCallingContext::State::kRunning ? "running" : "prefetching");                                         \
     }                                                                                           \
-    global_es_in_flight_ranges_.start(mid, iKey.name(), #signal, label, type, pid, state,global_domain_, msg, Color::Blue, __func__); \
+    global_es_in_flight_ranges_.start(mid, iKey.name(), #signal, label, type, pid, state, callId, global_domain_, msg, Color::Blue, __func__); \
   }                                                                                             \
   template <class Backend>                                                                      \
   void ProfilerService<Backend>::post##signal(edm::eventsetup::EventSetupRecordKey const& iKey, \
@@ -83,6 +84,7 @@
     auto const& type = esmcc.componentDescription()->type_;                                     \
     auto const pid = esmcc.componentDescription()->pid_.smallHash();                           \
     auto const& state = esmcc.state();                                                            \
+    auto const callId = esmcc.callID();                                                         \
     std::string msg;                                                                            \
     if (label.size() == 0) {                                                                    \
       /* Fallback on the type */                                                                \
@@ -90,7 +92,7 @@
     } else {                                                                                    \
       msg = label + " " + #signal " record=" + record + " state=" + (state == edm::ESModuleCallingContext::State::kRunning ? "running" : "prefetching");                                         \
     }                                                                                           \
-    global_es_in_flight_ranges_.end(mid, iKey.name(), #signal, label, type, pid, state, global_domain_, msg, __func__); \
+    global_es_in_flight_ranges_.end(mid, iKey.name(), #signal, label, type, pid, state, callId, global_domain_, msg, __func__); \
   }
 
 #define DECLARE_MODULE_STREAM_SIGNAL_WATCHER(signal)                                    \
@@ -550,7 +552,8 @@ private:
   private:
     static std::string makeKey_(unsigned int sid, unsigned int mid, std::uintptr_t callId, std::string_view signal) {
       std::string key;
-      key.reserve(32 + signal.size());
+      key.reserve(60 + signal.size());
+      key += "T";
       key += std::to_string(sid);
       key += '|';
       key += std::to_string(mid);
@@ -630,6 +633,7 @@ private:
                std::string_view type,
                std::size_t pid,
                edm::ESModuleCallingContext::State const& state,
+               std::uintptr_t callId,
                Domain& domain,
                std::string const& msg,
                Color color,
@@ -637,7 +641,7 @@ private:
       size_t slot = 0;
       {
         std::lock_guard<SpinLock> guard(mutex_);
-        auto key = makeKey_(mid, record, state);
+        auto key = makeKey_(mid, record, state, callId);
         auto found = in_flight_.find(key);
         [[maybe_unused]] bool alreadyInFlight = (found != in_flight_.end() and not found->second.empty());
         [[maybe_unused]] bool target = (mid == 78 and record ==  "HcalPedestalWidthsRcd");
@@ -650,7 +654,8 @@ private:
                           "\n  new range: name=" + msg + " mid=" + std::to_string(mid) +
                           " record=" + std::string(record) + " signal=" + std::string(signal) +
                           " label=" + std::string(label) + " type=" + std::string(type) +
-                          " pid=" + pidString_(pid) + "\n  new stacktrace: " + to_string(boost::stacktrace::stacktrace{});
+                          " pid=" + pidString_(pid) + " callId=" + std::to_string(callId) +
+                          "\n  new stacktrace: " + to_string(boost::stacktrace::stacktrace{});
           Backend::mark(domain, fullmsg.c_str(), Color::Red);
           std::cout << fullmsg << std::endl;
           return;
@@ -668,13 +673,14 @@ private:
              std::string_view type,
              std::size_t pid,
              edm::ESModuleCallingContext::State const& state,
+             std::uintptr_t callId,
              Domain& domain,
              std::string const& msg,
              char const* func) {
       std::optional<size_t> slot;
       {
         std::lock_guard<SpinLock> guard(mutex_);
-        auto key = makeKey_(mid, record, state);
+        auto key = makeKey_(mid, record, state, callId);
         auto found = in_flight_.find(key);
         if (found != in_flight_.end() and not found->second.empty()) {
           slot = found->second.back().slot;
@@ -707,14 +713,17 @@ private:
 
     static std::string pidString_(std::size_t pid) { return fmt::sprintf("0x%zx", pid); }
 
-    static std::string makeKey_(unsigned int mid, std::string_view record, edm::ESModuleCallingContext::State const& state) {
+    static std::string makeKey_(unsigned int mid, std::string_view record, edm::ESModuleCallingContext::State const& state, std::uintptr_t callId) {
       std::string key;
-      key.reserve(32 + record.size());
+      key.reserve(60 + record.size());
+      key += "S";
       key += std::to_string(mid);
       key += '|';
       key.append(record.data(), record.size());
       key += '|';
       key += std::to_string(static_cast<int>(state));
+      key += '|';
+      key += std::to_string(callId);
       return key;
     }
 
@@ -1670,6 +1679,7 @@ void ProfilerService<Backend>::preESModulePrefetching(edm::eventsetup::EventSetu
   auto const& type = cd->type_;
   auto const& pid = cd->pid_.smallHash();
   auto const& state = esmcc.state();
+  auto const& callId = esmcc.callID();
   std::string msg;
   if (label.size() == 0) {
     // Fallback on the type
@@ -1686,7 +1696,8 @@ void ProfilerService<Backend>::preESModulePrefetching(edm::eventsetup::EventSetu
             ss << std::hex << pid;
             return ss.str();
           }(pid) +
-          " state=" + (state == edm::ESModuleCallingContext::State::kRunning ? "running" : "prefetching");
+          " state=" + (state == edm::ESModuleCallingContext::State::kRunning ? "running" : "prefetching") +
+          " callId=" + std::to_string(callId);
   } else {
     msg = label + " " +
           "ES prefetch"
@@ -1702,9 +1713,10 @@ void ProfilerService<Backend>::preESModulePrefetching(edm::eventsetup::EventSetu
             return ss.str();
           }(pid) +
           " type=" + type +
-          " state=" + (state == edm::ESModuleCallingContext::State::kRunning ? "running" : "prefetching");
+          " state=" + (state == edm::ESModuleCallingContext::State::kRunning ? "running" : "prefetching") +
+          " callId=" + std::to_string(callId);
   }
-  global_es_in_flight_ranges_.start(mid, iKey.name(), "ESModulePrefetching", label, type, pid, state, global_domain_, msg, Color::Blue,
+  global_es_in_flight_ranges_.start(mid, iKey.name(), "ESModulePrefetching", label, type, pid, state, callId, global_domain_, msg, Color::Blue,
                                     __func__);
 }
 
@@ -1718,6 +1730,7 @@ void ProfilerService<Backend>::postESModulePrefetching(edm::eventsetup::EventSet
   auto const& type = cd_post->type_;
   auto const pid = cd_post->pid_.smallHash();
   auto const& state = esmcc.state();
+  auto const callId = esmcc.callID();
   std::string msg;
   if (label.size() == 0) {
     // Fallback on the type
@@ -1737,7 +1750,7 @@ void ProfilerService<Backend>::postESModulePrefetching(edm::eventsetup::EventSet
           record +
           " state=" + (state == edm::ESModuleCallingContext::State::kRunning ? "running" : "prefetching");
   }
-  global_es_in_flight_ranges_.end(mid, iKey.name(), "ESModulePrefetching", label, type, pid, state, global_domain_, msg, __func__);
+  global_es_in_flight_ranges_.end(mid, iKey.name(), "ESModulePrefetching", label, type, pid, state, callId, global_domain_, msg, __func__);
 }
 
 /*DEFINE_ES_SIGNAL_WATCHER(ESModule)*/
@@ -1751,11 +1764,12 @@ void ProfilerService<Backend>::preESModule(edm::eventsetup::EventSetupRecordKey 
   auto const pid = cd_pre->pid_.smallHash();
   auto const& state = esmcc.state();
   auto const& context = iKey.name();
+  auto const& callId = esmcc.callID();
   std::string msg = "ESModule: label = '" + label + "', type = '" + type + "', record = '" + context + "' mid=" +
                     std::to_string(mid) + 
                     " state=" +  ( state == edm::ESModuleCallingContext::State::kRunning ? "running" : "prefetching" ) + 
-                    " pid=" + std::to_string(pid) + " context=" + context;
-  global_es_in_flight_ranges_.start(mid, context, "ESModule", label, type, pid, state, global_domain_, msg, Color::Blue, __func__);
+                    " pid=" + std::to_string(pid) + " context=" + context + " callId=" + std::to_string(callId);
+  global_es_in_flight_ranges_.start(mid, context, "ESModule", label, type, pid, state, callId, global_domain_, msg, Color::Blue, __func__);
 }
 
 template <class Backend>
@@ -1768,9 +1782,10 @@ void ProfilerService<Backend>::postESModule(edm::eventsetup::EventSetupRecordKey
   auto const pid = cd_post2->pid_.smallHash();
   auto const& context = iKey.name();
   auto const& state = esmcc.state();
+  auto const& callId = esmcc.callID();
   std::string msg = "ESModule: label = '" + label + "', type = '" + type + "', record = '" + context + "' state=" + 
-     (state == edm::ESModuleCallingContext::State::kRunning ? "running" : "prefetching") + " pid=" + std::to_string(pid) + " context=" + context;
-  global_es_in_flight_ranges_.end(mid, context, "ESModule", label, type, pid, state, global_domain_, msg, __func__);
+     (state == edm::ESModuleCallingContext::State::kRunning ? "running" : "prefetching") + " pid=" + std::to_string(pid) + " context=" + context + " callId=" + std::to_string(callId);
+  global_es_in_flight_ranges_.end(mid, context, "ESModule", label, type, pid, state, callId, global_domain_, msg, __func__);
 }
 
 DEFINE_ES_SIGNAL_WATCHER(ESModuleAcquire)
