@@ -486,6 +486,7 @@ public:
 
 private:
   using StreamModuleRangeStacks = std::vector<std::vector<std::vector<Range>>>;
+  using SharedRangePool = ProfilerServiceBase::RangePool<Range>;
   using TransformInFlightRanges = ProfilerServiceBase::TransformInFlightRanges<Backend, Range, Domain>;
 
   void startStreamModuleRange_(StreamModuleRangeStacks& streamModules,
@@ -556,6 +557,7 @@ private:
   StreamModuleRangeStacks stream_modules_;  // generic per-stream, per-module stacks of ranges
   StreamModuleRangeStacks stream_modules_event_;
   StreamModuleRangeStacks stream_modules_event_acquire_;
+  SharedRangePool range_pool_;
   TransformInFlightRanges transform_in_flight_ranges_;
   SpinLock stream_modules_mutex_;
   // use a tbb::concurrent_vector rather than an std::vector because its final size is not known
@@ -575,7 +577,10 @@ template <typename Backend>
 ProfilerService<Backend>::ProfilerService(edm::ParameterSet const& config, edm::ActivityRegistry& registry)
     : highlightModules_(config.getUntrackedParameter<std::vector<std::string>>("highlightModules")),
       showModulePrefetching_(config.getUntrackedParameter<bool>("showModulePrefetching")),
-      skipFirstEvent_(config.getUntrackedParameter<bool>("skipFirstEvent")) {
+  skipFirstEvent_(config.getUntrackedParameter<bool>("skipFirstEvent")),
+  range_pool_(),
+  transform_in_flight_ranges_(range_pool_),
+  global_es_in_flight_ranges_(range_pool_) {
   // make sure that CUDA is initialised, and that the CUDAInterface destructor is called after this service's destructor
   typename Backend::EDMService service;
   std::cout << Backend::shortName() << "ProfilerService: initializing..." << std::endl;

@@ -16,6 +16,9 @@
 
 #include <boost/stacktrace.hpp>
 
+#include <tbb/concurrent_queue.h>
+#include <tbb/concurrent_vector.h>
+
 #include "FWCore/ServiceRegistry/interface/ESModuleCallingContext.h"
 
 /// @brief Base class for profiling services.
@@ -54,9 +57,53 @@ public:
     std::atomic_flag flag_;
   };
 
+  template <typename Range>
+  class RangePool {
+  public:
+    RangePool() : next_allocation_size_(kInitialAllocationSize) { allocateUnlocked_(kInitialAllocationSize); }
+
+    size_t acquireSlot() {
+      size_t slot = 0;
+      if (free_slots_.try_pop(slot)) {
+        return slot;
+      }
+
+      std::lock_guard<SpinLock> guard(mutex_);
+      bool got_slot = free_slots_.try_pop(slot);
+      if (not got_slot) {
+        allocateUnlocked_(next_allocation_size_);
+        next_allocation_size_ *= 2;
+        [[maybe_unused]] bool got_slot = free_slots_.try_pop(slot);
+      }
+      return slot;
+    }
+
+    void releaseSlot(size_t slot) { free_slots_.push(slot); }
+
+    Range& at(size_t slot) { return ranges_[slot]; }
+
+  private:
+    static constexpr size_t kInitialAllocationSize = 16;
+
+    void allocateUnlocked_(size_t count) {
+      auto const begin = ranges_.size();
+      ranges_.grow_by(count);
+      for (size_t index = begin; index < begin + count; ++index) {
+        free_slots_.push(index);
+      }
+    }
+
+    SpinLock mutex_;
+    size_t next_allocation_size_;
+    tbb::concurrent_vector<Range> ranges_;
+    tbb::concurrent_queue<size_t> free_slots_;
+  };
+
   template <typename Backend, typename Range, typename Domain>
   class TransformInFlightRanges {
   public:
+    explicit TransformInFlightRanges(RangePool<Range>& range_pool) : range_pool_(range_pool) {}
+
     void start(unsigned int sid,
                unsigned int mid,
                std::uintptr_t callId,
@@ -78,10 +125,10 @@ public:
           std::cout << fullmsg << std::endl;
           return;
         }
-        slot = acquireSlot_();
+        slot = range_pool_.acquireSlot();
         in_flight_[std::move(key)].push_back(slot);
       }
-      ranges_[slot].startColorIn(domain, msg.c_str(), color, func);
+      range_pool_.at(slot).startColorIn(domain, msg.c_str(), color, func);
     }
 
     void end(unsigned int sid,
@@ -112,9 +159,9 @@ public:
         std::cout << fullmsg << std::endl;
         return;
       }
-      ranges_[*slot].endIn(domain, msg.c_str(), func);
+      range_pool_.at(*slot).endIn(domain, msg.c_str(), func);
       std::lock_guard<SpinLock> guard(mutex_);
-      releaseSlot_(*slot);
+      range_pool_.releaseSlot(*slot);
     }
 
   private:
@@ -132,27 +179,16 @@ public:
       return key;
     }
 
-    size_t acquireSlot_() {
-      if (not free_slots_.empty()) {
-        auto slot = free_slots_.back();
-        free_slots_.pop_back();
-        return slot;
-      }
-      ranges_.emplace_back();
-      return ranges_.size() - 1;
-    }
-
-    void releaseSlot_(size_t slot) { free_slots_.push_back(slot); }
-
     SpinLock mutex_;
-    std::vector<Range> ranges_;
-    std::vector<size_t> free_slots_;
+    RangePool<Range>& range_pool_;
     std::unordered_map<std::string, std::vector<size_t>> in_flight_;
   };
 
   template <typename Backend, typename Range, typename Domain>
   class GlobalESInFlightRanges {
   public:
+    explicit GlobalESInFlightRanges(RangePool<Range>& range_pool) : range_pool_(range_pool) {}
+
     void start(unsigned int mid,
                std::string_view record,
                std::string_view signal,
@@ -184,10 +220,10 @@ public:
           std::cout << fullmsg << std::endl;
           return;
         }
-        slot = acquireSlot_();
+        slot = range_pool_.acquireSlot();
         in_flight_[std::move(key)].push_back({slot, msg, stacktraceString_()});
       }
-      ranges_[slot].startColorIn(domain, msg.c_str(), color, func);
+      range_pool_.at(slot).startColorIn(domain, msg.c_str(), color, func);
     }
 
     void end(unsigned int mid,
@@ -223,9 +259,9 @@ public:
         std::cout << fullmsg << std::endl;
         return;
       }
-      ranges_[*slot].endIn(domain, msg.c_str(), func);
+      range_pool_.at(*slot).endIn(domain, msg.c_str(), func);
       std::lock_guard<SpinLock> guard(mutex_);
-      releaseSlot_(*slot);
+      range_pool_.releaseSlot(*slot);
     }
 
   private:
@@ -264,21 +300,8 @@ public:
       return key;
     }
 
-    size_t acquireSlot_() {
-      if (not free_slots_.empty()) {
-        auto slot = free_slots_.back();
-        free_slots_.pop_back();
-        return slot;
-      }
-      ranges_.emplace_back();
-      return ranges_.size() - 1;
-    }
-
-    void releaseSlot_(size_t slot) { free_slots_.push_back(slot); }
-
     SpinLock mutex_;
-    std::vector<Range> ranges_;
-    std::vector<size_t> free_slots_;
+    RangePool<Range>& range_pool_;
     std::unordered_map<std::string, std::vector<InFlightEntry>> in_flight_;
   };
 
