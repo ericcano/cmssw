@@ -11,12 +11,14 @@
 #include <cstdio>
 #include <string>
 #include <string_view>
-#include <unordered_map>
+#include <tuple>
 #include <vector>
 
 #include <boost/stacktrace.hpp>
+#include <boost/container_hash/hash.hpp>
 
 #include <tbb/concurrent_queue.h>
+#include <tbb/concurrent_unordered_map.h>
 #include <tbb/concurrent_vector.h>
 
 #include "FWCore/ServiceRegistry/interface/ESModuleCallingContext.h"
@@ -102,16 +104,18 @@ public:
   template <typename Backend, typename Range, typename Domain>
   class TransformInFlightRanges {
   public:
+    using Key = std::tuple<unsigned int, unsigned int, std::uintptr_t, std::string>;
+
     explicit TransformInFlightRanges(RangePool<Range>& range_pool) : range_pool_(range_pool) {}
 
-    void start(unsigned int sid,
-               unsigned int mid,
-               std::uintptr_t callId,
-               std::string_view signal,
-               Domain& domain,
-               std::string const& msg,
-               Color color,
-               char const* func) {
+    void start(Domain& domain,
+           std::string const& msg,
+           Color color,
+           char const* func,
+           unsigned int sid,
+           unsigned int mid,
+           std::uintptr_t callId,
+           std::string_view signal) {
       size_t slot = 0;
       {
         std::lock_guard<SpinLock> guard(mutex_);
@@ -131,13 +135,13 @@ public:
       range_pool_.at(slot).startColorIn(domain, msg.c_str(), color, func);
     }
 
-    void end(unsigned int sid,
-             unsigned int mid,
-             std::uintptr_t callId,
-             std::string_view signal,
-             Domain& domain,
-             std::string const& msg,
-             char const* func) {
+    void end(Domain& domain,
+         std::string const& msg,
+         char const* func,
+         unsigned int sid,
+         unsigned int mid,
+         std::uintptr_t callId,
+         std::string_view signal) {
       std::optional<size_t> slot;
       {
         std::lock_guard<SpinLock> guard(mutex_);
@@ -147,7 +151,7 @@ public:
           slot = found->second.back();
           found->second.pop_back();
           if (found->second.empty()) {
-            in_flight_.erase(found);
+            in_flight_.unsafe_erase(found);
           }
         }
       }
@@ -165,42 +169,30 @@ public:
     }
 
   private:
-    static std::string makeKey_(unsigned int sid, unsigned int mid, std::uintptr_t callId, std::string_view signal) {
-      std::string key;
-      key.reserve(60 + signal.size());
-      key += "T";
-      key += std::to_string(sid);
-      key += '|';
-      key += std::to_string(mid);
-      key += '|';
-      key += std::to_string(callId);
-      key += '|';
-      key.append(signal.data(), signal.size());
-      return key;
+    static Key makeKey_(unsigned int sid, unsigned int mid, std::uintptr_t callId, std::string_view signal) {
+      return Key{sid, mid, callId, std::string(signal)};
     }
 
     SpinLock mutex_;
     RangePool<Range>& range_pool_;
-    std::unordered_map<std::string, std::vector<size_t>> in_flight_;
+    tbb::concurrent_unordered_map<Key, std::vector<size_t>, boost::hash<Key>> in_flight_;
   };
 
   template <typename Backend, typename Range, typename Domain>
   class GlobalESInFlightRanges {
   public:
+    using Key = std::tuple<unsigned int, std::string, edm::ESModuleCallingContext::State, std::uintptr_t>;
+
     explicit GlobalESInFlightRanges(RangePool<Range>& range_pool) : range_pool_(range_pool) {}
 
-    void start(unsigned int mid,
-               std::string_view record,
-               std::string_view signal,
-               std::string_view label,
-               std::string_view type,
-               std::size_t pid,
-               edm::ESModuleCallingContext::State const& state,
-               std::uintptr_t callId,
-               Domain& domain,
-               std::string const& msg,
-               Color color,
-               char const* func) {
+    void start(Domain& domain,
+           std::string const& msg,
+           Color color,
+           char const* func,
+           unsigned int mid,
+           std::string_view record,
+           edm::ESModuleCallingContext::State const& state,
+           std::uintptr_t callId) {
       size_t slot = 0;
       {
         std::lock_guard<SpinLock> guard(mutex_);
@@ -212,9 +204,8 @@ public:
           auto fullmsg = std::string("\n\nWarning: previous range not ended before starting a new one in ") + func +
                          "\n  existing range: '" + existingMsg + "'" + "\n  existing backtrace: " +
                          existingStacktrace + "\n  new range: name=" + msg + " mid=" + std::to_string(mid) +
-                         " record=" + std::string(record) + " signal=" + std::string(signal) + " label=" +
-                         std::string(label) + " type=" + std::string(type) + " pid=" + pidString_(pid) +
-                         " callId=" + std::to_string(callId) +
+                         " record=" + std::string(record) + " state=" +
+                         std::to_string(static_cast<int>(state)) + " callId=" + std::to_string(callId) +
                          "\n  new stacktrace: " + stacktraceString_();
           Backend::mark(domain, fullmsg.c_str(), Color::Red);
           std::cout << fullmsg << std::endl;
@@ -226,17 +217,13 @@ public:
       range_pool_.at(slot).startColorIn(domain, msg.c_str(), color, func);
     }
 
-    void end(unsigned int mid,
-             std::string_view record,
-             std::string_view signal,
-             std::string_view label,
-             std::string_view type,
-             std::size_t pid,
-             edm::ESModuleCallingContext::State const& state,
-             std::uintptr_t callId,
-             Domain& domain,
-             std::string const& msg,
-             char const* func) {
+    void end(Domain& domain,
+         std::string const& msg,
+         char const* func,
+         unsigned int mid,
+         std::string_view record,
+         edm::ESModuleCallingContext::State const& state,
+         std::uintptr_t callId) {
       std::optional<size_t> slot;
       {
         std::lock_guard<SpinLock> guard(mutex_);
@@ -246,15 +233,14 @@ public:
           slot = found->second.back().slot;
           found->second.pop_back();
           if (found->second.empty()) {
-            in_flight_.erase(found);
+            in_flight_.unsafe_erase(found);
           }
         }
       }
       if (not slot.has_value()) {
         auto fullmsg = std::string("Warning: trying to end a range that is not started in ") + func + " name=" +
-                       msg + " mid=" + std::to_string(mid) + " record=" + std::string(record) + " signal=" +
-                       std::string(signal) + " label=" + std::string(label) + " type=" + std::string(type) +
-                       " pid=" + pidString_(pid);
+                       msg + " mid=" + std::to_string(mid) + " record=" + std::string(record) + " state=" +
+                       std::to_string(static_cast<int>(state)) + " callId=" + std::to_string(callId);
         Backend::mark(domain, fullmsg.c_str(), Color::Red);
         std::cout << fullmsg << std::endl;
         return;
@@ -271,38 +257,22 @@ public:
       std::string stacktrace;
     };
 
-    static std::string pidString_(std::size_t pid) {
-      char buffer[32] = {0};
-      std::snprintf(buffer, sizeof(buffer), "0x%zx", pid);
-      return buffer;
-    }
-
     static std::string stacktraceString_() {
       std::ostringstream out;
       out << boost::stacktrace::stacktrace{};
       return out.str();
     }
 
-    static std::string makeKey_(unsigned int mid,
-                                std::string_view record,
-                                edm::ESModuleCallingContext::State const& state,
-                                std::uintptr_t callId) {
-      std::string key;
-      key.reserve(60 + record.size());
-      key += "S";
-      key += std::to_string(mid);
-      key += '|';
-      key.append(record.data(), record.size());
-      key += '|';
-      key += std::to_string(static_cast<int>(state));
-      key += '|';
-      key += std::to_string(callId);
-      return key;
+    static Key makeKey_(unsigned int mid,
+                        std::string_view record,
+                        edm::ESModuleCallingContext::State const& state,
+                        std::uintptr_t callId) {
+      return Key{mid, std::string(record), state, callId};
     }
 
     SpinLock mutex_;
     RangePool<Range>& range_pool_;
-    std::unordered_map<std::string, std::vector<InFlightEntry>> in_flight_;
+    tbb::concurrent_unordered_map<Key, std::vector<InFlightEntry>, boost::hash<Key>> in_flight_;
   };
 
 };

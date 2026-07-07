@@ -73,7 +73,7 @@
     } else {                                                                                    \
       msg = label + " " + #signal " record=" + record + " state=" + (state == edm::ESModuleCallingContext::State::kRunning ? "running" : "prefetching");                                         \
     }                                                                                           \
-    global_es_in_flight_ranges_.start(mid, iKey.name(), #signal, label, type, pid, state, callId, global_domain_, msg, Color::Blue, __func__); \
+    global_es_in_flight_ranges_.start(global_domain_, msg, Color::Blue, __func__, mid, iKey.name(), state, callId); \
   }                                                                                             \
   template <class Backend>                                                                      \
   void ProfilerService<Backend>::post##signal(edm::eventsetup::EventSetupRecordKey const& iKey, \
@@ -92,7 +92,7 @@
     } else {                                                                                    \
       msg = label + " " + #signal " record=" + record + " state=" + (state == edm::ESModuleCallingContext::State::kRunning ? "running" : "prefetching");                                         \
     }                                                                                           \
-    global_es_in_flight_ranges_.end(mid, iKey.name(), #signal, label, type, pid, state, callId, global_domain_, msg, __func__); \
+    global_es_in_flight_ranges_.end(global_domain_, msg, __func__, mid, iKey.name(), state, callId); \
   }
 
 #define DECLARE_MODULE_STREAM_SIGNAL_WATCHER(signal)                                    \
@@ -129,7 +129,7 @@
       auto mid = mcc.moduleDescription()->id();                                                                     \
       auto const callId = mcc.callID();                                                                                       \
       auto const msg = transformMessage_(mcc, #signal);                                                            \
-      transform_in_flight_ranges_.start(sid, mid, callId ,#signal, stream_domain_[sid], msg, Color::Blue, __func__);            \
+      transform_in_flight_ranges_.start(stream_domain_[sid], msg, Color::Blue, __func__, sid, mid, callId ,#signal);            \
     }                                                                                                               \
   }                                                                                                                 \
   template <class Backend>                                                                                          \
@@ -139,7 +139,7 @@
       auto mid = mcc.moduleDescription()->id();                                                                     \
       auto const callId = mcc.callID();                                                                                       \
       auto const msg = transformMessage_(mcc, #signal);                                                            \
-      transform_in_flight_ranges_.end(sid, mid, callId, #signal, stream_domain_[sid], msg, __func__);                            \
+      transform_in_flight_ranges_.end(stream_domain_[sid], msg, __func__, sid, mid, callId, #signal);                            \
     }                                                                                                               \
   }
 
@@ -1450,8 +1450,7 @@ void ProfilerService<Backend>::preESModulePrefetching(edm::eventsetup::EventSetu
           " state=" + (state == edm::ESModuleCallingContext::State::kRunning ? "running" : "prefetching") +
           " callId=" + std::to_string(callId);
   }
-  global_es_in_flight_ranges_.start(mid, iKey.name(), "ESModulePrefetching", label, type, pid, state, callId, global_domain_, msg, Color::Blue,
-                                    __func__);
+  global_es_in_flight_ranges_.start(global_domain_, msg, Color::Blue, __func__, mid, iKey.name(), state, callId);
 }
 
 template <class Backend>
@@ -1484,7 +1483,7 @@ void ProfilerService<Backend>::postESModulePrefetching(edm::eventsetup::EventSet
           record +
           " state=" + (state == edm::ESModuleCallingContext::State::kRunning ? "running" : "prefetching");
   }
-  global_es_in_flight_ranges_.end(mid, iKey.name(), "ESModulePrefetching", label, type, pid, state, callId, global_domain_, msg, __func__);
+  global_es_in_flight_ranges_.end(global_domain_, msg, __func__, mid, iKey.name(), state, callId);
 }
 
 /*DEFINE_ES_SIGNAL_WATCHER(ESModule)*/
@@ -1503,7 +1502,7 @@ void ProfilerService<Backend>::preESModule(edm::eventsetup::EventSetupRecordKey 
                     std::to_string(mid) + 
                     " state=" +  ( state == edm::ESModuleCallingContext::State::kRunning ? "running" : "prefetching" ) + 
                     " pid=" + std::to_string(pid) + " context=" + context + " callId=" + std::to_string(callId);
-  global_es_in_flight_ranges_.start(mid, context, "ESModule", label, type, pid, state, callId, global_domain_, msg, Color::Blue, __func__);
+  global_es_in_flight_ranges_.start(global_domain_, msg, Color::Blue, __func__, mid, context, state, callId);
 }
 
 template <class Backend>
@@ -1519,7 +1518,7 @@ void ProfilerService<Backend>::postESModule(edm::eventsetup::EventSetupRecordKey
   auto const& callId = esmcc.callID();
   std::string msg = "ESModule: label = '" + label + "', type = '" + type + "', record = '" + context + "' state=" + 
      (state == edm::ESModuleCallingContext::State::kRunning ? "running" : "prefetching") + " pid=" + std::to_string(pid) + " context=" + context + " callId=" + std::to_string(callId);
-  global_es_in_flight_ranges_.end(mid, context, "ESModule", label, type, pid, state, callId, global_domain_, msg, __func__);
+  global_es_in_flight_ranges_.end(global_domain_, msg, __func__, mid, context, state, callId);
 }
 
 DEFINE_ES_SIGNAL_WATCHER(ESModuleAcquire)
