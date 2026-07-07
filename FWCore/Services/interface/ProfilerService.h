@@ -818,172 +818,53 @@ ProfilerService<Backend>::ProfilerService(edm::ParameterSet const& config, edm::
     Backend::profilerStop();
   }
 
+  // Keep watcher registration order aligned with ActivityRegistry::watch* declarations.
+
+  registry.watchPostServicesConstruction(this, &ProfilerService::postServicesConstruction);
+
+  REGISTER_SIGNAL_WATCHER(EventSetupModulesConstruction)
+
+  REGISTER_SIGNAL_WATCHER(ModulesAndSourceConstruction)
+
+  REGISTER_SIGNAL_WATCHER(FinishSchedule)
+
+  REGISTER_SIGNAL_WATCHER(PrincipalsCreation)
+
+  REGISTER_SIGNAL_WATCHER(ScheduleConsistencyCheck)
+
   registry.watchPreallocate(this, &ProfilerService::preallocate);
 
+  REGISTER_SIGNAL_WATCHER(EventSetupConfigurationFinalized)
+  registry.watchEventSetupConfiguration(this, &ProfilerService::eventSetupConfiguration);
+
+  REGISTER_SIGNAL_WATCHER(ModulesInitializationFinalized)
+
   // these signal pair are NOT guaranteed to be called by the same thread
-  registry.watchPreBeginJob(this, &ProfilerService::preBeginJob);
-  registry.watchPostBeginJob(this, &ProfilerService::postBeginJob);
+  REGISTER_SIGNAL_WATCHER(BeginJob)
+  REGISTER_SIGNAL_WATCHER(EndJob)
 
   registry.watchLookupInitializationComplete(this, &ProfilerService::lookupInitializationComplete);
 
-  registry.watchPreEndJob(this, &ProfilerService::preEndJob);
-  registry.watchPostEndJob(this, &ProfilerService::postEndJob);
+  REGISTER_SIGNAL_WATCHER(BeginStream)
+  REGISTER_SIGNAL_WATCHER(EndStream)
 
-  // these signal pair are NOT guaranteed to be called by the same thread
-  registry.watchPreGlobalBeginRun(this, &ProfilerService::preGlobalBeginRun);
-  registry.watchPostGlobalBeginRun(this, &ProfilerService::postGlobalBeginRun);
+  registry.watchJobFailure(this, &ProfilerService::jobFailure);
 
-  // these signal pair are NOT guaranteed to be called by the same thread
-  registry.watchPreGlobalEndRun(this, &ProfilerService::preGlobalEndRun);
-  registry.watchPostGlobalEndRun(this, &ProfilerService::postGlobalEndRun);
-
-  // these signal pair are NOT guaranteed to be called by the same thread
-  registry.watchPreStreamBeginRun(this, &ProfilerService::preStreamBeginRun);
-  registry.watchPostStreamBeginRun(this, &ProfilerService::postStreamBeginRun);
-
-  // these signal pair are NOT guaranteed to be called by the same thread
-  registry.watchPreStreamEndRun(this, &ProfilerService::preStreamEndRun);
-  registry.watchPostStreamEndRun(this, &ProfilerService::postStreamEndRun);
-
-  // these signal pair are NOT guaranteed to be called by the same thread
-  registry.watchPreGlobalBeginLumi(this, &ProfilerService::preGlobalBeginLumi);
-  registry.watchPostGlobalBeginLumi(this, &ProfilerService::postGlobalBeginLumi);
-
-  // these signal pair are NOT guaranteed to be called by the same thread
-  registry.watchPreGlobalEndLumi(this, &ProfilerService::preGlobalEndLumi);
-  registry.watchPostGlobalEndLumi(this, &ProfilerService::postGlobalEndLumi);
-
-  // these signal pair are NOT guaranteed to be called by the same thread
-  registry.watchPreStreamBeginLumi(this, &ProfilerService::preStreamBeginLumi);
-  registry.watchPostStreamBeginLumi(this, &ProfilerService::postStreamBeginLumi);
-
-  // these signal pair are NOT guaranteed to be called by the same thread
-  registry.watchPreStreamEndLumi(this, &ProfilerService::preStreamEndLumi);
-  registry.watchPostStreamEndLumi(this, &ProfilerService::postStreamEndLumi);
-
-  // these signal pair are NOT guaranteed to be called by the same thread
-  registry.watchPreEvent(this, &ProfilerService::preEvent);
-  registry.watchPostEvent(this, &ProfilerService::postEvent);
-
-  registry.watchPreClearEvent(this, &ProfilerService::preClearEvent);
-  registry.watchPostClearEvent(this, &ProfilerService::postClearEvent);
-
-  // these signal pair are NOT guaranteed to be called by the same thread
-  registry.watchPrePathEvent(this, &ProfilerService::prePathEvent);
-  registry.watchPostPathEvent(this, &ProfilerService::postPathEvent);
-
-  if (showModulePrefetching_) {
-    // these signal pair are NOT guaranteed to be called by the same thread
-    registry.watchPreModuleEventPrefetching(this, &ProfilerService::preModuleEventPrefetching);
-    registry.watchPostModuleEventPrefetching(this, &ProfilerService::postModuleEventPrefetching);
-  }
+  REGISTER_SIGNAL_WATCHER(SourceNextTransition)
 
   // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreOpenFile(this, &ProfilerService::preOpenFile);
-  registry.watchPostOpenFile(this, &ProfilerService::postOpenFile);
+  REGISTER_SIGNAL_WATCHER(SourceEvent)
+  REGISTER_SIGNAL_WATCHER(SourceLumi)
+  REGISTER_SIGNAL_WATCHER(SourceRun)
+  REGISTER_SIGNAL_WATCHER(SourceProcessBlock)
 
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreCloseFile(this, &ProfilerService::preCloseFile);
-  registry.watchPostCloseFile(this, &ProfilerService::postCloseFile);
-
-  registry.watchPreSourceNextTransition(this, &ProfilerService::preSourceNextTransition);
-  registry.watchPostSourceNextTransition(this, &ProfilerService::postSourceNextTransition);
-
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreSourceConstruction(this, &ProfilerService::preSourceConstruction);
-  registry.watchPostSourceConstruction(this, &ProfilerService::postSourceConstruction);
-
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreSourceRun(this, &ProfilerService::preSourceRun);
-  registry.watchPostSourceRun(this, &ProfilerService::postSourceRun);
-
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreSourceLumi(this, &ProfilerService::preSourceLumi);
-  registry.watchPostSourceLumi(this, &ProfilerService::postSourceLumi);
-
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreSourceEvent(this, &ProfilerService::preSourceEvent);
-  registry.watchPostSourceEvent(this, &ProfilerService::postSourceEvent);
-
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreModuleConstruction(this, &ProfilerService::preModuleConstruction);
-  registry.watchPostModuleConstruction(this, &ProfilerService::postModuleConstruction);
-
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreModuleDestruction(this, &ProfilerService::preModuleDestruction);
-  registry.watchPostModuleDestruction(this, &ProfilerService::postModuleDestruction);
-
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreModuleGlobalBeginRun(this, &ProfilerService::preModuleGlobalBeginRun);
-  registry.watchPostModuleGlobalBeginRun(this, &ProfilerService::postModuleGlobalBeginRun);
-
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreModuleGlobalEndRun(this, &ProfilerService::preModuleGlobalEndRun);
-  registry.watchPostModuleGlobalEndRun(this, &ProfilerService::postModuleGlobalEndRun);
-
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreModuleGlobalBeginLumi(this, &ProfilerService::preModuleGlobalBeginLumi);
-  registry.watchPostModuleGlobalBeginLumi(this, &ProfilerService::postModuleGlobalBeginLumi);
-
-  // these signal pair are guaranteed to be called by the same thread
-  registry.watchPreModuleGlobalEndLumi(this, &ProfilerService::preModuleGlobalEndLumi);
-  registry.watchPostModuleGlobalEndLumi(this, &ProfilerService::postModuleGlobalEndLumi);
-
+  REGISTER_SIGNAL_WATCHER(OpenFile)
+  REGISTER_SIGNAL_WATCHER(CloseFile)
+  REGISTER_SIGNAL_WATCHER(OpenOutputFiles)
+  REGISTER_SIGNAL_WATCHER(CloseOutputFiles)
   /******** Module stream context signals *********************************************/
-
-  REGISTER_SIGNAL_WATCHER(ModuleBeginJob)
-  REGISTER_SIGNAL_WATCHER(ModuleEndJob)
   REGISTER_SIGNAL_WATCHER(ModuleBeginStream)
   REGISTER_SIGNAL_WATCHER(ModuleEndStream)
-  REGISTER_SIGNAL_WATCHER(ModuleStreamBeginRun)
-  REGISTER_SIGNAL_WATCHER(ModuleStreamEndRun)
-  REGISTER_SIGNAL_WATCHER(ModuleStreamBeginLumi)
-  REGISTER_SIGNAL_WATCHER(ModuleStreamEndLumi)
-  REGISTER_SIGNAL_WATCHER(ModuleEventAcquire)
-  REGISTER_SIGNAL_WATCHER(ModuleEvent)
-  REGISTER_SIGNAL_WATCHER(ModuleEventDelayedGet)
-  REGISTER_SIGNAL_WATCHER(EventReadFromSource)
-  if (showModulePrefetching_) {
-    REGISTER_SIGNAL_WATCHER(ModuleTransformPrefetching)
-  }
-  REGISTER_SIGNAL_WATCHER(ModuleTransformAcquiring)
-  REGISTER_SIGNAL_WATCHER(ModuleTransform)
-
-  // ES signal watchers
-  registry.watchPostESModuleRegistration(this, &ProfilerService::postESModuleRegistration);
-  if (showModulePrefetching_) {
-    REGISTER_SIGNAL_WATCHER(ESModulePrefetching)
-  }
-  REGISTER_SIGNAL_WATCHER(ESModule)
-  REGISTER_SIGNAL_WATCHER(ESModuleAcquire)
-
-  // Job-level single signals
-  registry.watchBeginProcessing(this, &ProfilerService::beginProcessing);
-  registry.watchEndProcessing(this, &ProfilerService::endProcessing);
-  registry.watchJobFailure(this, &ProfilerService::jobFailure);
-  registry.watchPostServicesConstruction(this, &ProfilerService::postServicesConstruction);
-
-  // Infrastructure/setup signal pairs
-  registry.watchPreBeginStream(this, &ProfilerService::preBeginStream);
-  registry.watchPostBeginStream(this, &ProfilerService::postBeginStream);
-  registry.watchPreEndStream(this, &ProfilerService::preEndStream);
-  registry.watchPostEndStream(this, &ProfilerService::postEndStream);
-
-  registry.watchPreEventSetupConfigurationFinalized(this, &ProfilerService::preEventSetupConfigurationFinalized);
-  registry.watchPostEventSetupConfigurationFinalized(this, &ProfilerService::postEventSetupConfigurationFinalized);
-  registry.watchEventSetupConfiguration(this, &ProfilerService::eventSetupConfiguration);
-  registry.watchPreEventSetupModulesConstruction(this, &ProfilerService::preEventSetupModulesConstruction);
-  registry.watchPostEventSetupModulesConstruction(this, &ProfilerService::postEventSetupModulesConstruction);
-  registry.watchPreModulesAndSourceConstruction(this, &ProfilerService::preModulesAndSourceConstruction);
-  registry.watchPostModulesAndSourceConstruction(this, &ProfilerService::postModulesAndSourceConstruction);
-  registry.watchPreFinishSchedule(this, &ProfilerService::preFinishSchedule);
-  registry.watchPostFinishSchedule(this, &ProfilerService::postFinishSchedule);
-  registry.watchPrePrincipalsCreation(this, &ProfilerService::prePrincipalsCreation);
-  registry.watchPostPrincipalsCreation(this, &ProfilerService::postPrincipalsCreation);
-  registry.watchPreScheduleConsistencyCheck(this, &ProfilerService::preScheduleConsistencyCheck);
-  registry.watchPostScheduleConsistencyCheck(this, &ProfilerService::postScheduleConsistencyCheck);
-  registry.watchPreModulesInitializationFinalized(this, &ProfilerService::preModulesInitializationFinalized);
-  registry.watchPostModulesInitializationFinalized(this, &ProfilerService::postModulesInitializationFinalized);
 
   // Process block signal pairs
   REGISTER_SIGNAL_WATCHER(BeginProcessBlock)
@@ -991,48 +872,109 @@ ProfilerService<Backend>::ProfilerService(edm::ParameterSet const& config, edm::
   REGISTER_SIGNAL_WATCHER(AccessInputProcessBlock)
   REGISTER_SIGNAL_WATCHER(WriteProcessBlock)
 
+  // Job-level single signals
+  registry.watchBeginProcessing(this, &ProfilerService::beginProcessing);
+  registry.watchEndProcessing(this, &ProfilerService::endProcessing);
+
+  // these signal pair are NOT guaranteed to be called by the same thread
+  REGISTER_SIGNAL_WATCHER(GlobalBeginRun)
+  REGISTER_SIGNAL_WATCHER(GlobalEndRun)
+
   // Global write signal pairs
   REGISTER_SIGNAL_WATCHER(GlobalWriteRun)
+
+  // these signal pair are NOT guaranteed to be called by the same thread
+  REGISTER_SIGNAL_WATCHER(StreamBeginRun)
+  REGISTER_SIGNAL_WATCHER(StreamEndRun)
+
+  // these signal pair are NOT guaranteed to be called by the same thread
+  REGISTER_SIGNAL_WATCHER(GlobalBeginLumi)
+  REGISTER_SIGNAL_WATCHER(GlobalEndLumi)
+
   REGISTER_SIGNAL_WATCHER(GlobalWriteLumi)
 
-  // Output file signal pairs (void() signals, must use std::bind/lambda since AR_WATCH_USING_METHOD_1 expects an arg)
-  registry.watchPreOpenOutputFiles(std::bind(&ProfilerService::preOpenOutputFiles, this));
-  registry.watchPostOpenOutputFiles(std::bind(&ProfilerService::postOpenOutputFiles, this));
-  registry.watchPreCloseOutputFiles(std::bind(&ProfilerService::preCloseOutputFiles, this));
-  registry.watchPostCloseOutputFiles(std::bind(&ProfilerService::postCloseOutputFiles, this));
+  REGISTER_SIGNAL_WATCHER(StreamBeginLumi)
+  REGISTER_SIGNAL_WATCHER(StreamEndLumi)
 
-  // Source process block signal pair
-  registry.watchPreSourceProcessBlock(this, &ProfilerService::preSourceProcessBlock);
-  registry.watchPostSourceProcessBlock(this, &ProfilerService::postSourceProcessBlock);
+  // these signal pair are NOT guaranteed to be called by the same thread
+  REGISTER_SIGNAL_WATCHER(Event)
 
-  // ES IOV sync signals
-  registry.watchESSyncIOVQueuing(this, &ProfilerService::esSyncIOVQueuing);
-  REGISTER_SIGNAL_WATCHER(ESSyncIOV)
+  REGISTER_SIGNAL_WATCHER(ClearEvent)
 
-  // ES module construction signal pair
-  registry.watchPreESModuleConstruction(this, &ProfilerService::preESModuleConstruction);
-  registry.watchPostESModuleConstruction(this, &ProfilerService::postESModuleConstruction);
+  // these signal pair are NOT guaranteed to be called by the same thread
+  REGISTER_SIGNAL_WATCHER(PathEvent)
 
   // Early termination signals (Pre only)
   registry.watchPreStreamEarlyTermination(this, &ProfilerService::preStreamEarlyTermination);
   registry.watchPreGlobalEarlyTermination(this, &ProfilerService::preGlobalEarlyTermination);
   registry.watchPreSourceEarlyTermination(this, &ProfilerService::preSourceEarlyTermination);
 
+  // ES module construction signal pair
+  REGISTER_SIGNAL_WATCHER(ESModuleConstruction)
+
+  // ES signal watchers
+  registry.watchPostESModuleRegistration(this, &ProfilerService::postESModuleRegistration);
+
+  // ES IOV sync signals
+  registry.watchESSyncIOVQueuing(this, &ProfilerService::esSyncIOVQueuing);
+  REGISTER_SIGNAL_WATCHER(ESSyncIOV)
+
+  if (showModulePrefetching_) {
+    REGISTER_SIGNAL_WATCHER(ESModulePrefetching)
+  }
+  REGISTER_SIGNAL_WATCHER(ESModule)
+  REGISTER_SIGNAL_WATCHER(ESModuleAcquire)
+
+  // these signal pair are guaranteed to be called by the same thread
+  REGISTER_SIGNAL_WATCHER(ModuleConstruction)
+  REGISTER_SIGNAL_WATCHER(ModuleDestruction)
+
+  REGISTER_SIGNAL_WATCHER(ModuleBeginJob)
+  REGISTER_SIGNAL_WATCHER(ModuleEndJob)
+
+  if (showModulePrefetching_) {
+    // these signal pair are NOT guaranteed to be called by the same thread
+    REGISTER_SIGNAL_WATCHER(ModuleEventPrefetching)
+  }
+  REGISTER_SIGNAL_WATCHER(ModuleEvent)
+  REGISTER_SIGNAL_WATCHER(ModuleEventAcquire)
+  if (showModulePrefetching_) {
+    REGISTER_SIGNAL_WATCHER(ModuleTransformPrefetching)
+  }
+  REGISTER_SIGNAL_WATCHER(ModuleTransform)
+  REGISTER_SIGNAL_WATCHER(ModuleTransformAcquiring)
+  REGISTER_SIGNAL_WATCHER(ModuleEventDelayedGet)
+  REGISTER_SIGNAL_WATCHER(EventReadFromSource)
+
   // Module stream prefetching signal pair
   if (showModulePrefetching_) {
     REGISTER_SIGNAL_WATCHER(ModuleStreamPrefetching)
   }
+  REGISTER_SIGNAL_WATCHER(ModuleStreamBeginRun)
+  REGISTER_SIGNAL_WATCHER(ModuleStreamEndRun)
+  REGISTER_SIGNAL_WATCHER(ModuleStreamBeginLumi)
+  REGISTER_SIGNAL_WATCHER(ModuleStreamEndLumi)
 
   // Module global prefetching and process block signal pairs
   if (showModulePrefetching_) {
     REGISTER_SIGNAL_WATCHER(ModuleGlobalPrefetching)
   }
+
+  // these signal pair are guaranteed to be called by the same thread
+  REGISTER_SIGNAL_WATCHER(ModuleGlobalBeginRun)
+  REGISTER_SIGNAL_WATCHER(ModuleGlobalEndRun)
+  REGISTER_SIGNAL_WATCHER(ModuleGlobalBeginLumi)
+  REGISTER_SIGNAL_WATCHER(ModuleGlobalEndLumi)
+
   REGISTER_SIGNAL_WATCHER(ModuleBeginProcessBlock)
   REGISTER_SIGNAL_WATCHER(ModuleEndProcessBlock)
   REGISTER_SIGNAL_WATCHER(ModuleAccessInputProcessBlock)
   REGISTER_SIGNAL_WATCHER(ModuleWriteProcessBlock)
   REGISTER_SIGNAL_WATCHER(ModuleWriteRun)
   REGISTER_SIGNAL_WATCHER(ModuleWriteLumi)
+
+  // these signal pair are guaranteed to be called by the same thread
+  REGISTER_SIGNAL_WATCHER(SourceConstruction)
 }
 
 template <typename Backend>
