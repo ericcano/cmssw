@@ -6,15 +6,14 @@
 #include <cstdint>
 #include <iostream>
 #include <mutex>
-#include <optional>
-#include <sstream>
+#include <shared_mutex>
 #include <cstdio>
 #include <string>
 #include <string_view>
 #include <tuple>
-#include <vector>
+#include <type_traits>
+#include <utility>
 
-#include <boost/stacktrace.hpp>
 #include <boost/container_hash/hash.hpp>
 
 #include <tbb/concurrent_queue.h>
@@ -59,6 +58,45 @@ public:
     std::atomic_flag flag_;
   };
 
+  /// @brief Reader-writer spinlock.
+  /// Compatible with std::lock_guard (exclusive) and std::shared_lock (shared).
+  /// state_ == 0  : unlocked
+  /// state_ == -1 : write-locked
+  /// state_ >  0  : N concurrent readers
+  class RWSpinLock {
+  public:
+    // Exclusive (write) access — use with std::lock_guard
+    void lock() {
+      int expected = 0;
+      while (!state_.compare_exchange_weak(expected, kWriteLocked,
+                                           std::memory_order_acquire,
+                                           std::memory_order_relaxed)) {
+        expected = 0;
+      }
+    }
+
+    void unlock() { state_.store(0, std::memory_order_release); }
+
+    // Shared (read) access — use with std::shared_lock
+    void lock_shared() {
+      while (true) {
+        int val = state_.load(std::memory_order_relaxed);
+        if (val >= 0 &&
+            state_.compare_exchange_weak(val, val + 1,
+                                         std::memory_order_acquire,
+                                         std::memory_order_relaxed)) {
+          return;
+        }
+      }
+    }
+
+    void unlock_shared() { state_.fetch_sub(1, std::memory_order_release); }
+
+  private:
+    static constexpr int kWriteLocked = -1;
+    std::atomic<int> state_{0};
+  };
+
   template <typename Range>
   class RangePool {
   public:
@@ -66,16 +104,12 @@ public:
 
     size_t acquireSlot() {
       size_t slot = 0;
-      if (free_slots_.try_pop(slot)) {
-        return slot;
-      }
-
-      std::lock_guard<SpinLock> guard(mutex_);
       bool got_slot = free_slots_.try_pop(slot);
-      if (not got_slot) {
+      while (not got_slot) {
+        std::lock_guard<SpinLock> guard(mutex_);
         allocateUnlocked_(next_allocation_size_);
         next_allocation_size_ *= 2;
-        [[maybe_unused]] bool got_slot = free_slots_.try_pop(slot);
+        got_slot = free_slots_.try_pop(slot);
       }
       return slot;
     }
@@ -101,178 +135,64 @@ public:
     tbb::concurrent_queue<size_t> free_slots_;
   };
 
-  template <typename Backend, typename Range, typename Domain>
-  class TransformInFlightRanges {
+  template <typename Backend, typename Range, typename Domain, typename... KeyArgs>
+  class InFlightRanges {
   public:
-    using Key = std::tuple<unsigned int, unsigned int, std::uintptr_t, std::string>;
+    using Key = std::tuple<std::decay_t<KeyArgs>...>;
 
-    explicit TransformInFlightRanges(RangePool<Range>& range_pool) : range_pool_(range_pool) {}
+    explicit InFlightRanges(RangePool<Range>& range_pool) : range_pool_(range_pool) {}
 
     void start(Domain& domain,
-           std::string const& msg,
-           Color color,
-           char const* func,
-           unsigned int sid,
-           unsigned int mid,
-           std::uintptr_t callId,
-           std::string_view signal) {
-      size_t slot = 0;
-      {
-        std::lock_guard<SpinLock> guard(mutex_);
-        auto key = makeKey_(sid, mid, callId, signal);
-        auto found = in_flight_.find(key);
-        if (found != in_flight_.end() and not found->second.empty()) {
-          auto fullmsg = std::string("Warning: previous range not ended before starting a new one in ") + func +
-                         " name=" + msg + " mid=" + std::to_string(mid) + " stream id=" + std::to_string(sid) +
-                         " signal=" + std::string(signal);
-          Backend::mark(domain, fullmsg.c_str(), Color::Red);
-          std::cout << fullmsg << std::endl;
-          return;
-        }
-        slot = range_pool_.acquireSlot();
-        in_flight_[std::move(key)].push_back(slot);
+               std::string const& msg,
+               Color color,
+               char const* func,
+               std::string_view signal,
+               KeyArgs const&... keyArgs) {
+      auto const key = makeKey_(keyArgs...);
+      auto const slot = range_pool_.acquireSlot();
+      auto [found, inserted] = [&]() {
+        std::shared_lock<RWSpinLock> guard(mutex_);
+        return in_flight_.emplace(std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple(slot));
+      }();
+      if (not inserted) {
+        range_pool_.releaseSlot(slot);
+        auto fullmsg = std::string("Warning: previous range not ended before starting a new one in ") + func +
+                       " name=" + msg + " signal=" + std::string(signal);
+        Backend::mark(domain, fullmsg.c_str(), Color::Red);
+        std::cout << fullmsg << std::endl;
+        return;
       }
       range_pool_.at(slot).startColorIn(domain, msg.c_str(), color, func);
     }
 
     void end(Domain& domain,
-         std::string const& msg,
-         char const* func,
-         unsigned int sid,
-         unsigned int mid,
-         std::uintptr_t callId,
-         std::string_view signal) {
-      std::optional<size_t> slot;
-      {
-        std::lock_guard<SpinLock> guard(mutex_);
-        auto key = makeKey_(sid, mid, callId, signal);
-        auto found = in_flight_.find(key);
-        if (found != in_flight_.end() and not found->second.empty()) {
-          slot = found->second.back();
-          found->second.pop_back();
-          if (found->second.empty()) {
-            in_flight_.unsafe_erase(found);
-          }
-        }
-      }
-      if (not slot.has_value()) {
+             std::string const& msg,
+             char const* func,
+             std::string_view signal,
+             KeyArgs const&... keyArgs) {
+      auto const key = makeKey_(keyArgs...);
+      auto extracted = [&]() {
+        std::lock_guard<RWSpinLock> guard(mutex_);
+        return in_flight_.unsafe_extract(key);
+      }();
+      if (not extracted) {
         auto fullmsg = std::string("Warning: trying to end a range that is not started in ") + func + " name=" +
-                       msg + " mid=" + std::to_string(mid) + " stream id=" + std::to_string(sid) +
-                       " signal=" + std::string(signal);
+                       msg + " signal=" + std::string(signal);
         Backend::mark(domain, fullmsg.c_str(), Color::Red);
         std::cout << fullmsg << std::endl;
         return;
       }
-      range_pool_.at(*slot).endIn(domain, msg.c_str(), func);
-      std::lock_guard<SpinLock> guard(mutex_);
-      range_pool_.releaseSlot(*slot);
+      auto const slot = extracted.mapped();
+      range_pool_.at(slot).endIn(domain, msg.c_str(), func);
+      range_pool_.releaseSlot(slot);
     }
 
   private:
-    static Key makeKey_(unsigned int sid, unsigned int mid, std::uintptr_t callId, std::string_view signal) {
-      return Key{sid, mid, callId, std::string(signal)};
-    }
+    static Key makeKey_(KeyArgs const&... keyArgs) { return Key{std::decay_t<KeyArgs>(keyArgs)...}; }
 
-    SpinLock mutex_;
+    RWSpinLock mutex_;
     RangePool<Range>& range_pool_;
-    tbb::concurrent_unordered_map<Key, std::vector<size_t>, boost::hash<Key>> in_flight_;
-  };
-
-  template <typename Backend, typename Range, typename Domain>
-  class GlobalESInFlightRanges {
-  public:
-    using Key = std::tuple<unsigned int, std::string, edm::ESModuleCallingContext::State, std::uintptr_t>;
-
-    explicit GlobalESInFlightRanges(RangePool<Range>& range_pool) : range_pool_(range_pool) {}
-
-    void start(Domain& domain,
-           std::string const& msg,
-           Color color,
-           char const* func,
-           unsigned int mid,
-           std::string_view record,
-           edm::ESModuleCallingContext::State const& state,
-           std::uintptr_t callId) {
-      size_t slot = 0;
-      {
-        std::lock_guard<SpinLock> guard(mutex_);
-        auto key = makeKey_(mid, record, state, callId);
-        auto found = in_flight_.find(key);
-        if (found != in_flight_.end() and not found->second.empty()) {
-          auto const& existingMsg = found->second.back().startMsg;
-          auto const& existingStacktrace = found->second.back().stacktrace;
-          auto fullmsg = std::string("\n\nWarning: previous range not ended before starting a new one in ") + func +
-                         "\n  existing range: '" + existingMsg + "'" + "\n  existing backtrace: " +
-                         existingStacktrace + "\n  new range: name=" + msg + " mid=" + std::to_string(mid) +
-                         " record=" + std::string(record) + " state=" +
-                         std::to_string(static_cast<int>(state)) + " callId=" + std::to_string(callId) +
-                         "\n  new stacktrace: " + stacktraceString_();
-          Backend::mark(domain, fullmsg.c_str(), Color::Red);
-          std::cout << fullmsg << std::endl;
-          return;
-        }
-        slot = range_pool_.acquireSlot();
-        in_flight_[std::move(key)].push_back({slot, msg, stacktraceString_()});
-      }
-      range_pool_.at(slot).startColorIn(domain, msg.c_str(), color, func);
-    }
-
-    void end(Domain& domain,
-         std::string const& msg,
-         char const* func,
-         unsigned int mid,
-         std::string_view record,
-         edm::ESModuleCallingContext::State const& state,
-         std::uintptr_t callId) {
-      std::optional<size_t> slot;
-      {
-        std::lock_guard<SpinLock> guard(mutex_);
-        auto key = makeKey_(mid, record, state, callId);
-        auto found = in_flight_.find(key);
-        if (found != in_flight_.end() and not found->second.empty()) {
-          slot = found->second.back().slot;
-          found->second.pop_back();
-          if (found->second.empty()) {
-            in_flight_.unsafe_erase(found);
-          }
-        }
-      }
-      if (not slot.has_value()) {
-        auto fullmsg = std::string("Warning: trying to end a range that is not started in ") + func + " name=" +
-                       msg + " mid=" + std::to_string(mid) + " record=" + std::string(record) + " state=" +
-                       std::to_string(static_cast<int>(state)) + " callId=" + std::to_string(callId);
-        Backend::mark(domain, fullmsg.c_str(), Color::Red);
-        std::cout << fullmsg << std::endl;
-        return;
-      }
-      range_pool_.at(*slot).endIn(domain, msg.c_str(), func);
-      std::lock_guard<SpinLock> guard(mutex_);
-      range_pool_.releaseSlot(*slot);
-    }
-
-  private:
-    struct InFlightEntry {
-      size_t slot;
-      std::string startMsg;
-      std::string stacktrace;
-    };
-
-    static std::string stacktraceString_() {
-      std::ostringstream out;
-      out << boost::stacktrace::stacktrace{};
-      return out.str();
-    }
-
-    static Key makeKey_(unsigned int mid,
-                        std::string_view record,
-                        edm::ESModuleCallingContext::State const& state,
-                        std::uintptr_t callId) {
-      return Key{mid, std::string(record), state, callId};
-    }
-
-    SpinLock mutex_;
-    RangePool<Range>& range_pool_;
-    tbb::concurrent_unordered_map<Key, std::vector<InFlightEntry>, boost::hash<Key>> in_flight_;
+    tbb::concurrent_unordered_map<Key, size_t, boost::hash<Key>> in_flight_;
   };
 
 };
