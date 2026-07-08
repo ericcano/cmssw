@@ -63,7 +63,6 @@
     auto const& record = iKey.name();                                                           \
     auto const& label = esmcc.componentDescription()->label_;                                   \
     auto const& type = esmcc.componentDescription()->type_;                                     \
-    auto const pid = esmcc.componentDescription()->pid_.smallHash();                           \
     auto const& state = esmcc.state();                                                            \
     auto const callId = esmcc.callID();                                                         \
     std::string msg;                                                                            \
@@ -82,7 +81,6 @@
     auto const& record = iKey.name();                                                           \
     auto const& label = esmcc.componentDescription()->label_;                                   \
     auto const& type = esmcc.componentDescription()->type_;                                     \
-    auto const pid = esmcc.componentDescription()->pid_.smallHash();                           \
     auto const& state = esmcc.state();                                                            \
     auto const callId = esmcc.callID();                                                         \
     std::string msg;                                                                            \
@@ -99,7 +97,7 @@
   void pre##signal(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc); \
   void post##signal(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc);
 
-#define DEFINE_MODULE_STREAM_SIGNAL_WATCHER(signal, streamModules)                                                  \
+#define DEFINE_MODULE_STREAM_SIGNAL_WATCHER(signal, inFlightRanges)                                                \
   template <class Backend>                                                                                          \
   void ProfilerService<Backend>::pre##signal(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {  \
     auto sid = sc.streamID();                                                                                       \
@@ -107,7 +105,7 @@
       auto mid = mcc.moduleDescription()->id();                                                                     \
       auto const& label = mcc.moduleDescription()->moduleLabel();                                                   \
       auto const& msg = label + " " + #signal "";                                                                   \
-      startStreamModuleRange_(streamModules, sid, mid, msg, labelColor(label), __func__);                         \
+      inFlightRanges.start(stream_domain_[sid], msg, labelColor(label), __func__, #signal, sid, mid);             \
     }                                                                                                               \
   }                                                                                                                 \
   template <class Backend>                                                                                          \
@@ -117,7 +115,7 @@
       auto mid = mcc.moduleDescription()->id();                                                                     \
       auto const& label = mcc.moduleDescription()->moduleLabel();                                                   \
       auto const& msg = label + " " + #signal "";                                                                   \
-      endStreamModuleRange_(streamModules, sid, mid, msg, __func__);                                               \
+      inFlightRanges.end(stream_domain_[sid], msg, __func__, #signal, sid, mid);                                   \
     }                                                                                                               \
   }
 
@@ -206,16 +204,119 @@ public:
 
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
+  /******** Infrastructure/setup signal pairs *************************************/
+
+  void postServicesConstruction();
+
+  void preEventSetupModulesConstruction();
+  void postEventSetupModulesConstruction();
+
+  void preModulesAndSourceConstruction();
+  void postModulesAndSourceConstruction();
+
+  void preFinishSchedule();
+  void postFinishSchedule();
+
+  void prePrincipalsCreation();
+  void postPrincipalsCreation();
+
+  void preScheduleConsistencyCheck();
+  void postScheduleConsistencyCheck();
+
   void preallocate(edm::service::SystemBounds const&);
+
+  void preEventSetupConfigurationFinalized();
+  void postEventSetupConfigurationFinalized();
+
+  void eventSetupConfiguration(edm::eventsetup::ESRecordsToProductResolverIndices const&,
+                               edm::ProcessContext const&);
+
+  void preModulesInitializationFinalized();
+  void postModulesInitializationFinalized();
 
   // these signal pair are NOT guaranteed to be called by the same thread
   void preBeginJob(edm::ProcessContext const&);
   void postBeginJob();
 
-  void lookupInitializationComplete(edm::PathsAndConsumesOfModulesBase const&, edm::ProcessContext const&);
-
   void preEndJob();
   void postEndJob();
+
+  void lookupInitializationComplete(edm::PathsAndConsumesOfModulesBase const&, edm::ProcessContext const&);
+
+  void preBeginStream(edm::StreamContext const&);
+  void postBeginStream(edm::StreamContext const&);
+
+  void preEndStream(edm::StreamContext const&);
+  void postEndStream(edm::StreamContext const&);
+
+  void jobFailure();
+
+  /******** Source transition signals *********************************************/
+
+  void preSourceNextTransition();
+  void postSourceNextTransition();
+
+  /******** Source stream context signals *************************************/
+
+  // these signal pair are guaranteed to be called by the same thread
+  void preSourceEvent(edm::StreamID);
+  void postSourceEvent(edm::StreamID);
+
+  /******** Source lumi context signals *************************************/
+
+  // these signal pair are guaranteed to be called by the same thread
+  void preSourceLumi(edm::LuminosityBlockIndex);
+  void postSourceLumi(edm::LuminosityBlockIndex);
+
+  /******** Source run context signals *************************************/
+
+  // these signal pair are guaranteed to be called by the same thread
+  void preSourceRun(edm::RunIndex);
+  void postSourceRun(edm::RunIndex);
+
+  /******** Source process block signals *************************************/
+
+  void preSourceProcessBlock();
+  void postSourceProcessBlock(std::string const&);
+
+  /******** File context signals **********************************************/
+
+  // these signal pair are guaranteed to be called by the same thread
+  void preOpenFile(std::string const&);
+  void postOpenFile(std::string const&);
+
+  // these signal pair are guaranteed to be called by the same thread
+  void preCloseFile(std::string const&);
+  void postCloseFile(std::string const&);
+
+  /******** Output file signals **********************************************/
+
+  void preOpenOutputFiles();
+  void postOpenOutputFiles();
+
+  void preCloseOutputFiles();
+  void postCloseOutputFiles();
+
+  /******** Module stream context signals *********************************************/
+
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleBeginStream)
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEndStream)
+
+  /******** Process block signals **********************************************/
+
+  void preBeginProcessBlock(edm::GlobalContext const&);
+  void postBeginProcessBlock(edm::GlobalContext const&);
+
+  void preAccessInputProcessBlock(edm::GlobalContext const&);
+  void postAccessInputProcessBlock(edm::GlobalContext const&);
+
+  void preEndProcessBlock(edm::GlobalContext const&);
+  void postEndProcessBlock(edm::GlobalContext const&);
+
+  /******** Job-level single signals *********************************************/
+
+  void beginProcessing();
+  void endProcessing();
 
   /******* Global context signals  **********************************************/
 
@@ -226,6 +327,14 @@ public:
   // these signal pair are NOT guaranteed to be called by the same thread
   void preGlobalEndRun(edm::GlobalContext const&);
   void postGlobalEndRun(edm::GlobalContext const&);
+
+  void preWriteProcessBlock(edm::GlobalContext const&);
+  void postWriteProcessBlock(edm::GlobalContext const&);
+
+  /******** Global write signals **********************************************/
+
+  void preGlobalWriteRun(edm::GlobalContext const&);
+  void postGlobalWriteRun(edm::GlobalContext const&);
 
   /******* Stream context signals  **********************************************/
 
@@ -246,6 +355,9 @@ public:
   // these signal pair are NOT guaranteed to be called by the same thread
   void preGlobalEndLumi(edm::GlobalContext const&);
   void postGlobalEndLumi(edm::GlobalContext const&);
+
+  void preGlobalWriteLumi(edm::GlobalContext const&);
+  void postGlobalWriteLumi(edm::GlobalContext const&);
 
   /******** Stream context lumi signals **********************************************/
 
@@ -272,50 +384,33 @@ public:
   void prePathEvent(edm::StreamContext const&, edm::PathContext const&);
   void postPathEvent(edm::StreamContext const&, edm::PathContext const&, edm::HLTPathStatus const&);
 
-  /******** Module context signals *********************************************/
+  /******** Early termination signals (Pre only, no Post) *****************************/
 
-  // these signal pair are NOT guaranteed to be called by the same thread
-  void preModuleEventPrefetching(edm::StreamContext const&, edm::ModuleCallingContext const&);
-  void postModuleEventPrefetching(edm::StreamContext const&, edm::ModuleCallingContext const&);
+  void preStreamEarlyTermination(edm::StreamContext const&, edm::TerminationOrigin);
+  void preGlobalEarlyTermination(edm::GlobalContext const&, edm::TerminationOrigin);
+  void preSourceEarlyTermination(edm::TerminationOrigin);
 
-  /******** File context signals **********************************************/
+  /******** ES module construction signals **********************************************/
 
-  // these signal pair are guaranteed to be called by the same thread
-  void preOpenFile(std::string const&);
-  void postOpenFile(std::string const&);
+  void preESModuleConstruction(edm::eventsetup::ComponentDescription const&);
+  void postESModuleConstruction(edm::eventsetup::ComponentDescription const&);
 
-  // these signal pair are guaranteed to be called by the same thread
-  void preCloseFile(std::string const&);
-  void postCloseFile(std::string const&);
+  /******** ES module context signals *********************************************/
 
-  /******** Source transition signals *********************************************/
+  void postESModuleRegistration(edm::eventsetup::ComponentDescription const&);
 
-  void preSourceNextTransition();
-  void postSourceNextTransition();
+  /******** ES IOV sync signals **********************************************/
 
-  /******** Source module context signals *************************************/
+  void esSyncIOVQueuing(edm::IOVSyncValue const&);
 
-  // these signal pair are guaranteed to be called by the same thread
-  void preSourceConstruction(edm::ModuleDescription const&);
-  void postSourceConstruction(edm::ModuleDescription const&);
+  void preESSyncIOV(edm::IOVSyncValue const&);
+  void postESSyncIOV(edm::IOVSyncValue const&);
 
-  /******** Source run context signals *************************************/
-
-  // these signal pair are guaranteed to be called by the same thread
-  void preSourceRun(edm::RunIndex);
-  void postSourceRun(edm::RunIndex);
-
-  /******** Source lumi context signals *************************************/
-
-  // these signal pair are guaranteed to be called by the same thread
-  void preSourceLumi(edm::LuminosityBlockIndex);
-  void postSourceLumi(edm::LuminosityBlockIndex);
-
-  /******** Source stream context signals *************************************/
-
-  // these signal pair are guaranteed to be called by the same thread
-  void preSourceEvent(edm::StreamID);
-  void postSourceEvent(edm::StreamID);
+  // Prefetching is optionally watched
+  // (see constructor)
+  DECLARE_ES_SIGNAL_WATCHER(ESModulePrefetching)
+  DECLARE_ES_SIGNAL_WATCHER(ESModule)
+  DECLARE_ES_SIGNAL_WATCHER(ESModuleAcquire)
 
   /******** Module no-context signals *********************************************/
 
@@ -335,8 +430,38 @@ public:
   void preModuleEndJob(edm::ModuleDescription const&);
   void postModuleEndJob(edm::ModuleDescription const&);
 
-  /******** Module global context signals *********************************************/
+  /******** Module context signals *********************************************/
 
+  // these signal pair are NOT guaranteed to be called by the same thread
+  void preModuleEventPrefetching(edm::StreamContext const&, edm::ModuleCallingContext const&);
+  void postModuleEventPrefetching(edm::StreamContext const&, edm::ModuleCallingContext const&);
+
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEvent)
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventAcquire)
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransformPrefetching)
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransform)
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransformAcquiring)
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventDelayedGet)
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(EventReadFromSource)
+
+  /******** Module stream prefetching signals **********************************************/
+
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamPrefetching)
+
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginRun)
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamEndRun)
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginLumi)
+  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamEndLumi)
+
+  /******** Module global/process block context signals *************************************/
+
+  DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleBeginProcessBlock)
+  DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleAccessInputProcessBlock)
+  DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleEndProcessBlock)
+
+  /******** Module global prefetching and process block signals **********************************************/
+
+  DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleGlobalPrefetching)
   // these signal pair are guaranteed to be called by the same thread
   void preModuleGlobalBeginRun(edm::GlobalContext const&, edm::ModuleCallingContext const&);
   void postModuleGlobalBeginRun(edm::GlobalContext const&, edm::ModuleCallingContext const&);
@@ -353,185 +478,29 @@ public:
   void preModuleGlobalEndLumi(edm::GlobalContext const&, edm::ModuleCallingContext const&);
   void postModuleGlobalEndLumi(edm::GlobalContext const&, edm::ModuleCallingContext const&);
 
-  /******** Module stream context signals *********************************************/
-
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginRun)
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamEndRun)
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleBeginStream)
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEndStream)
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginLumi)
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamEndLumi)
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventAcquire)
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEvent)
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventDelayedGet)
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(EventReadFromSource)
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransformPrefetching)
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransformAcquiring)
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransform)
-
-  /******** Job-level single signals *********************************************/
-
-  void beginProcessing();
-  void endProcessing();
-  void jobFailure();
-  void postServicesConstruction();
-
-  /******** Infrastructure/setup signal pairs *************************************/
-
-  void preBeginStream(edm::StreamContext const&);
-  void postBeginStream(edm::StreamContext const&);
-
-  void preEndStream(edm::StreamContext const&);
-  void postEndStream(edm::StreamContext const&);
-
-  void preEventSetupConfigurationFinalized();
-  void postEventSetupConfigurationFinalized();
-
-  void eventSetupConfiguration(edm::eventsetup::ESRecordsToProductResolverIndices const&,
-                                edm::ProcessContext const&);
-
-  void preEventSetupModulesConstruction();
-  void postEventSetupModulesConstruction();
-
-  void preModulesAndSourceConstruction();
-  void postModulesAndSourceConstruction();
-
-  void preFinishSchedule();
-  void postFinishSchedule();
-
-  void prePrincipalsCreation();
-  void postPrincipalsCreation();
-
-  void preScheduleConsistencyCheck();
-  void postScheduleConsistencyCheck();
-
-  void preModulesInitializationFinalized();
-  void postModulesInitializationFinalized();
-
-  /******** Process block signals **********************************************/
-
-  void preBeginProcessBlock(edm::GlobalContext const&);
-  void postBeginProcessBlock(edm::GlobalContext const&);
-
-  void preEndProcessBlock(edm::GlobalContext const&);
-  void postEndProcessBlock(edm::GlobalContext const&);
-
-  void preAccessInputProcessBlock(edm::GlobalContext const&);
-  void postAccessInputProcessBlock(edm::GlobalContext const&);
-
-  void preWriteProcessBlock(edm::GlobalContext const&);
-  void postWriteProcessBlock(edm::GlobalContext const&);
-
-  /******** Global write signals **********************************************/
-
-  void preGlobalWriteRun(edm::GlobalContext const&);
-  void postGlobalWriteRun(edm::GlobalContext const&);
-
-  void preGlobalWriteLumi(edm::GlobalContext const&);
-  void postGlobalWriteLumi(edm::GlobalContext const&);
-
-  /******** Output file signals **********************************************/
-
-  void preOpenOutputFiles();
-  void postOpenOutputFiles();
-
-  void preCloseOutputFiles();
-  void postCloseOutputFiles();
-
-  /******** Source process block signals *************************************/
-
-  void preSourceProcessBlock();
-  void postSourceProcessBlock(std::string const&);
-
-  /******** ES IOV sync signals **********************************************/
-
-  void esSyncIOVQueuing(edm::IOVSyncValue const&);
-
-  void preESSyncIOV(edm::IOVSyncValue const&);
-  void postESSyncIOV(edm::IOVSyncValue const&);
-
-  /******** ES module construction signals **********************************************/
-
-  void preESModuleConstruction(edm::eventsetup::ComponentDescription const&);
-  void postESModuleConstruction(edm::eventsetup::ComponentDescription const&);
-
-  /******** Early termination signals (Pre only, no Post) *****************************/
-
-  void preStreamEarlyTermination(edm::StreamContext const&, edm::TerminationOrigin);
-  void preGlobalEarlyTermination(edm::GlobalContext const&, edm::TerminationOrigin);
-  void preSourceEarlyTermination(edm::TerminationOrigin);
-
-  /******** Module stream prefetching signals **********************************************/
-
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamPrefetching)
-
-  /******** Module global prefetching and process block signals **********************************************/
-
-  DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleGlobalPrefetching)
-  DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleBeginProcessBlock)
-  DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleEndProcessBlock)
-  DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleAccessInputProcessBlock)
   DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleWriteProcessBlock)
   DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleWriteRun)
   DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleWriteLumi)
 
-  /******** ES module context signals *********************************************/
-  // ES signal watchers
-  void postESModuleRegistration(edm::eventsetup::ComponentDescription const&);
-  // Prefetching is optionally watched
-  // (see constructor)
-  DECLARE_ES_SIGNAL_WATCHER(ESModulePrefetching)
-  DECLARE_ES_SIGNAL_WATCHER(ESModule)
-  DECLARE_ES_SIGNAL_WATCHER(ESModuleAcquire)
+  /******** Source module context signals *************************************/
+
+  // these signal pair are guaranteed to be called by the same thread
+  void preSourceConstruction(edm::ModuleDescription const&);
+  void postSourceConstruction(edm::ModuleDescription const&);
 
 private:
-  using StreamModuleRangeStacks = std::vector<std::vector<std::vector<Range>>>;
   using SharedRangePool = ProfilerServiceBase::RangePool<Range>;
-  using TransformInFlightRanges = ProfilerServiceBase::InFlightRanges<Backend, Range, Domain, unsigned int, unsigned int, std::uintptr_t>;
-
-  void startStreamModuleRange_(StreamModuleRangeStacks& streamModules,
-                               unsigned int sid,
-                               unsigned int mid,
-                               std::string const& msg,
-                               Color color,
-                               char const* func) {
-    std::lock_guard<SpinLock> guard(stream_modules_mutex_);
-    auto& ranges = streamModules[sid][mid];
-    if (not ranges.empty()) {
-      auto fullmsg = "Warning: previous range not ended before starting a new one in "s + func +
-                      " name=" + msg + " mid=" + std::to_string(mid) +
-                      " stream id=" + std::to_string(sid);
-      Backend::mark(stream_domain_[sid], fullmsg.c_str(), Color::Red);
-      std::cout << fullmsg << std::endl;
-    }
-    ranges.emplace_back();
-    ranges.back().startColorIn(stream_domain_[sid], msg.c_str(), color, func);
-  }
-
-  void endStreamModuleRange_(StreamModuleRangeStacks& streamModules,
-                             unsigned int sid,
-                             unsigned int mid,
-                             std::string const& msg,
-                             char const* func) {
-    std::lock_guard<SpinLock> guard(stream_modules_mutex_);
-    auto& ranges = streamModules[sid][mid];
-    if (ranges.empty()) {
-      auto fullmsg = "Warning: trying to end a range that is not started in "s + func + " name=" + msg +
-                      " mid=" + std::to_string(mid) + " stream id=" + std::to_string(sid);
-      Backend::mark(stream_domain_[sid], fullmsg.c_str(), Color::Red);
-      std::cout << fullmsg << std::endl;
-      return;
-    }
-    ranges.back().endIn(stream_domain_[sid], msg.c_str(), func);
-    ranges.pop_back();
-  }
+  using GlobalESInFlightRanges =
+      ProfilerServiceBase::InFlightRanges<Backend, Range, Domain, unsigned int, std::string, edm::ESModuleCallingContext::State, std::uintptr_t>;
+  using StreamModuleInFlightRanges =
+      ProfilerServiceBase::InFlightRanges<Backend, Range, Domain, unsigned int, unsigned int>;
+  using TransformInFlightRanges =
+      ProfilerServiceBase::InFlightRanges<Backend, Range, Domain, unsigned int, unsigned int, std::uintptr_t>;
 
   std::string transformMessage_(edm::ModuleCallingContext const& mcc, char const* signal) const {
     auto const& label = mcc.moduleDescription()->moduleLabel();
     return label + " " + signal;
   }
-
-  using GlobalESInFlightRanges = ProfilerServiceBase::InFlightRanges<Backend, Range, Domain, unsigned int, std::string, edm::ESModuleCallingContext::State, std::uintptr_t>;
 
   bool highlight(std::string const& label) const {
     return (std::binary_search(highlightModules_.begin(), highlightModules_.end(), label));
@@ -554,12 +523,12 @@ private:
   std::vector<Range> source_;  // per-stream source ranges TODO: it might be possible to merge this with event_
   std::vector<std::vector<Range>> path_;            // per-stream, per-path ranges
   std::vector<std::vector<Range>> endPath_;         // per-stream, per-endPath ranges
-  StreamModuleRangeStacks stream_modules_;  // generic per-stream, per-module stacks of ranges
-  StreamModuleRangeStacks stream_modules_event_;
-  StreamModuleRangeStacks stream_modules_event_acquire_;
   SharedRangePool range_pool_;
+  GlobalESInFlightRanges global_es_in_flight_ranges_;
+  StreamModuleInFlightRanges stream_modules_in_flight_ranges_;
+  StreamModuleInFlightRanges stream_modules_event_in_flight_ranges_;
+  StreamModuleInFlightRanges stream_modules_event_acquire_in_flight_ranges_;
   TransformInFlightRanges transform_in_flight_ranges_;
-  SpinLock stream_modules_mutex_;
   // use a tbb::concurrent_vector rather than an std::vector because its final size is not known
   tbb::concurrent_vector<Range> global_modules_;       // global per-module events
   std::vector<std::vector<Range>> stream_ES_modules_;  // per-stream, per-ES-module ranges
@@ -567,7 +536,6 @@ private:
       stream_ES_modules_acquire_;  // per-stream, per-ES-module ranges for acquire, which can clash with produce
   // use a tbb::concurrent_vector rather than an std::vector because its final size is not known
   tbb::concurrent_vector<Range> global_ES_modules_;  // global per-ES-module events
-  GlobalESInFlightRanges global_es_in_flight_ranges_;
 
   Domain global_domain_;               // NVTX domain for global EDM transitions
   std::vector<Domain> stream_domain_;  // NVTX domains for per-EDM-stream transitions
@@ -577,10 +545,13 @@ template <typename Backend>
 ProfilerService<Backend>::ProfilerService(edm::ParameterSet const& config, edm::ActivityRegistry& registry)
     : highlightModules_(config.getUntrackedParameter<std::vector<std::string>>("highlightModules")),
       showModulePrefetching_(config.getUntrackedParameter<bool>("showModulePrefetching")),
-  skipFirstEvent_(config.getUntrackedParameter<bool>("skipFirstEvent")),
-  range_pool_(),
-  transform_in_flight_ranges_(range_pool_),
-  global_es_in_flight_ranges_(range_pool_) {
+      skipFirstEvent_(config.getUntrackedParameter<bool>("skipFirstEvent")),
+      range_pool_(),
+      global_es_in_flight_ranges_(range_pool_),
+      stream_modules_in_flight_ranges_(range_pool_),
+      stream_modules_event_in_flight_ranges_(range_pool_),
+      stream_modules_event_acquire_in_flight_ranges_(range_pool_),
+      transform_in_flight_ranges_(range_pool_) {
   // make sure that CUDA is initialised, and that the CUDAInterface destructor is called after this service's destructor
   typename Backend::EDMService service;
   std::cout << Backend::shortName() << "ProfilerService: initializing..." << std::endl;
@@ -660,9 +631,8 @@ ProfilerService<Backend>::ProfilerService(edm::ParameterSet const& config, edm::
 
   // Process block signal pairs
   REGISTER_SIGNAL_WATCHER(BeginProcessBlock)
-  REGISTER_SIGNAL_WATCHER(EndProcessBlock)
   REGISTER_SIGNAL_WATCHER(AccessInputProcessBlock)
-  REGISTER_SIGNAL_WATCHER(WriteProcessBlock)
+  REGISTER_SIGNAL_WATCHER(EndProcessBlock)
 
   // Job-level single signals
   registry.watchBeginProcessing(this, &ProfilerService::beginProcessing);
@@ -671,6 +641,8 @@ ProfilerService<Backend>::ProfilerService(edm::ParameterSet const& config, edm::
   // these signal pair are NOT guaranteed to be called by the same thread
   REGISTER_SIGNAL_WATCHER(GlobalBeginRun)
   REGISTER_SIGNAL_WATCHER(GlobalEndRun)
+
+  REGISTER_SIGNAL_WATCHER(WriteProcessBlock)
 
   // Global write signal pairs
   REGISTER_SIGNAL_WATCHER(GlobalWriteRun)
@@ -701,7 +673,7 @@ ProfilerService<Backend>::ProfilerService(edm::ParameterSet const& config, edm::
   registry.watchPreGlobalEarlyTermination(this, &ProfilerService::preGlobalEarlyTermination);
   registry.watchPreSourceEarlyTermination(this, &ProfilerService::preSourceEarlyTermination);
 
-  // ES module construction signal pair
+  // these signal pair are guaranteed to be called by the same thread
   REGISTER_SIGNAL_WATCHER(ESModuleConstruction)
 
   // ES signal watchers
@@ -717,7 +689,6 @@ ProfilerService<Backend>::ProfilerService(edm::ParameterSet const& config, edm::
   REGISTER_SIGNAL_WATCHER(ESModule)
   REGISTER_SIGNAL_WATCHER(ESModuleAcquire)
 
-  // these signal pair are guaranteed to be called by the same thread
   REGISTER_SIGNAL_WATCHER(ModuleConstruction)
   REGISTER_SIGNAL_WATCHER(ModuleDestruction)
 
@@ -747,6 +718,10 @@ ProfilerService<Backend>::ProfilerService(edm::ParameterSet const& config, edm::
   REGISTER_SIGNAL_WATCHER(ModuleStreamBeginLumi)
   REGISTER_SIGNAL_WATCHER(ModuleStreamEndLumi)
 
+  REGISTER_SIGNAL_WATCHER(ModuleBeginProcessBlock)
+  REGISTER_SIGNAL_WATCHER(ModuleAccessInputProcessBlock)
+  REGISTER_SIGNAL_WATCHER(ModuleEndProcessBlock)
+
   // Module global prefetching and process block signal pairs
   if (showModulePrefetching_) {
     REGISTER_SIGNAL_WATCHER(ModuleGlobalPrefetching)
@@ -758,9 +733,6 @@ ProfilerService<Backend>::ProfilerService(edm::ParameterSet const& config, edm::
   REGISTER_SIGNAL_WATCHER(ModuleGlobalBeginLumi)
   REGISTER_SIGNAL_WATCHER(ModuleGlobalEndLumi)
 
-  REGISTER_SIGNAL_WATCHER(ModuleBeginProcessBlock)
-  REGISTER_SIGNAL_WATCHER(ModuleEndProcessBlock)
-  REGISTER_SIGNAL_WATCHER(ModuleAccessInputProcessBlock)
   REGISTER_SIGNAL_WATCHER(ModuleWriteProcessBlock)
   REGISTER_SIGNAL_WATCHER(ModuleWriteRun)
   REGISTER_SIGNAL_WATCHER(ModuleWriteLumi)
@@ -819,25 +791,6 @@ void ProfilerService<Backend>::preallocate(edm::service::SystemBounds const& bou
   path_.resize(concurrentStreams);
   endPath_.resize(concurrentStreams);
   source_.resize(concurrentStreams);
-  // per stream path and end path arrays will be resized in lookupInitializationComplete()
-  stream_modules_.resize(concurrentStreams);
-  for (auto& modulesForOneStream : stream_modules_) {
-    modulesForOneStream.resize(global_modules_.size());
-  }
-  for (auto& modulesForOneStream : stream_modules_event_) {
-    modulesForOneStream.resize(global_modules_.size());
-  }
-  for (auto& modulesForOneStream : stream_modules_event_acquire_) {
-    modulesForOneStream.resize(global_modules_.size());
-  }
-  stream_modules_event_.resize(concurrentStreams);
-  for (auto& modulesForOneStream : stream_modules_event_) {
-    modulesForOneStream.resize(global_modules_.size());
-  }
-  stream_modules_event_acquire_.resize(concurrentStreams);
-  for (auto& modulesForOneStream : stream_modules_event_acquire_) {
-    modulesForOneStream.resize(global_modules_.size());
-  }
 
   if (skipFirstEvent_) {
     globalFirstEventDone_ = false;
@@ -1145,14 +1098,6 @@ void ProfilerService<Backend>::preModuleConstruction(edm::ModuleDescription cons
   global_modules_.grow_to_at_least(mid + 1);
   std::cout << "ProfilerService::preModuleConstruction: module id " << mid << ", label: " << desc.moduleLabel() << "\n";
 
-  // This normally does nothing because stream_modules_ is empty when
-  // called. But there is a rare case when a looper is used that replacement
-  // modules can be constructed at end of loop. I'm not sure if that feature
-  // is ever actually used but just to be safe...
-  for (auto& modulesForOneStream : stream_modules_) {
-    modulesForOneStream.resize(global_modules_.size());
-  }
-
   if (not skipFirstEvent_) {
     auto const& label = desc.moduleLabel();
     auto const& msg = label + " construction";
@@ -1232,46 +1177,20 @@ void ProfilerService<Backend>::postModuleEndJob(edm::ModuleDescription const& de
 
 /******** Module stream context signals *********************************************/
 
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleBeginStream, stream_modules_)
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEndStream, stream_modules_)
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginRun, stream_modules_)
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamEndRun, stream_modules_)
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginLumi, stream_modules_)
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamEndLumi, stream_modules_)
-// DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventPrefetching)
-template <class Backend>
-void ProfilerService<Backend>::preModuleEventPrefetching(edm::StreamContext const& sc,
-                                                         edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " " +
-                      "ModuleEventPrefetching"
-                      "";
-    startStreamModuleRange_(stream_modules_, sid, mid, msg, labelColor(label), __func__);
-  }
-}
-template <class Backend>
-void ProfilerService<Backend>::postModuleEventPrefetching(edm::StreamContext const& sc,
-                                                          edm::ModuleCallingContext const& mcc) {
-  auto sid = sc.streamID();
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    auto mid = mcc.moduleDescription()->id();
-    auto const& label = mcc.moduleDescription()->moduleLabel();
-    auto const& msg = label + " " +
-                      "ModuleEventPrefetching"
-                      "";
-    endStreamModuleRange_(stream_modules_, sid, mid, msg, __func__);
-  }
-}
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventAcquire, stream_modules_event_acquire_)
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEvent, stream_modules_event_)
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventDelayedGet, stream_modules_)
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(EventReadFromSource, stream_modules_)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleBeginStream, stream_modules_in_flight_ranges_)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEndStream, stream_modules_in_flight_ranges_)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginRun, stream_modules_in_flight_ranges_)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamEndRun, stream_modules_in_flight_ranges_)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginLumi, stream_modules_in_flight_ranges_)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamEndLumi, stream_modules_in_flight_ranges_)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventPrefetching, stream_modules_in_flight_ranges_)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEvent, stream_modules_event_in_flight_ranges_)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventAcquire, stream_modules_event_acquire_in_flight_ranges_)
 DEFINE_MODULE_TRANSFORM_SIGNAL_WATCHER(ModuleTransformPrefetching)
-DEFINE_MODULE_TRANSFORM_SIGNAL_WATCHER(ModuleTransformAcquiring)
 DEFINE_MODULE_TRANSFORM_SIGNAL_WATCHER(ModuleTransform)
+DEFINE_MODULE_TRANSFORM_SIGNAL_WATCHER(ModuleTransformAcquiring)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventDelayedGet, stream_modules_in_flight_ranges_)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(EventReadFromSource, stream_modules_in_flight_ranges_)
 
 template <class Backend>
 void ProfilerService<Backend>::preModuleGlobalBeginRun(edm::GlobalContext const& gc,
@@ -1406,121 +1325,16 @@ void ProfilerService<Backend>::postESModuleRegistration(
 template <class Backend>
 void ProfilerService<Backend>::preESModulePrefetching(edm::eventsetup::EventSetupRecordKey const& iKey,
                                                       edm::ESModuleCallingContext const& esmcc) {
-  auto mid = esmcc.componentDescription()->id_;
-  auto const& record = iKey.name();
-  auto const& cd = esmcc.componentDescription();
-  auto const& label = cd->label_;
-  auto const& type = cd->type_;
-  auto const& pid = cd->pid_.smallHash();
-  auto const& state = esmcc.state();
-  auto const& callId = esmcc.callID();
-  std::string msg;
-  if (label.size() == 0) {
-    // Fallback on the type
-    msg = type + "(type) " +
-          "ES prefetch"
-          " acquire"
-          " mid=" + std::to_string(mid) +
-          " signal=" + std::string("ESModulePrefetching") +
-          " record=" +
-          record +
-          // Print pid as hex
-          " pid=" + [](auto pid) {
-            std::stringstream ss;
-            ss << std::hex << pid;
-            return ss.str();
-          }(pid) +
-          " state=" + (state == edm::ESModuleCallingContext::State::kRunning ? "running" : "prefetching") +
-          " callId=" + std::to_string(callId);
-  } else {
-    msg = label + " " +
-          "ES prefetch"
-          " acquire"
-          " mid=" + std::to_string(mid) +
-          " signal=" + std::string("ESModulePrefetching") +
-          " record=" +
-          record +
-          " pid=" + 
-          [](auto pid) {
-            std::stringstream ss;
-            ss << std::hex << pid;
-            return ss.str();
-          }(pid) +
-          " type=" + type +
-          " state=" + (state == edm::ESModuleCallingContext::State::kRunning ? "running" : "prefetching") +
-          " callId=" + std::to_string(callId);
-  }
-  global_es_in_flight_ranges_.start(global_domain_, msg, Color::Blue, __func__, "ESModulePrefetching", mid, iKey.name(), state, callId);
+  preESModuleAcquire(iKey, esmcc);
 }
 
 template <class Backend>
 void ProfilerService<Backend>::postESModulePrefetching(edm::eventsetup::EventSetupRecordKey const& iKey,
                                                        edm::ESModuleCallingContext const& esmcc) {
-  auto mid = esmcc.componentDescription()->id_;
-  auto const& record = iKey.name();
-  auto const& cd_post = esmcc.componentDescription();
-  auto const& label = cd_post->label_;
-  auto const& type = cd_post->type_;
-  auto const pid = cd_post->pid_.smallHash();
-  auto const& state = esmcc.state();
-  auto const callId = esmcc.callID();
-  std::string msg;
-  if (label.size() == 0) {
-    // Fallback on the type
-    msg = type + "(type) " +
-          "ES prefetch"
-          " acquire"
-          " mid=" + std::to_string(mid) +
-          " signal=" + std::string("ESModulePrefetching") +
-          " record=" +
-          record +
-          " state=" + (state == edm::ESModuleCallingContext::State::kRunning ? "running" : "prefetching");
-  } else {
-    msg = label + " " +
-          "ES prefetch"
-          " acquire"
-          " record=" +
-          record +
-          " state=" + (state == edm::ESModuleCallingContext::State::kRunning ? "running" : "prefetching");
-  }
-  global_es_in_flight_ranges_.end(global_domain_, msg, __func__, "ESModulePrefetching", mid, iKey.name(), state, callId);
+  postESModuleAcquire(iKey, esmcc);
 }
 
-/*DEFINE_ES_SIGNAL_WATCHER(ESModule)*/
-template <class Backend>
-void ProfilerService<Backend>::preESModule(edm::eventsetup::EventSetupRecordKey const& iKey,
-                                           edm::ESModuleCallingContext const& esmcc) {
-  auto mid = esmcc.componentDescription()->id_;
-  auto const& cd_pre = esmcc.componentDescription();
-  auto const& label = cd_pre->label_;
-  auto const& type = cd_pre->type_;
-  auto const pid = cd_pre->pid_.smallHash();
-  auto const& state = esmcc.state();
-  auto const& context = iKey.name();
-  auto const& callId = esmcc.callID();
-  std::string msg = "ESModule: label = '" + label + "', type = '" + type + "', record = '" + context + "' mid=" +
-                    std::to_string(mid) + 
-                    " state=" +  ( state == edm::ESModuleCallingContext::State::kRunning ? "running" : "prefetching" ) + 
-                    " pid=" + std::to_string(pid) + " context=" + context + " callId=" + std::to_string(callId);
-  global_es_in_flight_ranges_.start(global_domain_, msg, Color::Blue, __func__, "ESModule", mid, context, state, callId);
-}
-
-template <class Backend>
-void ProfilerService<Backend>::postESModule(edm::eventsetup::EventSetupRecordKey const& iKey,
-                                            edm::ESModuleCallingContext const& esmcc) {
-  auto mid = esmcc.componentDescription()->id_;
-  auto const& cd_post2 = esmcc.componentDescription();
-  auto const& label = cd_post2->label_;
-  auto const& type = cd_post2->type_;
-  auto const pid = cd_post2->pid_.smallHash();
-  auto const& context = iKey.name();
-  auto const& state = esmcc.state();
-  auto const& callId = esmcc.callID();
-  std::string msg = "ESModule: label = '" + label + "', type = '" + type + "', record = '" + context + "' state=" + 
-     (state == edm::ESModuleCallingContext::State::kRunning ? "running" : "prefetching") + " pid=" + std::to_string(pid) + " context=" + context + " callId=" + std::to_string(callId);
-  global_es_in_flight_ranges_.end(global_domain_, msg, __func__, "ESModule", mid, context, state, callId);
-}
-
+DEFINE_ES_SIGNAL_WATCHER(ESModule)
 DEFINE_ES_SIGNAL_WATCHER(ESModuleAcquire)
 
 /******** Job-level single signal implementations *************************************/
@@ -1893,14 +1707,14 @@ void ProfilerService<Backend>::preSourceEarlyTermination(edm::TerminationOrigin 
 
 /******** Module stream prefetching signal implementations *****************************/
 
-DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamPrefetching, stream_modules_)
+DEFINE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamPrefetching, stream_modules_in_flight_ranges_)
 
 /******** Module global prefetching and process block signal implementations ***********/
 
-DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleGlobalPrefetching)
 DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleBeginProcessBlock)
-DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleEndProcessBlock)
 DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleAccessInputProcessBlock)
+DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleEndProcessBlock)
+DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleGlobalPrefetching)
 DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleWriteProcessBlock)
 DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleWriteRun)
 DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleWriteLumi)
