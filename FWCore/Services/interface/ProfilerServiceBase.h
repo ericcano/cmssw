@@ -61,7 +61,13 @@ public:
     Grey_Dark1,
     Grey,
     Grey_Light1,
-    Grey_Light2
+    Grey_Light2,
+    // Yellow family (dark to light)
+    Yellow_Dark2,
+    Yellow_Dark1,
+    Yellow,
+    Yellow_Light1,
+    Yellow_Light2
   };
 
   static size_t to_underlying(Color c) noexcept { return static_cast<std::size_t>(c); }

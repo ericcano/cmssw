@@ -94,7 +94,7 @@ namespace {
 
       static constexpr roctx_range_id_t roctxInvalidRangeId = ~0ul;
 
-      static constexpr std::array<uint32_t, 27> colorMap = {{
+      static constexpr std::array<uint32_t, 32> colorMap = {{
           0x00000000,  // Black
           // Red family
           0x00880000,  // Red_Dark2
@@ -126,7 +126,13 @@ namespace {
           0x00606060,  // Grey_Dark1
           0x00808080,  // Grey
           0x00a0a0a0,  // Grey_Light1
-          0x00c0c0c0   // Grey_Light2
+          0x00c0c0c0,  // Grey_Light2
+          // Yellow family
+          0x00888800,  // Yellow_Dark2
+          0x00cccc00,  // Yellow_Dark1
+          0x00ffff00,  // Yellow
+          0x00ffff66,  // Yellow_Light1
+          0x00ffffcc   // Yellow_Light2
       }};
 
     public:
