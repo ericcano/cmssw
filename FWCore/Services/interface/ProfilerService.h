@@ -48,11 +48,82 @@
  */
 
 /**
- * Helper marcos to declare similar functions (for pre/post couples).
+ * Helper macros to declare signal handler pairs by parameter signature.
  */
-#define DECLARE_ES_SIGNAL_WATCHER(signal)                                                                     \
-  void pre##signal(edm::eventsetup::EventSetupRecordKey const& iKey, edm::ESModuleCallingContext const& mcc); \
-  void post##signal(edm::eventsetup::EventSetupRecordKey const& iKey, edm::ESModuleCallingContext const& mcc);
+#define DECLARE_SIGNAL_WATCHER_NOARGS(signal) \
+  void pre##signal();                          \
+  void post##signal();
+
+#define DECLARE_SIGNAL_WATCHER_PROCESS_CONTEXT(signal) \
+  void pre##signal(edm::ProcessContext const&);        \
+  void post##signal();
+
+#define DECLARE_SIGNAL_WATCHER_SOURCE_PROCESS_BLOCK(signal)   \
+  void pre##signal();                                         \
+  void post##signal(std::string const&);
+
+#define DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT(signal)                  \
+  void pre##signal(edm::StreamContext const&);                        \
+  void post##signal(edm::StreamContext const&);
+
+#define DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT(signal)                  \
+  void pre##signal(edm::GlobalContext const&);                        \
+  void post##signal(edm::GlobalContext const&);
+
+#define DECLARE_SIGNAL_WATCHER_STREAM_ID(signal)                     \
+  void pre##signal(edm::StreamID);                                   \
+  void post##signal(edm::StreamID);
+
+#define DECLARE_SIGNAL_WATCHER_LUMIBLOCK_INDEX(signal)                \
+  void pre##signal(edm::LuminosityBlockIndex);                      \
+  void post##signal(edm::LuminosityBlockIndex);
+
+#define DECLARE_SIGNAL_WATCHER_RUN_INDEX(signal)                      \
+  void pre##signal(edm::RunIndex);                                  \
+  void post##signal(edm::RunIndex);
+
+#define DECLARE_SIGNAL_WATCHER_STRING(signal)                         \
+  void pre##signal(std::string const&);                             \
+  void post##signal(std::string const&);
+
+#define DECLARE_SIGNAL_WATCHER_MODULE_DESCRIPTION(signal)             \
+  void pre##signal(edm::ModuleDescription const&);                   \
+  void post##signal(edm::ModuleDescription const&);
+
+#define DECLARE_SIGNAL_WATCHER_COMPONENT_DESCRIPTION(signal)          \
+  void pre##signal(edm::eventsetup::ComponentDescription const&);   \
+  void post##signal(edm::eventsetup::ComponentDescription const&);
+
+#define DECLARE_SIGNAL_WATCHER_IOV_SYNC_VALUE(signal)                 \
+  void pre##signal(edm::IOVSyncValue const&);                       \
+  void post##signal(edm::IOVSyncValue const&);
+
+#define DECLARE_SIGNAL_WATCHER_EVENT_SETUP_RECORD_KEY_ES_MODULE_CALLING_CONTEXT(signal) \
+  void pre##signal(edm::eventsetup::EventSetupRecordKey const&, edm::ESModuleCallingContext const&); \
+  void post##signal(edm::eventsetup::EventSetupRecordKey const&, edm::ESModuleCallingContext const&);
+
+#define DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_PATH_CONTEXT(signal)     \
+  void pre##signal(edm::StreamContext const&, edm::PathContext const&);
+
+#define DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_PATH_CONTEXT_HLT_STATUS(signal) \
+  void post##signal(edm::StreamContext const&, edm::PathContext const&, edm::HLTPathStatus const&);
+
+#define DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_MODULE_CALLING_CONTEXT(signal) \
+  void pre##signal(edm::StreamContext const&, edm::ModuleCallingContext const&); \
+  void post##signal(edm::StreamContext const&, edm::ModuleCallingContext const&);
+
+#define DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT_MODULE_CALLING_CONTEXT(signal) \
+  void pre##signal(edm::GlobalContext const&, edm::ModuleCallingContext const&); \
+  void post##signal(edm::GlobalContext const&, edm::ModuleCallingContext const&);
+
+#define DECLARE_SIGNAL_WATCHER_TERMINATION_ORIGIN_STREAM(signal) \
+  void pre##signal(edm::StreamContext const&, edm::TerminationOrigin);
+
+#define DECLARE_SIGNAL_WATCHER_TERMINATION_ORIGIN_GLOBAL(signal) \
+  void pre##signal(edm::GlobalContext const&, edm::TerminationOrigin);
+
+#define DECLARE_SIGNAL_WATCHER_TERMINATION_ORIGIN_SOURCE(signal) \
+  void pre##signal(edm::TerminationOrigin);
 
 // ES module signal ranges are keyed dynamically to avoid collisions from overlapping calls.
 #define DEFINE_ES_SIGNAL_WATCHER(signal)                                                        \
@@ -92,10 +163,6 @@
     }                                                                                           \
     global_es_in_flight_ranges_.end(global_domain_, msg, __func__, #signal, mid, iKey.name(), state, callId); \
   }
-
-#define DECLARE_MODULE_STREAM_SIGNAL_WATCHER(signal)                                    \
-  void pre##signal(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc); \
-  void post##signal(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc);
 
 #define DEFINE_MODULE_STREAM_SIGNAL_WATCHER(signal, inFlightRanges)                                                \
   template <class Backend>                                                                                          \
@@ -147,10 +214,6 @@
   registry.watchPost##signal(this, &ProfilerService::post##signal);
 
 // Macro for global-module (GlobalContext, ModuleCallingContext) signal pairs, using global_modules_
-#define DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(signal)                                      \
-  void pre##signal(edm::GlobalContext const& gc, edm::ModuleCallingContext const& mcc);   \
-  void post##signal(edm::GlobalContext const& gc, edm::ModuleCallingContext const& mcc);
-
 #define DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(signal)                                                                   \
   template <class Backend>                                                                                            \
   void ProfilerService<Backend>::pre##signal(edm::GlobalContext const& gc, edm::ModuleCallingContext const& mcc) {    \
@@ -234,20 +297,14 @@ public:
   void preModulesInitializationFinalized();
   void postModulesInitializationFinalized();
 
-  // these signal pair are NOT guaranteed to be called by the same thread
-  void preBeginJob(edm::ProcessContext const&);
-  void postBeginJob();
+  DECLARE_SIGNAL_WATCHER_PROCESS_CONTEXT(BeginJob)
 
-  void preEndJob();
-  void postEndJob();
+  DECLARE_SIGNAL_WATCHER_NOARGS(EndJob)
 
   void lookupInitializationComplete(edm::PathsAndConsumesOfModulesBase const&, edm::ProcessContext const&);
 
-  void preBeginStream(edm::StreamContext const&);
-  void postBeginStream(edm::StreamContext const&);
-
-  void preEndStream(edm::StreamContext const&);
-  void postEndStream(edm::StreamContext const&);
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT(BeginStream)
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT(EndStream)
 
   void jobFailure();
 
@@ -258,60 +315,40 @@ public:
 
   /******** Source stream context signals *************************************/
 
-  // these signal pair are guaranteed to be called by the same thread
-  void preSourceEvent(edm::StreamID);
-  void postSourceEvent(edm::StreamID);
+  DECLARE_SIGNAL_WATCHER_STREAM_ID(SourceEvent)
 
   /******** Source lumi context signals *************************************/
 
-  // these signal pair are guaranteed to be called by the same thread
-  void preSourceLumi(edm::LuminosityBlockIndex);
-  void postSourceLumi(edm::LuminosityBlockIndex);
+  DECLARE_SIGNAL_WATCHER_LUMIBLOCK_INDEX(SourceLumi)
 
   /******** Source run context signals *************************************/
 
-  // these signal pair are guaranteed to be called by the same thread
-  void preSourceRun(edm::RunIndex);
-  void postSourceRun(edm::RunIndex);
+  DECLARE_SIGNAL_WATCHER_RUN_INDEX(SourceRun)
 
   /******** Source process block signals *************************************/
 
-  void preSourceProcessBlock();
-  void postSourceProcessBlock(std::string const&);
+  DECLARE_SIGNAL_WATCHER_SOURCE_PROCESS_BLOCK(SourceProcessBlock)
 
   /******** File context signals **********************************************/
 
-  // these signal pair are guaranteed to be called by the same thread
-  void preOpenFile(std::string const&);
-  void postOpenFile(std::string const&);
-
-  // these signal pair are guaranteed to be called by the same thread
-  void preCloseFile(std::string const&);
-  void postCloseFile(std::string const&);
+  DECLARE_SIGNAL_WATCHER_STRING(OpenFile)
+  DECLARE_SIGNAL_WATCHER_STRING(CloseFile)
 
   /******** Output file signals **********************************************/
 
-  void preOpenOutputFiles();
-  void postOpenOutputFiles();
-
-  void preCloseOutputFiles();
-  void postCloseOutputFiles();
+  DECLARE_SIGNAL_WATCHER_NOARGS(OpenOutputFiles)
+  DECLARE_SIGNAL_WATCHER_NOARGS(CloseOutputFiles)
 
   /******** Module stream context signals *********************************************/
 
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleBeginStream)
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEndStream)
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_MODULE_CALLING_CONTEXT(ModuleBeginStream)
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_MODULE_CALLING_CONTEXT(ModuleEndStream)
 
   /******** Process block signals **********************************************/
 
-  void preBeginProcessBlock(edm::GlobalContext const&);
-  void postBeginProcessBlock(edm::GlobalContext const&);
-
-  void preAccessInputProcessBlock(edm::GlobalContext const&);
-  void postAccessInputProcessBlock(edm::GlobalContext const&);
-
-  void preEndProcessBlock(edm::GlobalContext const&);
-  void postEndProcessBlock(edm::GlobalContext const&);
+  DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT(BeginProcessBlock)
+  DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT(AccessInputProcessBlock)
+  DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT(EndProcessBlock)
 
   /******** Job-level single signals *********************************************/
 
@@ -320,80 +357,51 @@ public:
 
   /******* Global context signals  **********************************************/
 
-  // these signal pair are NOT guaranteed to be called by the same thread
-  void preGlobalBeginRun(edm::GlobalContext const&);
-  void postGlobalBeginRun(edm::GlobalContext const&);
+  DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT(GlobalBeginRun)
+  DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT(GlobalEndRun)
 
-  // these signal pair are NOT guaranteed to be called by the same thread
-  void preGlobalEndRun(edm::GlobalContext const&);
-  void postGlobalEndRun(edm::GlobalContext const&);
-
-  void preWriteProcessBlock(edm::GlobalContext const&);
-  void postWriteProcessBlock(edm::GlobalContext const&);
+  DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT(WriteProcessBlock)
 
   /******** Global write signals **********************************************/
 
-  void preGlobalWriteRun(edm::GlobalContext const&);
-  void postGlobalWriteRun(edm::GlobalContext const&);
+  DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT(GlobalWriteRun)
 
   /******* Stream context signals  **********************************************/
 
-  // these signal pair are NOT guaranteed to be called by the same thread
-  void preStreamBeginRun(edm::StreamContext const&);
-  void postStreamBeginRun(edm::StreamContext const&);
-
-  // these signal pair are NOT guaranteed to be called by the same thread
-  void preStreamEndRun(edm::StreamContext const&);
-  void postStreamEndRun(edm::StreamContext const&);
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT(StreamBeginRun)
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT(StreamEndRun)
 
   /******** Global context lumi signals **********************************************/
 
-  // these signal pair are NOT guaranteed to be called by the same thread
-  void preGlobalBeginLumi(edm::GlobalContext const&);
-  void postGlobalBeginLumi(edm::GlobalContext const&);
+  DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT(GlobalBeginLumi)
+  DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT(GlobalEndLumi)
 
-  // these signal pair are NOT guaranteed to be called by the same thread
-  void preGlobalEndLumi(edm::GlobalContext const&);
-  void postGlobalEndLumi(edm::GlobalContext const&);
-
-  void preGlobalWriteLumi(edm::GlobalContext const&);
-  void postGlobalWriteLumi(edm::GlobalContext const&);
+  DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT(GlobalWriteLumi)
 
   /******** Stream context lumi signals **********************************************/
 
-  // these signal pair are NOT guaranteed to be called by the same thread
-  void preStreamBeginLumi(edm::StreamContext const&);
-  void postStreamBeginLumi(edm::StreamContext const&);
-
-  // these signal pair are NOT guaranteed to be called by the same thread
-  void preStreamEndLumi(edm::StreamContext const&);
-  void postStreamEndLumi(edm::StreamContext const&);
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT(StreamBeginLumi)
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT(StreamEndLumi)
 
   /******** Stream context events signal **********************************************/
 
-  // these signal pair are NOT guaranteed to be called by the same thread
-  void preEvent(edm::StreamContext const&);
-  void postEvent(edm::StreamContext const&);
-
-  void preClearEvent(edm::StreamContext const&);
-  void postClearEvent(edm::StreamContext const&);
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT(Event)
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT(ClearEvent)
 
   /******** Path context event signals **********************************************/
 
-  // these signal pair are NOT guaranteed to be called by the same thread
-  void prePathEvent(edm::StreamContext const&, edm::PathContext const&);
-  void postPathEvent(edm::StreamContext const&, edm::PathContext const&, edm::HLTPathStatus const&);
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_PATH_CONTEXT(PathEvent)
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_PATH_CONTEXT_HLT_STATUS(PathEvent)
 
   /******** Early termination signals (Pre only, no Post) *****************************/
 
-  void preStreamEarlyTermination(edm::StreamContext const&, edm::TerminationOrigin);
-  void preGlobalEarlyTermination(edm::GlobalContext const&, edm::TerminationOrigin);
-  void preSourceEarlyTermination(edm::TerminationOrigin);
+  DECLARE_SIGNAL_WATCHER_TERMINATION_ORIGIN_STREAM(StreamEarlyTermination)
+  DECLARE_SIGNAL_WATCHER_TERMINATION_ORIGIN_GLOBAL(GlobalEarlyTermination)
+  DECLARE_SIGNAL_WATCHER_TERMINATION_ORIGIN_SOURCE(SourceEarlyTermination)
 
   /******** ES module construction signals **********************************************/
 
-  void preESModuleConstruction(edm::eventsetup::ComponentDescription const&);
-  void postESModuleConstruction(edm::eventsetup::ComponentDescription const&);
+  DECLARE_SIGNAL_WATCHER_COMPONENT_DESCRIPTION(ESModuleConstruction)
 
   /******** ES module context signals *********************************************/
 
@@ -403,90 +411,63 @@ public:
 
   void esSyncIOVQueuing(edm::IOVSyncValue const&);
 
-  void preESSyncIOV(edm::IOVSyncValue const&);
-  void postESSyncIOV(edm::IOVSyncValue const&);
+  DECLARE_SIGNAL_WATCHER_IOV_SYNC_VALUE(ESSyncIOV)
 
   // Prefetching is optionally watched
   // (see constructor)
-  DECLARE_ES_SIGNAL_WATCHER(ESModulePrefetching)
-  DECLARE_ES_SIGNAL_WATCHER(ESModule)
-  DECLARE_ES_SIGNAL_WATCHER(ESModuleAcquire)
+  DECLARE_SIGNAL_WATCHER_EVENT_SETUP_RECORD_KEY_ES_MODULE_CALLING_CONTEXT(ESModulePrefetching)
+  DECLARE_SIGNAL_WATCHER_EVENT_SETUP_RECORD_KEY_ES_MODULE_CALLING_CONTEXT(ESModule)
+  DECLARE_SIGNAL_WATCHER_EVENT_SETUP_RECORD_KEY_ES_MODULE_CALLING_CONTEXT(ESModuleAcquire)
 
   /******** Module no-context signals *********************************************/
 
-  // these signal pair are guaranteed to be called by the same thread
-  void preModuleConstruction(edm::ModuleDescription const&);
-  void postModuleConstruction(edm::ModuleDescription const&);
-
-  // these signal pair are guaranteed to be called by the same thread
-  void preModuleDestruction(edm::ModuleDescription const&);
-  void postModuleDestruction(edm::ModuleDescription const&);
-
-  // these signal pair are guaranteed to be called by the same thread
-  void preModuleBeginJob(edm::ModuleDescription const&);
-  void postModuleBeginJob(edm::ModuleDescription const&);
-
-  // these signal pair are guaranteed to be called by the same thread
-  void preModuleEndJob(edm::ModuleDescription const&);
-  void postModuleEndJob(edm::ModuleDescription const&);
+  DECLARE_SIGNAL_WATCHER_MODULE_DESCRIPTION(ModuleConstruction)
+  DECLARE_SIGNAL_WATCHER_MODULE_DESCRIPTION(ModuleDestruction)
+  DECLARE_SIGNAL_WATCHER_MODULE_DESCRIPTION(ModuleBeginJob)
+  DECLARE_SIGNAL_WATCHER_MODULE_DESCRIPTION(ModuleEndJob)
 
   /******** Module context signals *********************************************/
 
-  // these signal pair are NOT guaranteed to be called by the same thread
-  void preModuleEventPrefetching(edm::StreamContext const&, edm::ModuleCallingContext const&);
-  void postModuleEventPrefetching(edm::StreamContext const&, edm::ModuleCallingContext const&);
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_MODULE_CALLING_CONTEXT(ModuleEventPrefetching)
 
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEvent)
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventAcquire)
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransformPrefetching)
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransform)
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleTransformAcquiring)
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleEventDelayedGet)
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(EventReadFromSource)
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_MODULE_CALLING_CONTEXT(ModuleEvent)
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_MODULE_CALLING_CONTEXT(ModuleEventAcquire)
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_MODULE_CALLING_CONTEXT(ModuleTransformPrefetching)
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_MODULE_CALLING_CONTEXT(ModuleTransform)
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_MODULE_CALLING_CONTEXT(ModuleTransformAcquiring)
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_MODULE_CALLING_CONTEXT(ModuleEventDelayedGet)
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_MODULE_CALLING_CONTEXT(EventReadFromSource)
 
   /******** Module stream prefetching signals **********************************************/
 
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamPrefetching)
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_MODULE_CALLING_CONTEXT(ModuleStreamPrefetching)
 
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginRun)
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamEndRun)
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamBeginLumi)
-  DECLARE_MODULE_STREAM_SIGNAL_WATCHER(ModuleStreamEndLumi)
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_MODULE_CALLING_CONTEXT(ModuleStreamBeginRun)
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_MODULE_CALLING_CONTEXT(ModuleStreamEndRun)
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_MODULE_CALLING_CONTEXT(ModuleStreamBeginLumi)
+  DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_MODULE_CALLING_CONTEXT(ModuleStreamEndLumi)
 
   /******** Module global/process block context signals *************************************/
 
-  DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleBeginProcessBlock)
-  DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleAccessInputProcessBlock)
-  DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleEndProcessBlock)
+  DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT_MODULE_CALLING_CONTEXT(ModuleBeginProcessBlock)
+  DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT_MODULE_CALLING_CONTEXT(ModuleAccessInputProcessBlock)
+  DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT_MODULE_CALLING_CONTEXT(ModuleEndProcessBlock)
 
   /******** Module global prefetching and process block signals **********************************************/
 
-  DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleGlobalPrefetching)
-  // these signal pair are guaranteed to be called by the same thread
-  void preModuleGlobalBeginRun(edm::GlobalContext const&, edm::ModuleCallingContext const&);
-  void postModuleGlobalBeginRun(edm::GlobalContext const&, edm::ModuleCallingContext const&);
+  DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT_MODULE_CALLING_CONTEXT(ModuleGlobalPrefetching)
+  DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT_MODULE_CALLING_CONTEXT(ModuleGlobalBeginRun)
+  DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT_MODULE_CALLING_CONTEXT(ModuleGlobalEndRun)
+  DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT_MODULE_CALLING_CONTEXT(ModuleGlobalBeginLumi)
+  DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT_MODULE_CALLING_CONTEXT(ModuleGlobalEndLumi)
 
-  // these signal pair are guaranteed to be called by the same thread
-  void preModuleGlobalEndRun(edm::GlobalContext const&, edm::ModuleCallingContext const&);
-  void postModuleGlobalEndRun(edm::GlobalContext const&, edm::ModuleCallingContext const&);
-
-  // these signal pair are guaranteed to be called by the same thread
-  void preModuleGlobalBeginLumi(edm::GlobalContext const&, edm::ModuleCallingContext const&);
-  void postModuleGlobalBeginLumi(edm::GlobalContext const&, edm::ModuleCallingContext const&);
-
-  // these signal pair are guaranteed to be called by the same thread
-  void preModuleGlobalEndLumi(edm::GlobalContext const&, edm::ModuleCallingContext const&);
-  void postModuleGlobalEndLumi(edm::GlobalContext const&, edm::ModuleCallingContext const&);
-
-  DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleWriteProcessBlock)
-  DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleWriteRun)
-  DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleWriteLumi)
+  DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT_MODULE_CALLING_CONTEXT(ModuleWriteProcessBlock)
+  DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT_MODULE_CALLING_CONTEXT(ModuleWriteRun)
+  DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT_MODULE_CALLING_CONTEXT(ModuleWriteLumi)
 
   /******** Source module context signals *************************************/
 
-  // these signal pair are guaranteed to be called by the same thread
-  void preSourceConstruction(edm::ModuleDescription const&);
-  void postSourceConstruction(edm::ModuleDescription const&);
+  DECLARE_SIGNAL_WATCHER_MODULE_DESCRIPTION(SourceConstruction)
 
 private:
   using SharedRangePool = ProfilerServiceBase::RangePool<Range>;
@@ -1719,11 +1700,27 @@ DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleWriteProcessBlock)
 DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleWriteRun)
 DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleWriteLumi)
 
-#undef DECLARE_ES_SIGNAL_WATCHER
+#undef DECLARE_SIGNAL_WATCHER_NOARGS
+#undef DECLARE_SIGNAL_WATCHER_PROCESS_CONTEXT
+#undef DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT
+#undef DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT
+#undef DECLARE_SIGNAL_WATCHER_STREAM_ID
+#undef DECLARE_SIGNAL_WATCHER_LUMIBLOCK_INDEX
+#undef DECLARE_SIGNAL_WATCHER_RUN_INDEX
+#undef DECLARE_SIGNAL_WATCHER_STRING
+#undef DECLARE_SIGNAL_WATCHER_MODULE_DESCRIPTION
+#undef DECLARE_SIGNAL_WATCHER_COMPONENT_DESCRIPTION
+#undef DECLARE_SIGNAL_WATCHER_IOV_SYNC_VALUE
+#undef DECLARE_SIGNAL_WATCHER_EVENT_SETUP_RECORD_KEY_ES_MODULE_CALLING_CONTEXT
+#undef DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_PATH_CONTEXT
+#undef DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_PATH_CONTEXT_HLT_STATUS
+#undef DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_MODULE_CALLING_CONTEXT
+#undef DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT_MODULE_CALLING_CONTEXT
+#undef DECLARE_SIGNAL_WATCHER_TERMINATION_ORIGIN_STREAM
+#undef DECLARE_SIGNAL_WATCHER_TERMINATION_ORIGIN_GLOBAL
+#undef DECLARE_SIGNAL_WATCHER_TERMINATION_ORIGIN_SOURCE
 #undef DEFINE_ES_SIGNAL_WATCHER
-#undef DECLARE_MODULE_STREAM_SIGNAL_WATCHER
 #undef DEFINE_MODULE_STREAM_SIGNAL_WATCHER
-#undef DECLARE_GLOBAL_MODULE_SIGNAL_WATCHER
 #undef DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER
 #undef REGISTER_SIGNAL_WATCHER
 
