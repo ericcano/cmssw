@@ -28,15 +28,40 @@ class ProfilerServiceBase {
 public:
 
   enum class Color : std::size_t {
+    // Black, no variants
     Black = 0,
+    // Red family (dark to light)
+    Red_Dark2,
+    Red_Dark1,
     Red,
-    DarkGreen,
+    Red_Light1,
+    Red_Light2,
+    // Green family (dark to light)
+    Green_Dark2,
+    Green_Dark1,
     Green,
-    LightGreen,
+    Green_Light1,
+    Green_Light2,
+    // Blue family (dark to light)
+    Blue_Dark2,
+    Blue_Dark1,
     Blue,
+    Blue_Light1,
+    Blue_Light2,
+    // Amber family (dark to light)
+    Amber_Dark2,
+    Amber_Dark1,
     Amber,
-    LightAmber,
-    White
+    Amber_Light1,
+    Amber_Light2,
+    // White, no variants
+    White,
+    // Grey family (dark to light)
+    Grey_Dark2,
+    Grey_Dark1,
+    Grey,
+    Grey_Light1,
+    Grey_Light2
   };
 
   static size_t to_underlying(Color c) noexcept { return static_cast<std::size_t>(c); }

@@ -121,16 +121,39 @@ namespace {
 
       static constexpr nvtxRangeId_t nvtxInvalidRangeId = ~0ul;
 
-      static constexpr std::array<uint32_t, 9> colorMap = {{
+      static constexpr std::array<uint32_t, 27> colorMap = {{
           0x00000000,  // Black
+          // Red family
+          0x00880000,  // Red_Dark2
+          0x00cc0000,  // Red_Dark1
           0x00ff0000,  // Red
-          0x00009900,  // Dark Green
+          0x00ff8080,  // Red_Light1
+          0x00ffcccc,  // Red_Light2
+          // Green family
+          0x00004400,  // Green_Dark2
+          0x00009900,  // Green_Dark1
           0x0000ff00,  // Green
-          0x00ccffcc,  // Light Green
+          0x0099ff99,  // Green_Light1
+          0x00ccffcc,  // Green_Light2
+          // Blue family
+          0x00000077,  // Blue_Dark2
+          0x000000bb,  // Blue_Dark1
           0x000000ff,  // Blue
+          0x009999ff,  // Blue_Light1
+          0x00ccccff,  // Blue_Light2
+          // Amber family
+          0x00886600,  // Amber_Dark2
+          0x00cc9900,  // Amber_Dark1
           0x00ffbf00,  // Amber
-          0x00fff2cc,  // Light Amber
-          0x00ffffff   // White
+          0x00ffd966,  // Amber_Light1
+          0x00fff2cc,  // Amber_Light2
+          0x00ffffff,  // White
+          // Grey family
+          0x00404040,  // Grey_Dark2
+          0x00606060,  // Grey_Dark1
+          0x00808080,  // Grey
+          0x00a0a0a0,  // Grey_Light1
+          0x00c0c0c0   // Grey_Light2
       }};
 
     public:

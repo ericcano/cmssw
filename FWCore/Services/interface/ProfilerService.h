@@ -489,7 +489,7 @@ private:
   Color labelColor(std::string const& label) const { return highlight(label) ? Color::Amber : Color::Green; }
 
   Color labelColorLight(std::string const& label) const {
-    return highlight(label) ? Color::LightAmber : Color::LightGreen;
+    return highlight(label) ? Color::Amber_Light1 : Color::Green_Light1;
   }
 
   std::vector<std::string> highlightModules_;
@@ -1116,7 +1116,7 @@ void ProfilerService<Backend>::preEvent(edm::StreamContext const& sc) {
   auto sid = sc.streamID();
   if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
     std::string msg = fmt::sprintf("event run = %d event = %d", sc.eventID().run(), sc.eventID().event());
-    event_[sid].startColorIn(stream_domain_[sid], "event", Color::DarkGreen, __func__);
+    event_[sid].startColorIn(stream_domain_[sid], "event", Color::Green_Dark1, __func__);
   }
 }
 
@@ -1158,7 +1158,7 @@ void ProfilerService<Backend>::prePathEvent(edm::StreamContext const& sc, edm::P
   auto pid = pc.pathID();
   auto& pathOrEndPath = pc.isEndPath() ? endPath_[sid][pid] : path_[sid][pid];
   if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    pathOrEndPath.startColorIn(stream_domain_[sid], ("path " + pc.pathName()).c_str(), Color::DarkGreen, __func__);
+    pathOrEndPath.startColorIn(stream_domain_[sid], ("path " + pc.pathName()).c_str(), Color::Green_Dark1, __func__);
   }
 }
 
