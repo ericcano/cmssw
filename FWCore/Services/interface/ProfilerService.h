@@ -779,11 +779,11 @@ void ProfilerService<Backend>::fillDescriptions(edm::ConfigurationDescriptions& 
     }                                                                                                        \
   }
 
-// Macro for module (ModuleDescription) signal pairs, keyed by module id, guarded by !skipFirstEvent_.
-#define DEFINE_MODULE_DESC_SIGNAL_WATCHER(signal, color)                                                     \
+// Macro for module (ModuleDescription) signal pairs, keyed by module id. `guard` selects when to record.
+#define DEFINE_MODULE_DESC_SIGNAL_WATCHER(signal, color, guard)                                             \
   template <class Backend>                                                                                   \
   void ProfilerService<Backend>::pre##signal(edm::ModuleDescription const& desc) {                          \
-    if (not skipFirstEvent_) {                                                                               \
+    if (guard) {                                                                                             \
       auto mid = desc.id();                                                                                  \
       auto const& label = desc.moduleLabel();                                                                \
       std::string detail = label + " type=" + desc.moduleName();                                            \
@@ -792,9 +792,29 @@ void ProfilerService<Backend>::fillDescriptions(edm::ConfigurationDescriptions& 
   }                                                                                                          \
   template <class Backend>                                                                                   \
   void ProfilerService<Backend>::post##signal(edm::ModuleDescription const& desc) {                         \
-    if (not skipFirstEvent_) {                                                                               \
+    if (guard) {                                                                                             \
       auto mid = desc.id();                                                                                  \
       global_modules_in_flight_ranges_.end(global_domain_, __func__, #signal, "mid", mid);                  \
+    }                                                                                                        \
+  }
+
+// Macro for ES module construction (ComponentDescription) signal pairs, keyed by component id.
+#define DEFINE_ES_CONSTRUCTION_SIGNAL_WATCHER(signal, color)                                                 \
+  template <class Backend>                                                                                   \
+  void ProfilerService<Backend>::pre##signal(edm::eventsetup::ComponentDescription const& desc) {           \
+    if (not skipFirstEvent_) {                                                                               \
+      auto mid = desc.id_;                                                                                   \
+      auto const& label = desc.label_;                                                                       \
+      auto const& type = desc.type_;                                                                         \
+      std::string detail = label.empty() ? (type + "(type)") : (label + " type=" + type);                   \
+      global_ES_modules_in_flight_ranges_.start(global_domain_, color, __func__, #signal, detail, "mid", mid); \
+    }                                                                                                        \
+  }                                                                                                          \
+  template <class Backend>                                                                                   \
+  void ProfilerService<Backend>::post##signal(edm::eventsetup::ComponentDescription const& desc) {          \
+    if (not skipFirstEvent_) {                                                                               \
+      auto mid = desc.id_;                                                                                   \
+      global_ES_modules_in_flight_ranges_.end(global_domain_, __func__, #signal, "mid", mid);               \
     }                                                                                                        \
   }
 
@@ -812,6 +832,21 @@ void ProfilerService<Backend>::fillDescriptions(edm::ConfigurationDescriptions& 
     auto sid = sc.streamID();                                                                                \
     if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                 \
       event_in_flight_ranges_.end(stream_domain_[sid], __func__, #signal, "sid", sid);                      \
+    }                                                                                                        \
+  }
+
+// Macro for per-stream id (StreamID) signal pairs, keyed by stream id via source_in_flight_ranges_.
+#define DEFINE_STREAM_ID_SIGNAL_WATCHER(signal, color)                                                       \
+  template <class Backend>                                                                                   \
+  void ProfilerService<Backend>::pre##signal(edm::StreamID sid) {                                            \
+    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                 \
+      source_in_flight_ranges_.start(stream_domain_[sid], color, __func__, #signal, "", "sid", sid);        \
+    }                                                                                                        \
+  }                                                                                                          \
+  template <class Backend>                                                                                   \
+  void ProfilerService<Backend>::post##signal(edm::StreamID sid) {                                           \
+    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                 \
+      source_in_flight_ranges_.end(stream_domain_[sid], __func__, #signal, "sid", sid);                     \
     }                                                                                                        \
   }
 
@@ -910,19 +945,56 @@ void ProfilerService<Backend>::fillDescriptions(edm::ConfigurationDescriptions& 
     }                                                                                                        \
   }
 
-// Macro for global no-argument signal pairs, implemented as in-flight ranges keyed by the signal name.
-#define DEFINE_GLOBAL_SIGNAL_WATCHER(signal, color)                                                          \
+// Macro for global no-argument signal pairs, keyed by the signal name. `guard` selects when to record.
+#define DEFINE_GLOBAL_SIGNAL_WATCHER(signal, color, guard)                                                  \
   template <class Backend>                                                                                   \
   void ProfilerService<Backend>::pre##signal() {                                                            \
-    if (not skipFirstEvent_) {                                                                               \
+    if (guard) {                                                                                             \
       global_in_flight_ranges_.start(global_domain_, color, __func__, #signal, "", "signal", #signal);      \
     }                                                                                                        \
   }                                                                                                          \
   template <class Backend>                                                                                   \
   void ProfilerService<Backend>::post##signal() {                                                           \
-    if (not skipFirstEvent_) {                                                                               \
+    if (guard) {                                                                                             \
       global_in_flight_ranges_.end(global_domain_, __func__, #signal, "signal", #signal);                   \
     }                                                                                                        \
+  }
+
+// Macro for global signal pairs taking (and ignoring) a single argument. `guard` selects when to record.
+#define DEFINE_GLOBAL_ARG_SIGNAL_WATCHER(signal, color, guard, argType)                                     \
+  template <class Backend>                                                                                   \
+  void ProfilerService<Backend>::pre##signal(argType) {                                                     \
+    if (guard) {                                                                                             \
+      global_in_flight_ranges_.start(global_domain_, color, __func__, #signal, "", "signal", #signal);      \
+    }                                                                                                        \
+  }                                                                                                          \
+  template <class Backend>                                                                                   \
+  void ProfilerService<Backend>::post##signal(argType) {                                                    \
+    if (guard) {                                                                                             \
+      global_in_flight_ranges_.end(global_domain_, __func__, #signal, "signal", #signal);                   \
+    }                                                                                                        \
+  }
+
+// Macro for global signal pairs taking a file name (std::string), used as the range detail.
+#define DEFINE_GLOBAL_STRING_SIGNAL_WATCHER(signal, color)                                                   \
+  template <class Backend>                                                                                   \
+  void ProfilerService<Backend>::pre##signal(std::string const& lfn) {                                      \
+    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                      \
+      global_in_flight_ranges_.start(global_domain_, color, __func__, #signal, lfn, "signal", #signal);     \
+    }                                                                                                        \
+  }                                                                                                          \
+  template <class Backend>                                                                                   \
+  void ProfilerService<Backend>::post##signal(std::string const&) {                                         \
+    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                      \
+      global_in_flight_ranges_.end(global_domain_, __func__, #signal, "signal", #signal);                   \
+    }                                                                                                        \
+  }
+
+// Macro for a single no-argument global mark (instantaneous annotation, not a range).
+#define DEFINE_GLOBAL_MARK(name, color)                                                                     \
+  template <class Backend>                                                                                   \
+  void ProfilerService<Backend>::name() {                                                                   \
+    Backend::mark(global_domain_, #name, color);                                                            \
   }
 
 template <typename Backend>
@@ -949,12 +1021,9 @@ void ProfilerService<Backend>::preallocate(edm::service::SystemBounds const& bou
   }
 }
 
-template <class Backend>
-void ProfilerService<Backend>::postServicesConstruction() {
-  Backend::mark(global_domain_, "postServicesConstruction", Color::Grey);
-}
+DEFINE_GLOBAL_MARK(postServicesConstruction, Color::Grey)
 
-DEFINE_GLOBAL_SIGNAL_WATCHER(EventSetupConfigurationFinalized, Color::Blue)
+DEFINE_GLOBAL_SIGNAL_WATCHER(EventSetupConfigurationFinalized, Color::Blue, not skipFirstEvent_)
 
 template <class Backend>
 void ProfilerService<Backend>::eventSetupConfiguration(
@@ -964,8 +1033,8 @@ void ProfilerService<Backend>::eventSetupConfiguration(
   }
 }
 
-DEFINE_GLOBAL_SIGNAL_WATCHER(EventSetupModulesConstruction, Color::Blue_Light2)
-DEFINE_GLOBAL_SIGNAL_WATCHER(ModulesAndSourceConstruction, Color::Green_Light2)
+DEFINE_GLOBAL_SIGNAL_WATCHER(EventSetupModulesConstruction, Color::Blue_Light2, not skipFirstEvent_)
+DEFINE_GLOBAL_SIGNAL_WATCHER(ModulesAndSourceConstruction, Color::Green_Light2, not skipFirstEvent_)
 
 /******** Job begin/end signal implementations *************************************/
 
@@ -979,15 +1048,7 @@ void ProfilerService<Backend>::postBeginJob() {
   global_in_flight_ranges_.end(global_domain_, __func__, "BeginJob", "signal", "BeginJob");
 }
 
-template <class Backend>
-void ProfilerService<Backend>::preEndJob() {
-  global_in_flight_ranges_.start(global_domain_, Color::Grey, __func__, "EndJob", "", "signal", "EndJob");
-}
-
-template <class Backend>
-void ProfilerService<Backend>::postEndJob() {
-  global_in_flight_ranges_.end(global_domain_, __func__, "EndJob", "signal", "EndJob");
-}
+DEFINE_GLOBAL_SIGNAL_WATCHER(EndJob, Color::Grey, true)
 
 template <class Backend>
 void ProfilerService<Backend>::lookupInitializationComplete(edm::PathsAndConsumesOfModulesBase const&,
@@ -1000,64 +1061,17 @@ void ProfilerService<Backend>::lookupInitializationComplete(edm::PathsAndConsume
 DEFINE_STREAM_SIGNAL_WATCHER(BeginStream, Color::Grey)
 DEFINE_STREAM_SIGNAL_WATCHER(EndStream, Color::Grey)
 
-template <class Backend>
-void ProfilerService<Backend>::jobFailure() {
-  Backend::mark(global_domain_, "jobFailure", Color::Red);
-}
+DEFINE_GLOBAL_MARK(jobFailure, Color::Red)
 
 /******** Source transition signal implementations *************************************/
 
-template <class Backend>
-void ProfilerService<Backend>::preSourceNextTransition() {
-  global_in_flight_ranges_.start(global_domain_, Color::Yellow, __func__, "SourceNextTransition", "", "signal", "SourceNextTransition");
-}
+DEFINE_GLOBAL_SIGNAL_WATCHER(SourceNextTransition, Color::Yellow, true)
 
-template <class Backend>
-void ProfilerService<Backend>::postSourceNextTransition() {
-  global_in_flight_ranges_.end(global_domain_, __func__, "SourceNextTransition", "signal", "SourceNextTransition");
-}
+DEFINE_STREAM_ID_SIGNAL_WATCHER(SourceEvent, Color::Yellow)
 
-template <class Backend>
-void ProfilerService<Backend>::preSourceEvent(edm::StreamID sid) {
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    source_in_flight_ranges_.start(stream_domain_[sid], Color::Yellow, __func__, "SourceEvent", "", "sid", sid);
-  }
-}
+DEFINE_GLOBAL_ARG_SIGNAL_WATCHER(SourceLumi, Color::Yellow, not skipFirstEvent_ or globalFirstEventDone_, edm::LuminosityBlockIndex)
 
-template <class Backend>
-void ProfilerService<Backend>::postSourceEvent(edm::StreamID sid) {
-  if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    source_in_flight_ranges_.end(stream_domain_[sid], __func__, "SourceEvent", "sid", sid);
-  }
-}
-
-template <class Backend>
-void ProfilerService<Backend>::preSourceLumi(edm::LuminosityBlockIndex) {
-  if (not skipFirstEvent_ or globalFirstEventDone_) {
-    global_in_flight_ranges_.start(global_domain_, Color::Yellow, __func__, "SourceLumi", "", "signal", "SourceLumi");
-  }
-}
-
-template <class Backend>
-void ProfilerService<Backend>::postSourceLumi(edm::LuminosityBlockIndex) {
-  if (not skipFirstEvent_ or globalFirstEventDone_) {
-    global_in_flight_ranges_.end(global_domain_, __func__, "SourceLumi", "signal", "SourceLumi");
-  }
-}
-
-template <class Backend>
-void ProfilerService<Backend>::preSourceRun(edm::RunIndex) {
-  if (not skipFirstEvent_ or globalFirstEventDone_) {
-    global_in_flight_ranges_.start(global_domain_, Color::Yellow, __func__, "SourceRun", "", "signal", "SourceRun");
-  }
-}
-
-template <class Backend>
-void ProfilerService<Backend>::postSourceRun(edm::RunIndex) {
-  if (not skipFirstEvent_ or globalFirstEventDone_) {
-    global_in_flight_ranges_.end(global_domain_, __func__, "SourceRun", "signal", "SourceRun");
-  }
-}
+DEFINE_GLOBAL_ARG_SIGNAL_WATCHER(SourceRun, Color::Yellow, not skipFirstEvent_ or globalFirstEventDone_, edm::RunIndex)
 
 /******** Source process block signal implementations *************************************/
 
@@ -1077,61 +1091,13 @@ void ProfilerService<Backend>::postSourceProcessBlock(std::string const&) {
 
 /******** File signal implementations *************************************/
 
-template <class Backend>
-void ProfilerService<Backend>::preOpenFile(std::string const& lfn) {
-  if (not skipFirstEvent_ or globalFirstEventDone_) {
-    global_in_flight_ranges_.start(global_domain_, Color::Amber, __func__, "OpenFile", lfn, "signal", "OpenFile");
-  }
-}
+DEFINE_GLOBAL_STRING_SIGNAL_WATCHER(OpenFile, Color::Amber)
 
-template <class Backend>
-void ProfilerService<Backend>::postOpenFile(std::string const&) {
-  if (not skipFirstEvent_ or globalFirstEventDone_) {
-    global_in_flight_ranges_.end(global_domain_, __func__, "OpenFile", "signal", "OpenFile");
-  }
-}
+DEFINE_GLOBAL_STRING_SIGNAL_WATCHER(CloseFile, Color::Amber)
 
-template <class Backend>
-void ProfilerService<Backend>::preCloseFile(std::string const& lfn) {
-  if (not skipFirstEvent_ or globalFirstEventDone_) {
-    global_in_flight_ranges_.start(global_domain_, Color::Amber, __func__, "CloseFile", lfn, "signal", "CloseFile");
-  }
-}
+DEFINE_GLOBAL_SIGNAL_WATCHER(OpenOutputFiles, Color::Amber, not skipFirstEvent_ or globalFirstEventDone_)
 
-template <class Backend>
-void ProfilerService<Backend>::postCloseFile(std::string const&) {
-  if (not skipFirstEvent_ or globalFirstEventDone_) {
-    global_in_flight_ranges_.end(global_domain_, __func__, "CloseFile", "signal", "CloseFile");
-  }
-}
-
-template <class Backend>
-void ProfilerService<Backend>::preOpenOutputFiles() {
-  if (not skipFirstEvent_ or globalFirstEventDone_) {
-    global_in_flight_ranges_.start(global_domain_, Color::Amber, __func__, "OpenOutputFiles", "", "signal", "OpenOutputFiles");
-  }
-}
-
-template <class Backend>
-void ProfilerService<Backend>::postOpenOutputFiles() {
-  if (not skipFirstEvent_ or globalFirstEventDone_) {
-    global_in_flight_ranges_.end(global_domain_, __func__, "OpenOutputFiles", "signal", "OpenOutputFiles");
-  }
-}
-
-template <class Backend>
-void ProfilerService<Backend>::preCloseOutputFiles() {
-  if (not skipFirstEvent_ or globalFirstEventDone_) {
-    global_in_flight_ranges_.start(global_domain_, Color::Amber, __func__, "CloseOutputFiles", "", "signal", "CloseOutputFiles");
-  }
-}
-
-template <class Backend>
-void ProfilerService<Backend>::postCloseOutputFiles() {
-  if (not skipFirstEvent_ or globalFirstEventDone_) {
-    global_in_flight_ranges_.end(global_domain_, __func__, "CloseOutputFiles", "signal", "CloseOutputFiles");
-  }
-}
+DEFINE_GLOBAL_SIGNAL_WATCHER(CloseOutputFiles, Color::Amber, not skipFirstEvent_ or globalFirstEventDone_)
 
 /******** Global run/lumi and process block signal implementations *************************************/
 
@@ -1151,15 +1117,9 @@ DEFINE_STREAM_RUN_SIGNAL_WATCHER(StreamEndRun, Color::Grey)
 DEFINE_STREAM_LUMI_SIGNAL_WATCHER(StreamBeginLumi, Color::Grey)
 DEFINE_STREAM_LUMI_SIGNAL_WATCHER(StreamEndLumi, Color::Grey)
 
-template <class Backend>
-void ProfilerService<Backend>::beginProcessing() {
-  Backend::mark(global_domain_, "beginProcessing", Color::Grey);
-}
+DEFINE_GLOBAL_MARK(beginProcessing, Color::Grey)
 
-template <class Backend>
-void ProfilerService<Backend>::endProcessing() {
-  Backend::mark(global_domain_, "endProcessing", Color::Grey);
-}
+DEFINE_GLOBAL_MARK(endProcessing, Color::Grey)
 
 /******** Event signal implementations *************************************/
 
@@ -1214,29 +1174,12 @@ void ProfilerService<Backend>::postPathEvent(edm::StreamContext const& sc,
 
 /******** Module construction / job signal implementations *************************************/
 
-DEFINE_MODULE_DESC_SIGNAL_WATCHER(ModuleConstruction, Color::Green_Light2)
-DEFINE_MODULE_DESC_SIGNAL_WATCHER(ModuleDestruction, Color::Green_Light2)
-DEFINE_MODULE_DESC_SIGNAL_WATCHER(ModuleBeginJob, Color::Green_Dark1)
-DEFINE_MODULE_DESC_SIGNAL_WATCHER(SourceConstruction, Color::Yellow_Light2)
+DEFINE_MODULE_DESC_SIGNAL_WATCHER(ModuleConstruction, Color::Green_Light2, not skipFirstEvent_)
+DEFINE_MODULE_DESC_SIGNAL_WATCHER(ModuleDestruction, Color::Green_Light2, not skipFirstEvent_)
+DEFINE_MODULE_DESC_SIGNAL_WATCHER(ModuleBeginJob, Color::Green_Dark1, not skipFirstEvent_)
+DEFINE_MODULE_DESC_SIGNAL_WATCHER(SourceConstruction, Color::Yellow_Light2, not skipFirstEvent_)
 
-template <class Backend>
-void ProfilerService<Backend>::preModuleEndJob(edm::ModuleDescription const& desc) {
-  if (not skipFirstEvent_ or globalFirstEventDone_) {
-    auto mid = desc.id();
-    auto const& label = desc.moduleLabel();
-    std::string detail = label + " type=" + desc.moduleName();
-    global_modules_in_flight_ranges_.start(
-        global_domain_, highlightColor(Color::Green_Dark1, label), __func__, "ModuleEndJob", detail, "mid", mid);
-  }
-}
-
-template <class Backend>
-void ProfilerService<Backend>::postModuleEndJob(edm::ModuleDescription const& desc) {
-  if (not skipFirstEvent_ or globalFirstEventDone_) {
-    auto mid = desc.id();
-    global_modules_in_flight_ranges_.end(global_domain_, __func__, "ModuleEndJob", "mid", mid);
-  }
-}
+DEFINE_MODULE_DESC_SIGNAL_WATCHER(ModuleEndJob, Color::Green_Dark1, not skipFirstEvent_ or globalFirstEventDone_)
 
 /******** Module stream context signal implementations *********************************************/
 
@@ -1272,24 +1215,7 @@ DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(ModuleWriteLumi, Color::Amber)
 
 /******** ES module signal implementations *************************************/
 
-template <class Backend>
-void ProfilerService<Backend>::preESModuleConstruction(edm::eventsetup::ComponentDescription const& desc) {
-  if (not skipFirstEvent_) {
-    auto mid = desc.id_;
-    auto const& label = desc.label_;
-    auto const& type = desc.type_;
-    std::string detail = label.empty() ? (type + "(type)") : (label + " type=" + type);
-    global_ES_modules_in_flight_ranges_.start(global_domain_, Color::Blue_Light2, __func__, "ESModuleConstruction", detail, "mid", mid);
-  }
-}
-
-template <class Backend>
-void ProfilerService<Backend>::postESModuleConstruction(edm::eventsetup::ComponentDescription const& desc) {
-  if (not skipFirstEvent_) {
-    auto mid = desc.id_;
-    global_ES_modules_in_flight_ranges_.end(global_domain_, __func__, "ESModuleConstruction", "mid", mid);
-  }
-}
+DEFINE_ES_CONSTRUCTION_SIGNAL_WATCHER(ESModuleConstruction, Color::Blue_Light2)
 
 template <class Backend>
 void ProfilerService<Backend>::postESModuleRegistration(
@@ -1321,22 +1247,14 @@ void ProfilerService<Backend>::esSyncIOVQueuing(edm::IOVSyncValue const&) {
   Backend::mark(global_domain_, "esSyncIOVQueuing", Color::Blue);
 }
 
-template <class Backend>
-void ProfilerService<Backend>::preESSyncIOV(edm::IOVSyncValue const&) {
-  global_in_flight_ranges_.start(global_domain_, Color::Blue, __func__, "ESSyncIOV", "", "signal", "ESSyncIOV");
-}
-
-template <class Backend>
-void ProfilerService<Backend>::postESSyncIOV(edm::IOVSyncValue const&) {
-  global_in_flight_ranges_.end(global_domain_, __func__, "ESSyncIOV", "signal", "ESSyncIOV");
-}
+DEFINE_GLOBAL_ARG_SIGNAL_WATCHER(ESSyncIOV, Color::Blue, true, edm::IOVSyncValue const&)
 
 /******** Infrastructure/setup signal implementations *************************************/
 
-DEFINE_GLOBAL_SIGNAL_WATCHER(FinishSchedule, Color::Grey)
-DEFINE_GLOBAL_SIGNAL_WATCHER(PrincipalsCreation, Color::Grey)
-DEFINE_GLOBAL_SIGNAL_WATCHER(ScheduleConsistencyCheck, Color::Grey)
-DEFINE_GLOBAL_SIGNAL_WATCHER(ModulesInitializationFinalized, Color::Grey)
+DEFINE_GLOBAL_SIGNAL_WATCHER(FinishSchedule, Color::Grey, not skipFirstEvent_)
+DEFINE_GLOBAL_SIGNAL_WATCHER(PrincipalsCreation, Color::Grey, not skipFirstEvent_)
+DEFINE_GLOBAL_SIGNAL_WATCHER(ScheduleConsistencyCheck, Color::Grey, not skipFirstEvent_)
+DEFINE_GLOBAL_SIGNAL_WATCHER(ModulesInitializationFinalized, Color::Grey, not skipFirstEvent_)
 
 /******** Early termination signal implementations *****************************/
 
@@ -1368,5 +1286,10 @@ void ProfilerService<Backend>::preSourceEarlyTermination(edm::TerminationOrigin)
 #undef DEFINE_GLOBAL_RUN_SIGNAL_WATCHER
 #undef DEFINE_GLOBAL_LUMI_SIGNAL_WATCHER
 #undef DEFINE_GLOBAL_SIGNAL_WATCHER
+#undef DEFINE_GLOBAL_ARG_SIGNAL_WATCHER
+#undef DEFINE_GLOBAL_STRING_SIGNAL_WATCHER
+#undef DEFINE_ES_CONSTRUCTION_SIGNAL_WATCHER
+#undef DEFINE_STREAM_ID_SIGNAL_WATCHER
+#undef DEFINE_GLOBAL_MARK
 
 #endif  // __FWCore_Services_ProfilerService_h__
