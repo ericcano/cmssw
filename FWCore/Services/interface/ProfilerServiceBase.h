@@ -26,7 +26,6 @@
 /// @note This class contains the undelying utility classes.
 class ProfilerServiceBase {
 public:
-
   enum class Color : std::size_t {
     // Black, no variants
     Black = 0,
@@ -99,9 +98,8 @@ public:
     // Exclusive (write) access — use with std::lock_guard
     void lock() {
       int expected = 0;
-      while (!state_.compare_exchange_weak(expected, kWriteLocked,
-                                           std::memory_order_acquire,
-                                           std::memory_order_relaxed)) {
+      while (
+          !state_.compare_exchange_weak(expected, kWriteLocked, std::memory_order_acquire, std::memory_order_relaxed)) {
         expected = 0;
       }
     }
@@ -113,9 +111,7 @@ public:
       while (true) {
         int val = state_.load(std::memory_order_relaxed);
         if (val >= 0 &&
-            state_.compare_exchange_weak(val, val + 1,
-                                         std::memory_order_acquire,
-                                         std::memory_order_relaxed)) {
+            state_.compare_exchange_weak(val, val + 1, std::memory_order_acquire, std::memory_order_relaxed)) {
           return;
         }
       }
@@ -213,8 +209,8 @@ public:
       }();
       auto const msg = makeMessage_(signal, std::string_view{}, keyNames, keyArgs...);
       if (not extracted) {
-        auto fullmsg = std::string("Warning: trying to end a range that is not started in ") + func + " name=" +
-                       msg + " signal=" + std::string(signal);
+        auto fullmsg = std::string("Warning: trying to end a range that is not started in ") + func + " name=" + msg +
+                       " signal=" + std::string(signal);
         Backend::mark(domain, fullmsg.c_str(), Color::Red);
         std::cout << fullmsg << std::endl;
         return;
@@ -287,7 +283,6 @@ public:
     RangePool<Range>& range_pool_;
     tbb::concurrent_unordered_map<Key, size_t, boost::hash<Key>> in_flight_;
   };
-
 };
 
 #endif  // FWCore_Services_ProfilerServiceBase_h__

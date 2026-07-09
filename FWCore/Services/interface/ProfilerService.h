@@ -51,68 +51,68 @@
  * Helper macros to declare signal handler pairs by parameter signature.
  */
 #define DECLARE_SIGNAL_WATCHER_NOARGS(signal) \
-  void pre##signal();                          \
+  void pre##signal();                         \
   void post##signal();
 
 #define DECLARE_SIGNAL_WATCHER_PROCESS_CONTEXT(signal) \
   void pre##signal(edm::ProcessContext const&);        \
   void post##signal();
 
-#define DECLARE_SIGNAL_WATCHER_SOURCE_PROCESS_BLOCK(signal)   \
-  void pre##signal();                                         \
+#define DECLARE_SIGNAL_WATCHER_SOURCE_PROCESS_BLOCK(signal) \
+  void pre##signal();                                       \
   void post##signal(std::string const&);
 
-#define DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT(signal)                  \
-  void pre##signal(edm::StreamContext const&);                        \
+#define DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT(signal) \
+  void pre##signal(edm::StreamContext const&);        \
   void post##signal(edm::StreamContext const&);
 
-#define DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT(signal)                  \
-  void pre##signal(edm::GlobalContext const&);                        \
+#define DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT(signal) \
+  void pre##signal(edm::GlobalContext const&);        \
   void post##signal(edm::GlobalContext const&);
 
-#define DECLARE_SIGNAL_WATCHER_STREAM_ID(signal)                     \
-  void pre##signal(edm::StreamID);                                   \
+#define DECLARE_SIGNAL_WATCHER_STREAM_ID(signal) \
+  void pre##signal(edm::StreamID);               \
   void post##signal(edm::StreamID);
 
-#define DECLARE_SIGNAL_WATCHER_LUMIBLOCK_INDEX(signal)                \
-  void pre##signal(edm::LuminosityBlockIndex);                      \
+#define DECLARE_SIGNAL_WATCHER_LUMIBLOCK_INDEX(signal) \
+  void pre##signal(edm::LuminosityBlockIndex);         \
   void post##signal(edm::LuminosityBlockIndex);
 
-#define DECLARE_SIGNAL_WATCHER_RUN_INDEX(signal)                      \
-  void pre##signal(edm::RunIndex);                                  \
+#define DECLARE_SIGNAL_WATCHER_RUN_INDEX(signal) \
+  void pre##signal(edm::RunIndex);               \
   void post##signal(edm::RunIndex);
 
-#define DECLARE_SIGNAL_WATCHER_STRING(signal)                         \
-  void pre##signal(std::string const&);                             \
+#define DECLARE_SIGNAL_WATCHER_STRING(signal) \
+  void pre##signal(std::string const&);       \
   void post##signal(std::string const&);
 
-#define DECLARE_SIGNAL_WATCHER_MODULE_DESCRIPTION(signal)             \
-  void pre##signal(edm::ModuleDescription const&);                   \
+#define DECLARE_SIGNAL_WATCHER_MODULE_DESCRIPTION(signal) \
+  void pre##signal(edm::ModuleDescription const&);        \
   void post##signal(edm::ModuleDescription const&);
 
-#define DECLARE_SIGNAL_WATCHER_COMPONENT_DESCRIPTION(signal)          \
-  void pre##signal(edm::eventsetup::ComponentDescription const&);   \
+#define DECLARE_SIGNAL_WATCHER_COMPONENT_DESCRIPTION(signal)      \
+  void pre##signal(edm::eventsetup::ComponentDescription const&); \
   void post##signal(edm::eventsetup::ComponentDescription const&);
 
-#define DECLARE_SIGNAL_WATCHER_IOV_SYNC_VALUE(signal)                 \
-  void pre##signal(edm::IOVSyncValue const&);                       \
+#define DECLARE_SIGNAL_WATCHER_IOV_SYNC_VALUE(signal) \
+  void pre##signal(edm::IOVSyncValue const&);         \
   void post##signal(edm::IOVSyncValue const&);
 
-#define DECLARE_SIGNAL_WATCHER_EVENT_SETUP_RECORD_KEY_ES_MODULE_CALLING_CONTEXT(signal) \
+#define DECLARE_SIGNAL_WATCHER_EVENT_SETUP_RECORD_KEY_ES_MODULE_CALLING_CONTEXT(signal)              \
   void pre##signal(edm::eventsetup::EventSetupRecordKey const&, edm::ESModuleCallingContext const&); \
   void post##signal(edm::eventsetup::EventSetupRecordKey const&, edm::ESModuleCallingContext const&);
 
-#define DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_PATH_CONTEXT(signal)     \
+#define DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_PATH_CONTEXT(signal) \
   void pre##signal(edm::StreamContext const&, edm::PathContext const&);
 
 #define DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_PATH_CONTEXT_HLT_STATUS(signal) \
   void post##signal(edm::StreamContext const&, edm::PathContext const&, edm::HLTPathStatus const&);
 
-#define DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_MODULE_CALLING_CONTEXT(signal) \
+#define DECLARE_SIGNAL_WATCHER_STREAM_CONTEXT_MODULE_CALLING_CONTEXT(signal)     \
   void pre##signal(edm::StreamContext const&, edm::ModuleCallingContext const&); \
   void post##signal(edm::StreamContext const&, edm::ModuleCallingContext const&);
 
-#define DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT_MODULE_CALLING_CONTEXT(signal) \
+#define DECLARE_SIGNAL_WATCHER_GLOBAL_CONTEXT_MODULE_CALLING_CONTEXT(signal)     \
   void pre##signal(edm::GlobalContext const&, edm::ModuleCallingContext const&); \
   void post##signal(edm::GlobalContext const&, edm::ModuleCallingContext const&);
 
@@ -122,8 +122,7 @@
 #define DECLARE_SIGNAL_WATCHER_TERMINATION_ORIGIN_GLOBAL(signal) \
   void pre##signal(edm::GlobalContext const&, edm::TerminationOrigin);
 
-#define DECLARE_SIGNAL_WATCHER_TERMINATION_ORIGIN_SOURCE(signal) \
-  void pre##signal(edm::TerminationOrigin);
+#define DECLARE_SIGNAL_WATCHER_TERMINATION_ORIGIN_SOURCE(signal) void pre##signal(edm::TerminationOrigin);
 
 // Useful for starting constructs using std::string::operator+() with a litteral string.
 using namespace std::string_literals;
@@ -146,7 +145,7 @@ using namespace std::string_literals;
  * - profilerStop() (maybe wrapped into a class with the previous function)
  */
 template <typename Backend>
-class ProfilerService: public ProfilerServiceBase {
+class ProfilerService : public ProfilerServiceBase {
 public:
   using Range = typename Backend::Range;
   using Domain = typename Backend::Domain;
@@ -180,8 +179,7 @@ public:
   void preEventSetupConfigurationFinalized();
   void postEventSetupConfigurationFinalized();
 
-  void eventSetupConfiguration(edm::eventsetup::ESRecordsToProductResolverIndices const&,
-                               edm::ProcessContext const&);
+  void eventSetupConfiguration(edm::eventsetup::ESRecordsToProductResolverIndices const&, edm::ProcessContext const&);
 
   void preModulesInitializationFinalized();
   void postModulesInitializationFinalized();
@@ -378,10 +376,9 @@ public:
 
 private:
   using SharedRangePool = ProfilerServiceBase::RangePool<Range>;
-  using GlobalInFlightRanges =
-      ProfilerServiceBase::InFlightRanges<Backend, Range, Domain, std::string>;
-  using GlobalESInFlightRanges =
-      ProfilerServiceBase::InFlightRanges<Backend, Range, Domain, unsigned int, std::string, edm::ESModuleCallingContext::State, std::uintptr_t>;
+  using GlobalInFlightRanges = ProfilerServiceBase::InFlightRanges<Backend, Range, Domain, std::string>;
+  using GlobalESInFlightRanges = ProfilerServiceBase::
+      InFlightRanges<Backend, Range, Domain, unsigned int, std::string, edm::ESModuleCallingContext::State, std::uintptr_t>;
   using StreamModuleInFlightRanges =
       ProfilerServiceBase::InFlightRanges<Backend, Range, Domain, unsigned int, unsigned int>;
   using TransformInFlightRanges =
@@ -429,10 +426,10 @@ private:
   StreamModuleInFlightRanges stream_modules_event_in_flight_ranges_;
   StreamModuleInFlightRanges stream_modules_event_acquire_in_flight_ranges_;
   TransformInFlightRanges transform_in_flight_ranges_;
-  IndexInFlightRanges event_in_flight_ranges_;              // per-stream event ranges, keyed by stream id
-  IndexInFlightRanges source_in_flight_ranges_;             // per-stream source ranges, keyed by stream id
-  PathInFlightRanges path_in_flight_ranges_;                // per-stream, per-path ranges, keyed by (sid, pid, isEndPath)
-  IndexInFlightRanges global_modules_in_flight_ranges_;     // global per-module ranges, keyed by module id
+  IndexInFlightRanges event_in_flight_ranges_;           // per-stream event ranges, keyed by stream id
+  IndexInFlightRanges source_in_flight_ranges_;          // per-stream source ranges, keyed by stream id
+  PathInFlightRanges path_in_flight_ranges_;             // per-stream, per-path ranges, keyed by (sid, pid, isEndPath)
+  IndexInFlightRanges global_modules_in_flight_ranges_;  // global per-module ranges, keyed by module id
   IndexInFlightRanges global_ES_modules_in_flight_ranges_;  // global per-ES-module ranges, keyed by component id
   IndexInFlightRanges global_run_in_flight_ranges_;         // global per-run ranges, keyed by run number
   TwoIndexInFlightRanges global_lumi_in_flight_ranges_;     // global per-lumi ranges, keyed by (run, lumi)
@@ -694,307 +691,322 @@ void ProfilerService<Backend>::fillDescriptions(edm::ConfigurationDescriptions& 
 /******** Signal-watcher implementation macros (expanded in the sections below) ********/
 
 // ES module signal ranges are keyed dynamically to avoid collisions from overlapping calls.
-#define DEFINE_ES_SIGNAL_WATCHER(signal, color)                                                             \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::pre##signal(edm::eventsetup::EventSetupRecordKey const& iKey,               \
-                                             edm::ESModuleCallingContext const& esmcc) {                     \
-    auto mid = esmcc.componentDescription()->id_;                                                            \
-    auto const& label = esmcc.componentDescription()->label_;                                                \
-    auto const& type = esmcc.componentDescription()->type_;                                                  \
-    auto const& state = esmcc.state();                                                                       \
-    auto const callId = esmcc.callID();                                                                      \
-    std::string detail = label.empty() ? (type + "(type)") : (label + " type=" + type);                     \
-    global_es_in_flight_ranges_.start(global_domain_, color, __func__, #signal, detail, "mid record state callId", mid, iKey.name(), state, callId); \
-  }                                                                                                          \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::post##signal(edm::eventsetup::EventSetupRecordKey const& iKey,              \
-                                              edm::ESModuleCallingContext const& esmcc) {                    \
-    auto mid = esmcc.componentDescription()->id_;                                                            \
-    auto const& state = esmcc.state();                                                                       \
-    auto const callId = esmcc.callID();                                                                      \
-    global_es_in_flight_ranges_.end(global_domain_, __func__, #signal, "mid record state callId", mid, iKey.name(), state, callId); \
+#define DEFINE_ES_SIGNAL_WATCHER(signal, color)                                                                        \
+  template <class Backend>                                                                                             \
+  void ProfilerService<Backend>::pre##signal(edm::eventsetup::EventSetupRecordKey const& iKey,                         \
+                                             edm::ESModuleCallingContext const& esmcc) {                               \
+    auto mid = esmcc.componentDescription()->id_;                                                                      \
+    auto const& label = esmcc.componentDescription()->label_;                                                          \
+    auto const& type = esmcc.componentDescription()->type_;                                                            \
+    auto const& state = esmcc.state();                                                                                 \
+    auto const callId = esmcc.callID();                                                                                \
+    std::string detail = label.empty() ? (type + "(type)") : (label + " type=" + type);                                \
+    global_es_in_flight_ranges_.start(                                                                                 \
+        global_domain_, color, __func__, #signal, detail, "mid record state callId", mid, iKey.name(), state, callId); \
+  }                                                                                                                    \
+  template <class Backend>                                                                                             \
+  void ProfilerService<Backend>::post##signal(edm::eventsetup::EventSetupRecordKey const& iKey,                        \
+                                              edm::ESModuleCallingContext const& esmcc) {                              \
+    auto mid = esmcc.componentDescription()->id_;                                                                      \
+    auto const& state = esmcc.state();                                                                                 \
+    auto const callId = esmcc.callID();                                                                                \
+    global_es_in_flight_ranges_.end(                                                                                   \
+        global_domain_, __func__, #signal, "mid record state callId", mid, iKey.name(), state, callId);                \
   }
 
 // Macro for per-stream module (StreamContext, ModuleCallingContext) signal pairs, keyed by (sid, mid).
-#define DEFINE_MODULE_STREAM_SIGNAL_WATCHER(signal, inFlightRanges, color)                                   \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::pre##signal(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) { \
-    auto sid = sc.streamID();                                                                                \
-    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                 \
-      auto mid = mcc.moduleDescription()->id();                                                              \
-      auto const& label = mcc.moduleDescription()->moduleLabel();                                            \
-      std::string detail = label + " type=" + mcc.moduleDescription()->moduleName();                        \
-      inFlightRanges.start(stream_domain_[sid], highlightColor(color, label), __func__, #signal, detail, "sid mid", sid, mid); \
-    }                                                                                                        \
-  }                                                                                                          \
-  template <class Backend>                                                                                   \
+#define DEFINE_MODULE_STREAM_SIGNAL_WATCHER(signal, inFlightRanges, color)                                          \
+  template <class Backend>                                                                                          \
+  void ProfilerService<Backend>::pre##signal(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {  \
+    auto sid = sc.streamID();                                                                                       \
+    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                        \
+      auto mid = mcc.moduleDescription()->id();                                                                     \
+      auto const& label = mcc.moduleDescription()->moduleLabel();                                                   \
+      std::string detail = label + " type=" + mcc.moduleDescription()->moduleName();                                \
+      inFlightRanges.start(                                                                                         \
+          stream_domain_[sid], highlightColor(color, label), __func__, #signal, detail, "sid mid", sid, mid);       \
+    }                                                                                                               \
+  }                                                                                                                 \
+  template <class Backend>                                                                                          \
   void ProfilerService<Backend>::post##signal(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) { \
-    auto sid = sc.streamID();                                                                                \
-    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                 \
-      auto mid = mcc.moduleDescription()->id();                                                              \
-      inFlightRanges.end(stream_domain_[sid], __func__, #signal, "sid mid", sid, mid);                       \
-    }                                                                                                        \
+    auto sid = sc.streamID();                                                                                       \
+    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                        \
+      auto mid = mcc.moduleDescription()->id();                                                                     \
+      inFlightRanges.end(stream_domain_[sid], __func__, #signal, "sid mid", sid, mid);                              \
+    }                                                                                                               \
   }
 
 // Macro for module transform (StreamContext, ModuleCallingContext) signal pairs, keyed by (sid, mid, callId).
-#define DEFINE_MODULE_TRANSFORM_SIGNAL_WATCHER(signal, color)                                                \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::pre##signal(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) { \
-    auto sid = sc.streamID();                                                                                \
-    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                 \
-      auto mid = mcc.moduleDescription()->id();                                                              \
-      auto const& label = mcc.moduleDescription()->moduleLabel();                                            \
-      auto const callId = mcc.callID();                                                                      \
-      std::string detail = label + " type=" + mcc.moduleDescription()->moduleName();                        \
-      transform_in_flight_ranges_.start(                                                                     \
-          stream_domain_[sid], highlightColor(color, label), __func__, #signal, detail, "sid mid callId", sid, mid, callId); \
-    }                                                                                                        \
-  }                                                                                                          \
-  template <class Backend>                                                                                   \
+#define DEFINE_MODULE_TRANSFORM_SIGNAL_WATCHER(signal, color)                                                       \
+  template <class Backend>                                                                                          \
+  void ProfilerService<Backend>::pre##signal(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) {  \
+    auto sid = sc.streamID();                                                                                       \
+    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                        \
+      auto mid = mcc.moduleDescription()->id();                                                                     \
+      auto const& label = mcc.moduleDescription()->moduleLabel();                                                   \
+      auto const callId = mcc.callID();                                                                             \
+      std::string detail = label + " type=" + mcc.moduleDescription()->moduleName();                                \
+      transform_in_flight_ranges_.start(stream_domain_[sid],                                                        \
+                                        highlightColor(color, label),                                               \
+                                        __func__,                                                                   \
+                                        #signal,                                                                    \
+                                        detail,                                                                     \
+                                        "sid mid callId",                                                           \
+                                        sid,                                                                        \
+                                        mid,                                                                        \
+                                        callId);                                                                    \
+    }                                                                                                               \
+  }                                                                                                                 \
+  template <class Backend>                                                                                          \
   void ProfilerService<Backend>::post##signal(edm::StreamContext const& sc, edm::ModuleCallingContext const& mcc) { \
-    auto sid = sc.streamID();                                                                                \
-    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                 \
-      auto mid = mcc.moduleDescription()->id();                                                              \
-      auto const callId = mcc.callID();                                                                      \
-      transform_in_flight_ranges_.end(stream_domain_[sid], __func__, #signal, "sid mid callId", sid, mid, callId); \
-    }                                                                                                        \
+    auto sid = sc.streamID();                                                                                       \
+    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                        \
+      auto mid = mcc.moduleDescription()->id();                                                                     \
+      auto const callId = mcc.callID();                                                                             \
+      transform_in_flight_ranges_.end(stream_domain_[sid], __func__, #signal, "sid mid callId", sid, mid, callId);  \
+    }                                                                                                               \
   }
 
 // Macro for global-module (GlobalContext, ModuleCallingContext) signal pairs, keyed by module id.
-#define DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(signal, color)                                                   \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::pre##signal(edm::GlobalContext const& gc, edm::ModuleCallingContext const& mcc) { \
-    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                      \
-      auto mid = mcc.moduleDescription()->id();                                                              \
-      auto const& label = mcc.moduleDescription()->moduleLabel();                                            \
-      std::string detail = label + " type=" + mcc.moduleDescription()->moduleName();                        \
-      global_modules_in_flight_ranges_.start(global_domain_, highlightColor(color, label), __func__, #signal, detail, "mid", mid); \
-    }                                                                                                        \
-  }                                                                                                          \
-  template <class Backend>                                                                                   \
+#define DEFINE_GLOBAL_MODULE_SIGNAL_WATCHER(signal, color)                                                          \
+  template <class Backend>                                                                                          \
+  void ProfilerService<Backend>::pre##signal(edm::GlobalContext const& gc, edm::ModuleCallingContext const& mcc) {  \
+    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                             \
+      auto mid = mcc.moduleDescription()->id();                                                                     \
+      auto const& label = mcc.moduleDescription()->moduleLabel();                                                   \
+      std::string detail = label + " type=" + mcc.moduleDescription()->moduleName();                                \
+      global_modules_in_flight_ranges_.start(                                                                       \
+          global_domain_, highlightColor(color, label), __func__, #signal, detail, "mid", mid);                     \
+    }                                                                                                               \
+  }                                                                                                                 \
+  template <class Backend>                                                                                          \
   void ProfilerService<Backend>::post##signal(edm::GlobalContext const& gc, edm::ModuleCallingContext const& mcc) { \
-    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                      \
-      auto mid = mcc.moduleDescription()->id();                                                              \
-      global_modules_in_flight_ranges_.end(global_domain_, __func__, #signal, "mid", mid);                  \
-    }                                                                                                        \
+    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                             \
+      auto mid = mcc.moduleDescription()->id();                                                                     \
+      global_modules_in_flight_ranges_.end(global_domain_, __func__, #signal, "mid", mid);                          \
+    }                                                                                                               \
   }
 
 // Macro for module (ModuleDescription) signal pairs, keyed by module id. `guard` selects when to record.
-#define DEFINE_MODULE_DESC_SIGNAL_WATCHER(signal, color, guard)                                             \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::pre##signal(edm::ModuleDescription const& desc) {                          \
-    if (guard) {                                                                                             \
-      auto mid = desc.id();                                                                                  \
-      auto const& label = desc.moduleLabel();                                                                \
-      std::string detail = label + " type=" + desc.moduleName();                                            \
-      global_modules_in_flight_ranges_.start(global_domain_, highlightColor(color, label), __func__, #signal, detail, "mid", mid); \
-    }                                                                                                        \
-  }                                                                                                          \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::post##signal(edm::ModuleDescription const& desc) {                         \
-    if (guard) {                                                                                             \
-      auto mid = desc.id();                                                                                  \
-      global_modules_in_flight_ranges_.end(global_domain_, __func__, #signal, "mid", mid);                  \
-    }                                                                                                        \
+#define DEFINE_MODULE_DESC_SIGNAL_WATCHER(signal, color, guard)                                 \
+  template <class Backend>                                                                      \
+  void ProfilerService<Backend>::pre##signal(edm::ModuleDescription const& desc) {              \
+    if (guard) {                                                                                \
+      auto mid = desc.id();                                                                     \
+      auto const& label = desc.moduleLabel();                                                   \
+      std::string detail = label + " type=" + desc.moduleName();                                \
+      global_modules_in_flight_ranges_.start(                                                   \
+          global_domain_, highlightColor(color, label), __func__, #signal, detail, "mid", mid); \
+    }                                                                                           \
+  }                                                                                             \
+  template <class Backend>                                                                      \
+  void ProfilerService<Backend>::post##signal(edm::ModuleDescription const& desc) {             \
+    if (guard) {                                                                                \
+      auto mid = desc.id();                                                                     \
+      global_modules_in_flight_ranges_.end(global_domain_, __func__, #signal, "mid", mid);      \
+    }                                                                                           \
   }
 
 // Macro for ES module construction (ComponentDescription) signal pairs, keyed by component id.
-#define DEFINE_ES_CONSTRUCTION_SIGNAL_WATCHER(signal, color)                                                 \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::pre##signal(edm::eventsetup::ComponentDescription const& desc) {           \
-    if (not skipFirstEvent_) {                                                                               \
-      auto mid = desc.id_;                                                                                   \
-      auto const& label = desc.label_;                                                                       \
-      auto const& type = desc.type_;                                                                         \
-      std::string detail = label.empty() ? (type + "(type)") : (label + " type=" + type);                   \
+#define DEFINE_ES_CONSTRUCTION_SIGNAL_WATCHER(signal, color)                                                   \
+  template <class Backend>                                                                                     \
+  void ProfilerService<Backend>::pre##signal(edm::eventsetup::ComponentDescription const& desc) {              \
+    if (not skipFirstEvent_) {                                                                                 \
+      auto mid = desc.id_;                                                                                     \
+      auto const& label = desc.label_;                                                                         \
+      auto const& type = desc.type_;                                                                           \
+      std::string detail = label.empty() ? (type + "(type)") : (label + " type=" + type);                      \
       global_ES_modules_in_flight_ranges_.start(global_domain_, color, __func__, #signal, detail, "mid", mid); \
-    }                                                                                                        \
-  }                                                                                                          \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::post##signal(edm::eventsetup::ComponentDescription const& desc) {          \
-    if (not skipFirstEvent_) {                                                                               \
-      auto mid = desc.id_;                                                                                   \
-      global_ES_modules_in_flight_ranges_.end(global_domain_, __func__, #signal, "mid", mid);               \
-    }                                                                                                        \
+    }                                                                                                          \
+  }                                                                                                            \
+  template <class Backend>                                                                                     \
+  void ProfilerService<Backend>::post##signal(edm::eventsetup::ComponentDescription const& desc) {             \
+    if (not skipFirstEvent_) {                                                                                 \
+      auto mid = desc.id_;                                                                                     \
+      global_ES_modules_in_flight_ranges_.end(global_domain_, __func__, #signal, "mid", mid);                  \
+    }                                                                                                          \
   }
 
 // Macro for per-stream (StreamContext) signal pairs, keyed by stream id via event_in_flight_ranges_.
-#define DEFINE_STREAM_SIGNAL_WATCHER(signal, color)                                                          \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::pre##signal(edm::StreamContext const& sc) {                                \
-    auto sid = sc.streamID();                                                                                \
-    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                 \
-      event_in_flight_ranges_.start(stream_domain_[sid], color, __func__, #signal, "", "sid", sid);         \
-    }                                                                                                        \
-  }                                                                                                          \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::post##signal(edm::StreamContext const& sc) {                               \
-    auto sid = sc.streamID();                                                                                \
-    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                 \
-      event_in_flight_ranges_.end(stream_domain_[sid], __func__, #signal, "sid", sid);                      \
-    }                                                                                                        \
+#define DEFINE_STREAM_SIGNAL_WATCHER(signal, color)                                                 \
+  template <class Backend>                                                                          \
+  void ProfilerService<Backend>::pre##signal(edm::StreamContext const& sc) {                        \
+    auto sid = sc.streamID();                                                                       \
+    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                        \
+      event_in_flight_ranges_.start(stream_domain_[sid], color, __func__, #signal, "", "sid", sid); \
+    }                                                                                               \
+  }                                                                                                 \
+  template <class Backend>                                                                          \
+  void ProfilerService<Backend>::post##signal(edm::StreamContext const& sc) {                       \
+    auto sid = sc.streamID();                                                                       \
+    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                        \
+      event_in_flight_ranges_.end(stream_domain_[sid], __func__, #signal, "sid", sid);              \
+    }                                                                                               \
   }
 
 // Macro for per-stream id (StreamID) signal pairs, keyed by stream id via source_in_flight_ranges_.
-#define DEFINE_STREAM_ID_SIGNAL_WATCHER(signal, color)                                                       \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::pre##signal(edm::StreamID sid) {                                            \
-    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                 \
-      source_in_flight_ranges_.start(stream_domain_[sid], color, __func__, #signal, "", "sid", sid);        \
-    }                                                                                                        \
-  }                                                                                                          \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::post##signal(edm::StreamID sid) {                                           \
-    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                 \
-      source_in_flight_ranges_.end(stream_domain_[sid], __func__, #signal, "sid", sid);                     \
-    }                                                                                                        \
+#define DEFINE_STREAM_ID_SIGNAL_WATCHER(signal, color)                                               \
+  template <class Backend>                                                                           \
+  void ProfilerService<Backend>::pre##signal(edm::StreamID sid) {                                    \
+    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                         \
+      source_in_flight_ranges_.start(stream_domain_[sid], color, __func__, #signal, "", "sid", sid); \
+    }                                                                                                \
+  }                                                                                                  \
+  template <class Backend>                                                                           \
+  void ProfilerService<Backend>::post##signal(edm::StreamID sid) {                                   \
+    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                         \
+      source_in_flight_ranges_.end(stream_domain_[sid], __func__, #signal, "sid", sid);              \
+    }                                                                                                \
   }
 
 // Macro for per-stream run (StreamContext) signal pairs, keyed by (sid, run).
-#define DEFINE_STREAM_RUN_SIGNAL_WATCHER(signal, color)                                                      \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::pre##signal(edm::StreamContext const& sc) {                                \
-    auto sid = sc.streamID();                                                                                \
-    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                 \
-      auto run = sc.eventID().run();                                                                         \
-      std::string detail = "runSlot=" + std::to_string(sc.runIndex().value());                              \
+#define DEFINE_STREAM_RUN_SIGNAL_WATCHER(signal, color)                                                               \
+  template <class Backend>                                                                                            \
+  void ProfilerService<Backend>::pre##signal(edm::StreamContext const& sc) {                                          \
+    auto sid = sc.streamID();                                                                                         \
+    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                          \
+      auto run = sc.eventID().run();                                                                                  \
+      std::string detail = "runSlot=" + std::to_string(sc.runIndex().value());                                        \
       stream_run_in_flight_ranges_.start(stream_domain_[sid], color, __func__, #signal, detail, "sid run", sid, run); \
-    }                                                                                                        \
-  }                                                                                                          \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::post##signal(edm::StreamContext const& sc) {                               \
-    auto sid = sc.streamID();                                                                                \
-    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                 \
-      auto run = sc.eventID().run();                                                                         \
-      stream_run_in_flight_ranges_.end(stream_domain_[sid], __func__, #signal, "sid run", sid, run);        \
-    }                                                                                                        \
+    }                                                                                                                 \
+  }                                                                                                                   \
+  template <class Backend>                                                                                            \
+  void ProfilerService<Backend>::post##signal(edm::StreamContext const& sc) {                                         \
+    auto sid = sc.streamID();                                                                                         \
+    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                          \
+      auto run = sc.eventID().run();                                                                                  \
+      stream_run_in_flight_ranges_.end(stream_domain_[sid], __func__, #signal, "sid run", sid, run);                  \
+    }                                                                                                                 \
   }
 
 // Macro for per-stream lumi (StreamContext) signal pairs, keyed by (sid, run, lumi).
-#define DEFINE_STREAM_LUMI_SIGNAL_WATCHER(signal, color)                                                     \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::pre##signal(edm::StreamContext const& sc) {                                \
-    auto sid = sc.streamID();                                                                                \
-    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                 \
-      auto run = sc.eventID().run();                                                                         \
-      auto lumi = sc.eventID().luminosityBlock();                                                            \
-      std::string detail = "runSlot=" + std::to_string(sc.runIndex().value()) + " lumiSlot=" + std::to_string(sc.luminosityBlockIndex().value()); \
-      stream_lumi_in_flight_ranges_.start(stream_domain_[sid], color, __func__, #signal, detail, "sid run lumi", sid, run, lumi); \
-    }                                                                                                        \
-  }                                                                                                          \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::post##signal(edm::StreamContext const& sc) {                               \
-    auto sid = sc.streamID();                                                                                \
-    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                 \
-      auto run = sc.eventID().run();                                                                         \
-      auto lumi = sc.eventID().luminosityBlock();                                                            \
+#define DEFINE_STREAM_LUMI_SIGNAL_WATCHER(signal, color)                                                         \
+  template <class Backend>                                                                                       \
+  void ProfilerService<Backend>::pre##signal(edm::StreamContext const& sc) {                                     \
+    auto sid = sc.streamID();                                                                                    \
+    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                     \
+      auto run = sc.eventID().run();                                                                             \
+      auto lumi = sc.eventID().luminosityBlock();                                                                \
+      std::string detail = "runSlot=" + std::to_string(sc.runIndex().value()) +                                  \
+                           " lumiSlot=" + std::to_string(sc.luminosityBlockIndex().value());                     \
+      stream_lumi_in_flight_ranges_.start(                                                                       \
+          stream_domain_[sid], color, __func__, #signal, detail, "sid run lumi", sid, run, lumi);                \
+    }                                                                                                            \
+  }                                                                                                              \
+  template <class Backend>                                                                                       \
+  void ProfilerService<Backend>::post##signal(edm::StreamContext const& sc) {                                    \
+    auto sid = sc.streamID();                                                                                    \
+    if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {                                                     \
+      auto run = sc.eventID().run();                                                                             \
+      auto lumi = sc.eventID().luminosityBlock();                                                                \
       stream_lumi_in_flight_ranges_.end(stream_domain_[sid], __func__, #signal, "sid run lumi", sid, run, lumi); \
-    }                                                                                                        \
+    }                                                                                                            \
   }
 
 // Macro for global (GlobalContext) signal pairs, keyed by the signal name via global_in_flight_ranges_.
-#define DEFINE_GLOBAL_CONTEXT_SIGNAL_WATCHER(signal, color)                                                  \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::pre##signal(edm::GlobalContext const&) {                                   \
-    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                      \
-      global_in_flight_ranges_.start(global_domain_, color, __func__, #signal, "", "signal", #signal);      \
-    }                                                                                                        \
-  }                                                                                                          \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::post##signal(edm::GlobalContext const&) {                                  \
-    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                      \
-      global_in_flight_ranges_.end(global_domain_, __func__, #signal, "signal", #signal);                   \
-    }                                                                                                        \
+#define DEFINE_GLOBAL_CONTEXT_SIGNAL_WATCHER(signal, color)                                            \
+  template <class Backend>                                                                             \
+  void ProfilerService<Backend>::pre##signal(edm::GlobalContext const&) {                              \
+    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                \
+      global_in_flight_ranges_.start(global_domain_, color, __func__, #signal, "", "signal", #signal); \
+    }                                                                                                  \
+  }                                                                                                    \
+  template <class Backend>                                                                             \
+  void ProfilerService<Backend>::post##signal(edm::GlobalContext const&) {                             \
+    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                \
+      global_in_flight_ranges_.end(global_domain_, __func__, #signal, "signal", #signal);              \
+    }                                                                                                  \
   }
 
 // Macro for global run (GlobalContext) signal pairs, keyed by run number.
-#define DEFINE_GLOBAL_RUN_SIGNAL_WATCHER(signal, color)                                                      \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::pre##signal(edm::GlobalContext const& gc) {                                \
-    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                      \
-      auto run = gc.luminosityBlockID().run();                                                               \
-      std::string detail = "runSlot=" + std::to_string(gc.runIndex().value());                              \
-      global_run_in_flight_ranges_.start(global_domain_, color, __func__, #signal, detail, "run", run);     \
-    }                                                                                                        \
-  }                                                                                                          \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::post##signal(edm::GlobalContext const& gc) {                               \
-    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                      \
-      auto run = gc.luminosityBlockID().run();                                                               \
-      global_run_in_flight_ranges_.end(global_domain_, __func__, #signal, "run", run);                      \
-    }                                                                                                        \
+#define DEFINE_GLOBAL_RUN_SIGNAL_WATCHER(signal, color)                                                 \
+  template <class Backend>                                                                              \
+  void ProfilerService<Backend>::pre##signal(edm::GlobalContext const& gc) {                            \
+    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                 \
+      auto run = gc.luminosityBlockID().run();                                                          \
+      std::string detail = "runSlot=" + std::to_string(gc.runIndex().value());                          \
+      global_run_in_flight_ranges_.start(global_domain_, color, __func__, #signal, detail, "run", run); \
+    }                                                                                                   \
+  }                                                                                                     \
+  template <class Backend>                                                                              \
+  void ProfilerService<Backend>::post##signal(edm::GlobalContext const& gc) {                           \
+    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                 \
+      auto run = gc.luminosityBlockID().run();                                                          \
+      global_run_in_flight_ranges_.end(global_domain_, __func__, #signal, "run", run);                  \
+    }                                                                                                   \
   }
 
 // Macro for global lumi (GlobalContext) signal pairs, keyed by (run, lumi).
-#define DEFINE_GLOBAL_LUMI_SIGNAL_WATCHER(signal, color)                                                     \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::pre##signal(edm::GlobalContext const& gc) {                                \
-    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                      \
-      auto run = gc.luminosityBlockID().run();                                                               \
-      auto lumi = gc.luminosityBlockID().luminosityBlock();                                                  \
-      std::string detail = "runSlot=" + std::to_string(gc.runIndex().value()) + " lumiSlot=" + std::to_string(gc.luminosityBlockIndex().value()); \
+#define DEFINE_GLOBAL_LUMI_SIGNAL_WATCHER(signal, color)                                                            \
+  template <class Backend>                                                                                          \
+  void ProfilerService<Backend>::pre##signal(edm::GlobalContext const& gc) {                                        \
+    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                             \
+      auto run = gc.luminosityBlockID().run();                                                                      \
+      auto lumi = gc.luminosityBlockID().luminosityBlock();                                                         \
+      std::string detail = "runSlot=" + std::to_string(gc.runIndex().value()) +                                     \
+                           " lumiSlot=" + std::to_string(gc.luminosityBlockIndex().value());                        \
       global_lumi_in_flight_ranges_.start(global_domain_, color, __func__, #signal, detail, "run lumi", run, lumi); \
-    }                                                                                                        \
-  }                                                                                                          \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::post##signal(edm::GlobalContext const& gc) {                               \
-    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                      \
-      auto run = gc.luminosityBlockID().run();                                                               \
-      auto lumi = gc.luminosityBlockID().luminosityBlock();                                                  \
-      global_lumi_in_flight_ranges_.end(global_domain_, __func__, #signal, "run lumi", run, lumi);          \
-    }                                                                                                        \
+    }                                                                                                               \
+  }                                                                                                                 \
+  template <class Backend>                                                                                          \
+  void ProfilerService<Backend>::post##signal(edm::GlobalContext const& gc) {                                       \
+    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                             \
+      auto run = gc.luminosityBlockID().run();                                                                      \
+      auto lumi = gc.luminosityBlockID().luminosityBlock();                                                         \
+      global_lumi_in_flight_ranges_.end(global_domain_, __func__, #signal, "run lumi", run, lumi);                  \
+    }                                                                                                               \
   }
 
 // Macro for global no-argument signal pairs, keyed by the signal name. `guard` selects when to record.
-#define DEFINE_GLOBAL_SIGNAL_WATCHER(signal, color, guard)                                                  \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::pre##signal() {                                                            \
-    if (guard) {                                                                                             \
-      global_in_flight_ranges_.start(global_domain_, color, __func__, #signal, "", "signal", #signal);      \
-    }                                                                                                        \
-  }                                                                                                          \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::post##signal() {                                                           \
-    if (guard) {                                                                                             \
-      global_in_flight_ranges_.end(global_domain_, __func__, #signal, "signal", #signal);                   \
-    }                                                                                                        \
+#define DEFINE_GLOBAL_SIGNAL_WATCHER(signal, color, guard)                                             \
+  template <class Backend>                                                                             \
+  void ProfilerService<Backend>::pre##signal() {                                                       \
+    if (guard) {                                                                                       \
+      global_in_flight_ranges_.start(global_domain_, color, __func__, #signal, "", "signal", #signal); \
+    }                                                                                                  \
+  }                                                                                                    \
+  template <class Backend>                                                                             \
+  void ProfilerService<Backend>::post##signal() {                                                      \
+    if (guard) {                                                                                       \
+      global_in_flight_ranges_.end(global_domain_, __func__, #signal, "signal", #signal);              \
+    }                                                                                                  \
   }
 
 // Macro for global signal pairs taking (and ignoring) a single argument. `guard` selects when to record.
-#define DEFINE_GLOBAL_ARG_SIGNAL_WATCHER(signal, color, guard, argType)                                     \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::pre##signal(argType) {                                                     \
-    if (guard) {                                                                                             \
-      global_in_flight_ranges_.start(global_domain_, color, __func__, #signal, "", "signal", #signal);      \
-    }                                                                                                        \
-  }                                                                                                          \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::post##signal(argType) {                                                    \
-    if (guard) {                                                                                             \
-      global_in_flight_ranges_.end(global_domain_, __func__, #signal, "signal", #signal);                   \
-    }                                                                                                        \
+#define DEFINE_GLOBAL_ARG_SIGNAL_WATCHER(signal, color, guard, argType)                                \
+  template <class Backend>                                                                             \
+  void ProfilerService<Backend>::pre##signal(argType) {                                                \
+    if (guard) {                                                                                       \
+      global_in_flight_ranges_.start(global_domain_, color, __func__, #signal, "", "signal", #signal); \
+    }                                                                                                  \
+  }                                                                                                    \
+  template <class Backend>                                                                             \
+  void ProfilerService<Backend>::post##signal(argType) {                                               \
+    if (guard) {                                                                                       \
+      global_in_flight_ranges_.end(global_domain_, __func__, #signal, "signal", #signal);              \
+    }                                                                                                  \
   }
 
 // Macro for global signal pairs taking a file name (std::string), used as the range detail.
-#define DEFINE_GLOBAL_STRING_SIGNAL_WATCHER(signal, color)                                                   \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::pre##signal(std::string const& lfn) {                                      \
-    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                      \
-      global_in_flight_ranges_.start(global_domain_, color, __func__, #signal, lfn, "signal", #signal);     \
-    }                                                                                                        \
-  }                                                                                                          \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::post##signal(std::string const&) {                                         \
-    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                      \
-      global_in_flight_ranges_.end(global_domain_, __func__, #signal, "signal", #signal);                   \
-    }                                                                                                        \
+#define DEFINE_GLOBAL_STRING_SIGNAL_WATCHER(signal, color)                                              \
+  template <class Backend>                                                                              \
+  void ProfilerService<Backend>::pre##signal(std::string const& lfn) {                                  \
+    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                 \
+      global_in_flight_ranges_.start(global_domain_, color, __func__, #signal, lfn, "signal", #signal); \
+    }                                                                                                   \
+  }                                                                                                     \
+  template <class Backend>                                                                              \
+  void ProfilerService<Backend>::post##signal(std::string const&) {                                     \
+    if (not skipFirstEvent_ or globalFirstEventDone_) {                                                 \
+      global_in_flight_ranges_.end(global_domain_, __func__, #signal, "signal", #signal);               \
+    }                                                                                                   \
   }
 
 // Macro for a single no-argument global mark (instantaneous annotation, not a range).
-#define DEFINE_GLOBAL_MARK(name, color)                                                                     \
-  template <class Backend>                                                                                   \
-  void ProfilerService<Backend>::name() {                                                                   \
-    Backend::mark(global_domain_, #name, color);                                                            \
+#define DEFINE_GLOBAL_MARK(name, color)          \
+  template <class Backend>                       \
+  void ProfilerService<Backend>::name() {        \
+    Backend::mark(global_domain_, #name, color); \
   }
 
 template <typename Backend>
@@ -1026,8 +1038,8 @@ DEFINE_GLOBAL_MARK(postServicesConstruction, Color::Grey)
 DEFINE_GLOBAL_SIGNAL_WATCHER(EventSetupConfigurationFinalized, Color::Blue, not skipFirstEvent_)
 
 template <class Backend>
-void ProfilerService<Backend>::eventSetupConfiguration(
-    edm::eventsetup::ESRecordsToProductResolverIndices const&, edm::ProcessContext const&) {
+void ProfilerService<Backend>::eventSetupConfiguration(edm::eventsetup::ESRecordsToProductResolverIndices const&,
+                                                       edm::ProcessContext const&) {
   if (not skipFirstEvent_) {
     Backend::mark(global_domain_, "eventSetupConfiguration", Color::Blue);
   }
@@ -1069,7 +1081,10 @@ DEFINE_GLOBAL_SIGNAL_WATCHER(SourceNextTransition, Color::Yellow, true)
 
 DEFINE_STREAM_ID_SIGNAL_WATCHER(SourceEvent, Color::Yellow)
 
-DEFINE_GLOBAL_ARG_SIGNAL_WATCHER(SourceLumi, Color::Yellow, not skipFirstEvent_ or globalFirstEventDone_, edm::LuminosityBlockIndex)
+DEFINE_GLOBAL_ARG_SIGNAL_WATCHER(SourceLumi,
+                                 Color::Yellow,
+                                 not skipFirstEvent_ or globalFirstEventDone_,
+                                 edm::LuminosityBlockIndex)
 
 DEFINE_GLOBAL_ARG_SIGNAL_WATCHER(SourceRun, Color::Yellow, not skipFirstEvent_ or globalFirstEventDone_, edm::RunIndex)
 
@@ -1078,7 +1093,8 @@ DEFINE_GLOBAL_ARG_SIGNAL_WATCHER(SourceRun, Color::Yellow, not skipFirstEvent_ o
 template <class Backend>
 void ProfilerService<Backend>::preSourceProcessBlock() {
   if (not skipFirstEvent_ or globalFirstEventDone_) {
-    global_in_flight_ranges_.start(global_domain_, Color::Yellow, __func__, "SourceProcessBlock", "", "signal", "SourceProcessBlock");
+    global_in_flight_ranges_.start(
+        global_domain_, Color::Yellow, __func__, "SourceProcessBlock", "", "signal", "SourceProcessBlock");
   }
 }
 
@@ -1127,7 +1143,8 @@ template <class Backend>
 void ProfilerService<Backend>::preEvent(edm::StreamContext const& sc) {
   auto sid = sc.streamID();
   if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    std::string detail = fmt::sprintf("run=%d lumi=%d event=%d", sc.eventID().run(), sc.eventID().luminosityBlock(), sc.eventID().event());
+    std::string detail = fmt::sprintf(
+        "run=%d lumi=%d event=%d", sc.eventID().run(), sc.eventID().luminosityBlock(), sc.eventID().event());
     event_in_flight_ranges_.start(stream_domain_[sid], Color::Yellow_Dark1, __func__, "Event", detail, "sid", sid);
   }
 }
@@ -1157,7 +1174,15 @@ void ProfilerService<Backend>::prePathEvent(edm::StreamContext const& sc, edm::P
   auto sid = sc.streamID();
   auto pid = pc.pathID();
   if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    path_in_flight_ranges_.start(stream_domain_[sid], Color::Grey, __func__, "PathEvent", pc.pathName(), "sid pid isEndPath", sid, pid, pc.isEndPath());
+    path_in_flight_ranges_.start(stream_domain_[sid],
+                                 Color::Grey,
+                                 __func__,
+                                 "PathEvent",
+                                 pc.pathName(),
+                                 "sid pid isEndPath",
+                                 sid,
+                                 pid,
+                                 pc.isEndPath());
   }
 }
 
@@ -1168,7 +1193,8 @@ void ProfilerService<Backend>::postPathEvent(edm::StreamContext const& sc,
   auto sid = sc.streamID();
   auto pid = pc.pathID();
   if (not skipFirstEvent_ or streamFirstEventDone_[sid]) {
-    path_in_flight_ranges_.end(stream_domain_[sid], __func__, "PathEvent", "sid pid isEndPath", sid, pid, pc.isEndPath());
+    path_in_flight_ranges_.end(
+        stream_domain_[sid], __func__, "PathEvent", "sid pid isEndPath", sid, pid, pc.isEndPath());
   }
 }
 

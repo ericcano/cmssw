@@ -171,7 +171,8 @@ namespace {
         if (domain_) {
           taskId_ = __itt_id_make(this, itt_extra_counter_.fetch_add(1, std::memory_order_relaxed));
           __itt_id_create(domain_, taskId_);
-          std::cout << "Starting task " << message << " with ID " << taskId_.d2 << " in domain " << domain.name() << std::endl;
+          std::cout << "Starting task " << message << " with ID " << taskId_.d2 << " in domain " << domain.name()
+                    << std::endl;
           __itt_task_begin_overlapped(domain_, taskId_, __itt_null, __itt_string_handle_create(message));
           active_ = true;
         }
