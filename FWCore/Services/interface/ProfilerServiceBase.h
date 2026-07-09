@@ -180,8 +180,10 @@ public:
                Color color,
                char const* func,
                std::string_view signal,
+               std::string_view detail,
+               std::string_view keyNames,
                KeyArgs const&... keyArgs) {
-      auto const msg = makeMessage_(signal, keyArgs...);
+      auto const msg = makeMessage_(signal, detail, keyNames, keyArgs...);
       auto const key = makeKey_(keyArgs...);
       auto const slot = range_pool_.acquireSlot();
       auto [found, inserted] = [&]() {
@@ -202,13 +204,14 @@ public:
     void end(Domain& domain,
              char const* func,
              std::string_view signal,
+             std::string_view keyNames,
              KeyArgs const&... keyArgs) {
       auto const key = makeKey_(keyArgs...);
       auto extracted = [&]() {
         std::lock_guard<RWSpinLock> guard(mutex_);
         return in_flight_.unsafe_extract(key);
       }();
-      auto const msg = makeMessage_(signal, keyArgs...);
+      auto const msg = makeMessage_(signal, std::string_view{}, keyNames, keyArgs...);
       if (not extracted) {
         auto fullmsg = std::string("Warning: trying to end a range that is not started in ") + func + " name=" +
                        msg + " signal=" + std::string(signal);
@@ -238,14 +241,41 @@ public:
       }
     }
 
-    // Build the range message as the signal name followed by each indexing key parameter. A key that
-    // stringifies to the signal itself (e.g. the signal-string keyed global ranges) is not repeated.
-    static std::string makeMessage_(std::string_view signal, KeyArgs const&... keyArgs) {
+    // Render the ES module calling state as a readable word rather than its numeric value.
+    static std::string keyToString_(edm::ESModuleCallingContext::State state) {
+      return state == edm::ESModuleCallingContext::State::kRunning ? "running" : "prefetching";
+    }
+
+    // Build the range message as the signal name, an optional human-readable detail (module label,
+    // file name, path name, ...), and each indexing key parameter rendered as "<name>=<value>".
+    // `keyNames` is a space-separated list matching the key arguments in order; an empty name emits
+    // the bare value. A key that stringifies to the signal itself (e.g. the signal-string keyed
+    // global ranges) is not repeated.
+    static std::string makeMessage_(std::string_view signal,
+                                    std::string_view detail,
+                                    std::string_view keyNames,
+                                    KeyArgs const&... keyArgs) {
       std::string msg{signal};
+      if (not detail.empty()) {
+        msg += ' ';
+        msg += detail;
+      }
+      std::string_view rest = keyNames;
+      auto nextName = [&]() -> std::string_view {
+        auto const sp = rest.find(' ');
+        auto const tok = rest.substr(0, sp);
+        rest = (sp == std::string_view::npos) ? std::string_view{} : rest.substr(sp + 1);
+        return tok;
+      };
       auto append = [&](auto const& value) {
+        auto const name = nextName();
         auto const s = keyToString_(value);
         if (s != signal) {
           msg += ' ';
+          if (not name.empty()) {
+            msg += name;
+            msg += '=';
+          }
           msg += s;
         }
       };
