@@ -70,6 +70,22 @@ public:
   };
 
   static size_t to_underlying(Color c) noexcept { return static_cast<std::size_t>(c); }
+
+  // Switch color to amber, but keep the same relative darkness/lightness level.
+  static Color to_highlighted(Color c) noexcept {
+    for (auto const start : {to_underlying(Color::Red_Dark2),
+                             to_underlying(Color::Green_Dark2),
+                             to_underlying(Color::Blue_Dark2),
+                             to_underlying(Color::Amber_Dark2),
+                             to_underlying(Color::Grey_Dark2),
+                             to_underlying(Color::Yellow_Dark2)}) {
+      auto const v = to_underlying(c);
+      if (v >= start and v < start + 5)
+        return static_cast<Color>(to_underlying(Color::Amber_Dark2) + (v - start));
+    }
+    return Color::Amber;  // singletons (Black / White)
+  }
+
   /**
     * @brief Abstract color enumeration the derived classes can translate (or disregard).
     */
@@ -167,7 +183,8 @@ public:
   public:
     using Key = std::tuple<std::decay_t<KeyArgs>...>;
 
-    explicit InFlightRanges(RangePool<Range>& range_pool) : range_pool_(range_pool) {}
+    explicit InFlightRanges(RangePool<Range>& range_pool, bool show_detailed_info = true)
+        : range_pool_(range_pool), show_detailed_info_(show_detailed_info) {}
 
     // The range message is built automatically as the signal name followed by every key parameter
     // used for range indexing (see makeMessage_), so callers only pass the color, function, signal
@@ -247,11 +264,14 @@ public:
     // `keyNames` is a space-separated list matching the key arguments in order; an empty name emits
     // the bare value. A key that stringifies to the signal itself (e.g. the signal-string keyed
     // global ranges) is not repeated.
-    static std::string makeMessage_(std::string_view signal,
-                                    std::string_view detail,
-                                    std::string_view keyNames,
-                                    KeyArgs const&... keyArgs) {
+    std::string makeMessage_(std::string_view signal,
+                             std::string_view detail,
+                             std::string_view keyNames,
+                             KeyArgs const&... keyArgs) {
       std::string msg{signal};
+      if (not show_detailed_info_) {
+        return msg;
+      }
       if (not detail.empty()) {
         msg += ' ';
         msg += detail;
@@ -281,6 +301,7 @@ public:
 
     RWSpinLock mutex_;
     RangePool<Range>& range_pool_;
+    bool show_detailed_info_;
     tbb::concurrent_unordered_map<Key, size_t, boost::hash<Key>> in_flight_;
   };
 };
