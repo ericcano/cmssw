@@ -173,12 +173,15 @@ public:
 
     explicit InFlightRanges(RangePool<Range>& range_pool) : range_pool_(range_pool) {}
 
+    // The range message is built automatically as the signal name followed by every key parameter
+    // used for range indexing (see makeMessage_), so callers only pass the color, function, signal
+    // and key arguments.
     void start(Domain& domain,
-               std::string const& msg,
                Color color,
                char const* func,
                std::string_view signal,
                KeyArgs const&... keyArgs) {
+      auto const msg = makeMessage_(signal, keyArgs...);
       auto const key = makeKey_(keyArgs...);
       auto const slot = range_pool_.acquireSlot();
       auto [found, inserted] = [&]() {
@@ -197,7 +200,6 @@ public:
     }
 
     void end(Domain& domain,
-             std::string const& msg,
              char const* func,
              std::string_view signal,
              KeyArgs const&... keyArgs) {
@@ -206,6 +208,7 @@ public:
         std::lock_guard<RWSpinLock> guard(mutex_);
         return in_flight_.unsafe_extract(key);
       }();
+      auto const msg = makeMessage_(signal, keyArgs...);
       if (not extracted) {
         auto fullmsg = std::string("Warning: trying to end a range that is not started in ") + func + " name=" +
                        msg + " signal=" + std::string(signal);
@@ -220,6 +223,35 @@ public:
 
   private:
     static Key makeKey_(KeyArgs const&... keyArgs) { return Key{std::decay_t<KeyArgs>(keyArgs)...}; }
+
+    // Stringify a single key argument: strings verbatim, enums via their underlying value, and any
+    // other arithmetic type via std::to_string.
+    template <typename T>
+    static std::string keyToString_(T const& value) {
+      using U = std::decay_t<T>;
+      if constexpr (std::is_same_v<U, std::string>) {
+        return value;
+      } else if constexpr (std::is_enum_v<U>) {
+        return std::to_string(static_cast<std::underlying_type_t<U>>(value));
+      } else {
+        return std::to_string(value);
+      }
+    }
+
+    // Build the range message as the signal name followed by each indexing key parameter. A key that
+    // stringifies to the signal itself (e.g. the signal-string keyed global ranges) is not repeated.
+    static std::string makeMessage_(std::string_view signal, KeyArgs const&... keyArgs) {
+      std::string msg{signal};
+      auto append = [&](auto const& value) {
+        auto const s = keyToString_(value);
+        if (s != signal) {
+          msg += ' ';
+          msg += s;
+        }
+      };
+      (append(keyArgs), ...);
+      return msg;
+    }
 
     RWSpinLock mutex_;
     RangePool<Range>& range_pool_;
